@@ -29,9 +29,9 @@
             <span class="text-[11px] text-slate-500">48 Karyawan</span>
         </div>
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Total Lembur Diterima</span>
+            <span class="text-xs font-semibold text-brand-orange uppercase tracking-wider">Total Lembur Diterima</span>
             <div class="text-2xl font-bold text-slate-900 mt-1">Rp 12.850.000</div>
-            <span class="text-[11px] text-indigo-600 font-medium">Berdasarkan Jam Lembur Valid</span>
+            <span class="text-[11px] text-brand-orange font-medium">Berdasarkan Jam Lembur Valid</span>
         </div>
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
             <span class="text-xs font-semibold text-rose-600 uppercase tracking-wider">Total Potongan Absensi</span>
@@ -45,11 +45,11 @@
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Periode Bulan</label>
-                <input type="month" value="2026-08" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <input type="month" value="2026-08" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Departemen / Divisi</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="">Semua Departemen</option>
                     <option value="it">IT & Tech</option>
                     <option value="hrd">HRD & General Affair</option>
@@ -59,7 +59,7 @@
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Status Pembayaran</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="">Semua Status</option>
                     <option value="paid">Sudah Dibayar</option>
                     <option value="pending">Draft / Belum Transfer</option>
@@ -68,7 +68,7 @@
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Cari Karyawan</label>
                 <div class="relative">
-                    <input type="text" placeholder="Nama / NIK..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" placeholder="Nama / NIK..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                     <tr class="hover:bg-slate-50 transition">
                         <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">BS</div>
+                                <div class="w-9 h-9 rounded-full bg-brand-orange/20 text-brand-orange font-bold flex items-center justify-center text-xs">BS</div>
                                 <div>
                                     <div class="font-semibold text-sm">Budi Santoso</div>
                                     <div class="text-xs text-slate-400">IT & Tech • Software Engineer</div>
@@ -200,12 +200,12 @@
 
             <div class="p-3 bg-slate-100 rounded-lg flex justify-between font-bold text-slate-900 text-sm">
                 <span>Total Netto (THP):</span>
-                <span id="slipThp" class="font-mono text-indigo-600">-</span>
+                <span id="slipThp" class="font-mono text-brand-orange">-</span>
             </div>
         </div>
         <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
             <button onclick="closeModalSlip()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">Tutup</button>
-            <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition flex items-center gap-1.5">
+            <button class="px-4 py-2 bg-brand-orange text-white rounded-lg text-xs font-semibold hover:bg-brand-orange transition flex items-center gap-1.5">
                 <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak PDF
             </button>
         </div>
