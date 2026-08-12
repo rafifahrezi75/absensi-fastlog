@@ -18,7 +18,7 @@ import Riwayat from './Pages/User/Riwayat/Index';
 import Login from './Pages/User/Auth/Login';
 
 // Auth
-import Login from './Pages/Auth/Login';
+import AuthLogin from './Pages/Auth/Login';
 
 function App() {
     return (
@@ -27,17 +27,14 @@ function App() {
                 {/* Auth Route */}
                 <Route path="/login" element={<Login />} />
 
-                {/* Redirect root to user dashboard or admin */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                
-                {/* User Routes (Assumed default dashboard is user, but based on routes/web.php it was admin. Let's make user home at /dashboard for now or /user) */}
-                {/* Wait, the original route '/' redirected to 'dashboard', which was 'admin/dashboard'. Let's match the old structure. */}
-
-                {/* Redirect root to /login */}
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                {/* Redirect root '/' langsung ke admin/dashboard */}
+                <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
                 
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminLayout />}>
+                    {/* Default jika mengakses /admin */}
+                    <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                    
                     <Route path="dashboard" element={<AdminDashboard />} />
                     <Route path="attendance" element={<Attendance />} />
                     <Route path="permissions" element={<Permissions />} />
@@ -48,13 +45,16 @@ function App() {
 
                 {/* User Routes */}
                 <Route path="/user" element={<UserLayout />}>
+                    {/* Default jika mengakses /user */}
+                    <Route index element={<Navigate to="/user/home" replace />} />
+                    
                     <Route path="home" element={<Home />} />
                     <Route path="pengajuan" element={<FormPengajuan />} />
                     <Route path="riwayat" element={<Riwayat />} />
                 </Route>
-                
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
+
+                {/* Catch-all route jika URL tidak ditemukan */}
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
             </Routes>
         </BrowserRouter>
     );
