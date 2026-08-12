@@ -39,9 +39,9 @@
             <span class="text-[11px] text-rose-600 font-medium">Form/Bukti Tidak Valid</span>
         </div>
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Total Jam Lembur ACC</span>
+            <span class="text-xs font-semibold text-brand-orange uppercase tracking-wider">Total Jam Lembur ACC</span>
             <div class="text-2xl font-bold text-slate-900 mt-1">128.5 Jam</div>
-            <span class="text-[11px] text-indigo-600 font-medium">Siap Dihitung di Payroll</span>
+            <span class="text-[11px] text-brand-orange font-medium">Siap Dihitung di Payroll</span>
         </div>
     </div>
 
@@ -50,7 +50,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Status Approval</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="pending">Menunggu Persetujuan (Pending)</option>
                     <option value="approved">Disetujui (Approved)</option>
                     <option value="rejected">Ditolak (Rejected)</option>
@@ -59,7 +59,7 @@
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Kategori Pengajuan</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="">Semua Kategori</option>
                     <option value="sakit">Sakit</option>
                     <option value="izin">Izin / Cuti</option>
@@ -69,12 +69,12 @@
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Rentang Tanggal</label>
-                <input type="date" value="2026-08-10" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <input type="date" value="2026-08-10" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Cari Karyawan</label>
                 <div class="relative">
-                    <input type="text" placeholder="Nama / NIK..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" placeholder="Nama / NIK..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
                 </div>
             </div>
@@ -122,7 +122,7 @@
                             Demam tinggi dan flu, disarankan istirahat oleh dokter.
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button onclick="openModalPreview('Surat Dokter - Siti Aminah', 'Surat_Dokter_Siti.jpg')" class="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                            <button onclick="openModalPreview('Surat Dokter - Siti Aminah', 'Surat_Dokter_Siti.jpg')" class="inline-flex items-center gap-1.5 text-xs text-brand-orange hover:text-brand-orange/80 font-medium">
                                 <i data-lucide="paperclip" class="w-3.5 h-3.5"></i> Surat_Dokter.jpg
                             </button>
                         </td>
@@ -147,7 +147,7 @@
                     <tr class="hover:bg-slate-50 transition">
                         <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">BS</div>
+                                <div class="w-9 h-9 rounded-full bg-brand-orange/20 text-brand-orange font-bold flex items-center justify-center text-xs">BS</div>
                                 <div>
                                     <div class="font-semibold text-sm">Budi Santoso</div>
                                     <div class="text-xs text-slate-400">Software Engineer</div>
@@ -155,13 +155,13 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-semibold px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
+                            <span class="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-xs font-semibold px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
                                 <i data-lucide="timer" class="w-3.5 h-3.5"></i> Lembur
                             </span>
                         </td>
                         <td class="px-6 py-4 text-xs whitespace-nowrap">
                             <div class="font-medium text-slate-800">10 Agt 2026</div>
-                            <div class="text-indigo-600 font-semibold">17:00 - 20:30 (3.5 Jam)</div>
+                            <div class="text-brand-orange font-semibold">17:00 - 20:30 (3.5 Jam)</div>
                         </td>
                         <td class="px-6 py-4 text-xs text-slate-600 max-w-xs truncate">
                             Deploy update sistem modul absensi & integrasi API fingerprint.
@@ -210,7 +210,7 @@
                             Perbaikan server jaringan dan setting mesin absensi di cabang Barat.
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button onclick="openModalPreview('Foto Lokasi - Deni Pratama', 'Foto_Lokasi.jpg')" class="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                            <button onclick="openModalPreview('Foto Lokasi - Deni Pratama', 'Foto_Lokasi.jpg')" class="inline-flex items-center gap-1.5 text-xs text-brand-orange hover:text-brand-orange/80 font-medium">
                                 <i data-lucide="image" class="w-3.5 h-3.5"></i> Foto_Lokasi.jpg
                             </button>
                         </td>

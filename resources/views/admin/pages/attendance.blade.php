@@ -15,7 +15,7 @@
             <button class="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
                 <i data-lucide="download" class="w-4 h-4"></i> Export Excel
             </button>
-            <button onclick="openModalKoreksi()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+            <button onclick="openModalKoreksi()" class="flex items-center gap-2 bg-brand-orange hover:bg-brand-orange text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
                 <i data-lucide="plus" class="w-4 h-4"></i> Input Absen Manual
             </button>
         </div>
@@ -52,13 +52,13 @@
             <!-- Filter Tanggal -->
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal</label>
-                <input type="date" value="2026-08-10" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <input type="date" value="2026-08-10" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
             </div>
 
             <!-- Filter Status -->
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Status Kehadiran</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="">Semua Status</option>
                     <option value="tepat">Hadir Tepat Waktu</option>
                     <option value="telat">Terlambat</option>
@@ -71,7 +71,7 @@
             <!-- Filter Metode -->
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Metode Presensi</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="">Semua Metode</option>
                     <option value="fingerprint">Mesin Fingerprint</option>
                     <option value="portal">Portal User (Upload)</option>
@@ -83,7 +83,7 @@
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Cari Karyawan</label>
                 <div class="relative">
-                    <input type="text" placeholder="Nama / NIK / ID Finger..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" placeholder="Nama / NIK / ID Finger..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
                 </div>
             </div>
@@ -112,7 +112,7 @@
                     <tr class="hover:bg-slate-50 transition">
                         <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">BS</div>
+                                <div class="w-9 h-9 rounded-full bg-brand-orange/20 text-brand-orange font-bold flex items-center justify-center text-xs">BS</div>
                                 <div>
                                     <div class="font-semibold text-sm">Budi Santoso</div>
                                     <div class="text-xs text-slate-400">NIK: 20260101 • ID Finger: 101</div>
@@ -135,11 +135,11 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
-                                <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-indigo-600"></i> Mesin Lobi
+                                <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-brand-orange"></i> Mesin Lobi
                             </span>
                         </td>
                         <td class="px-6 py-4 text-center whitespace-nowrap">
-                            <button onclick="openModalKoreksi('Budi Santoso', '07:54', '17:02')" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Koreksi Data">
+                            <button onclick="openModalKoreksi('Budi Santoso', '07:54', '17:02')" class="p-1.5 text-slate-400 hover:text-brand-orange hover:bg-brand-orange/10 rounded-lg transition" title="Koreksi Data">
                                 <i data-lucide="edit-3" class="w-4 h-4"></i>
                             </button>
                         </td>
@@ -172,11 +172,11 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
-                                <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-indigo-600"></i> Mesin Lobi
+                                <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-brand-orange"></i> Mesin Lobi
                             </span>
                         </td>
                         <td class="px-6 py-4 text-center whitespace-nowrap">
-                            <button onclick="openModalKoreksi('Ahmad Rizky', '08:14', '')" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Koreksi Data">
+                            <button onclick="openModalKoreksi('Ahmad Rizky', '08:14', '')" class="p-1.5 text-slate-400 hover:text-brand-orange hover:bg-brand-orange/10 rounded-lg transition" title="Koreksi Data">
                                 <i data-lucide="edit-3" class="w-4 h-4"></i>
                             </button>
                         </td>
@@ -261,7 +261,7 @@
             <div>Menampilkan 1 - 4 dari 104 data absensi</div>
             <div class="flex items-center gap-1">
                 <button class="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50" disabled>Previous</button>
-                <button class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-medium">1</button>
+                <button class="px-3 py-1.5 bg-brand-orange text-white rounded-lg font-medium">1</button>
                 <button class="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition">2</button>
                 <button class="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition">3</button>
                 <button class="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition">Next</button>
@@ -289,22 +289,22 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-medium text-slate-700 mb-1">Jam Masuk</label>
-                    <input id="modalJamMasuk" type="time" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input id="modalJamMasuk" type="time" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-brand-orange focus:outline-none">
                 </div>
                 <div>
                     <label class="block font-medium text-slate-700 mb-1">Jam Keluar</label>
-                    <input id="modalJamKeluar" type="time" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input id="modalJamKeluar" type="time" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-brand-orange focus:outline-none">
                 </div>
             </div>
 
             <div>
                 <label class="block font-medium text-slate-700 mb-1">Alasan Koreksi Admin</label>
-                <textarea rows="3" class="w-full bg-slate-50 border border-slate-300 rounded p-2.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Contoh: Lupa scan keluar / Mesin lobi restart"></textarea>
+                <textarea rows="3" class="w-full bg-slate-50 border border-slate-300 rounded p-2.5 text-slate-800 focus:ring-2 focus:ring-brand-orange focus:outline-none" placeholder="Contoh: Lupa scan keluar / Mesin lobi restart"></textarea>
             </div>
         </div>
         <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
             <button onclick="closeModalKoreksi()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">Batal</button>
-            <button onclick="closeModalKoreksi()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition">Simpan Perubahan</button>
+            <button onclick="closeModalKoreksi()" class="px-4 py-2 bg-brand-orange text-white rounded-lg text-xs font-semibold hover:bg-brand-orange transition">Simpan Perubahan</button>
         </div>
     </div>
 </div>
