@@ -15,7 +15,7 @@
             <button class="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
                 <i data-lucide="download" class="w-4 h-4"></i> Export Laporan
             </button>
-            <button class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+            <button class="flex items-center gap-2 bg-brand-orange hover:bg-brand-orange text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
                 <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync Fingerprint
             </button>
         </div>
@@ -45,7 +45,7 @@
                 <h3 class="text-2xl font-bold text-slate-900 mt-1">52</h3>
                 <p class="text-xs text-slate-500 mt-1">48 Enrolled Fingerprint</p>
             </div>
-            <div class="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div class="w-12 h-12 rounded-lg bg-brand-orange/10 text-brand-orange flex items-center justify-center">
                 <i data-lucide="users" class="w-6 h-6"></i>
             </div>
         </div>
@@ -113,13 +113,13 @@
             </div>
 
             <!-- Card Ringkasan Jam Lembur -->
-            <div class="bg-indigo-900 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
+            <div class="bg-brand-dark text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
                 <div>
-                    <span class="text-xs text-indigo-300 font-medium uppercase tracking-wider block">Total Jam Lembur Bulan Ini</span>
+                    <span class="text-xs text-brand-orange/80 font-medium uppercase tracking-wider block">Total Jam Lembur Bulan Ini</span>
                     <h3 class="text-2xl font-bold mt-1">128.5 Jam</h3>
-                    <p class="text-xs text-indigo-300 mt-1">Dari 14 Karyawan</p>
+                    <p class="text-xs text-brand-orange/80 mt-1">Dari 14 Karyawan</p>
                 </div>
-                <div class="p-3 bg-indigo-800 rounded-lg text-indigo-300">
+                <div class="p-3 bg-brand-card rounded-lg text-brand-orange/80">
                     <i data-lucide="timer" class="w-6 h-6"></i>
                 </div>
             </div>
@@ -137,7 +137,7 @@
                     <h2 class="font-bold text-slate-900">Log Absensi Masuk Terkini</h2>
                     <p class="text-xs text-slate-500">Hasil tap mesin fingerprint lobi secara real-time.</p>
                 </div>
-                <a href="#" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">Lihat Semua Log →</a>
+                <a href="#" class="text-xs font-semibold text-brand-orange hover:text-brand-orange">Lihat Semua Log →</a>
             </div>
 
             <div class="overflow-x-auto">
@@ -154,7 +154,7 @@
                         <tr class="hover:bg-slate-50">
                             <td class="px-6 py-3.5 font-medium text-slate-900 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">BS</div>
+                                    <div class="w-8 h-8 rounded-full bg-brand-orange/20 text-brand-orange font-bold flex items-center justify-center text-xs">BS</div>
                                     <div>
                                         <div class="font-semibold text-sm">Budi Santoso</div>
                                         <div class="text-xs text-slate-400">Software Engineer</div>
@@ -167,7 +167,7 @@
                             </td>
                             <td class="px-6 py-3.5 text-center">
                                 <span class="inline-flex items-center gap-1 text-xs text-slate-500">
-                                    <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-indigo-600"></i> Fingerprint
+                                    <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-brand-orange"></i> Fingerprint
                                 </span>
                             </td>
                         </tr>
@@ -187,7 +187,7 @@
                             </td>
                             <td class="px-6 py-3.5 text-center">
                                 <span class="inline-flex items-center gap-1 text-xs text-slate-500">
-                                    <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-indigo-600"></i> Fingerprint
+                                    <i data-lucide="fingerprint" class="w-3.5 h-3.5 text-brand-orange"></i> Fingerprint
                                 </span>
                             </td>
                         </tr>
@@ -253,7 +253,7 @@
                 </div>
                 <div class="space-y-1">
                     <div class="text-base font-bold flex items-center gap-2">
-                        <i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i> Solution X-100C
+                        <i data-lucide="cpu" class="w-4 h-4 text-brand-orange/80"></i> Solution X-100C
                     </div>
                     <div class="text-xs text-slate-400 font-mono">IP: 192.168.1.201</div>
                 </div>

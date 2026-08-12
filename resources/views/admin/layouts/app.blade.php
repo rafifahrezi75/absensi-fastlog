@@ -16,20 +16,20 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased overflow-x-hidden">
+<body class="bg-[#f8f9fa] text-gray-800 font-sans antialiased overflow-x-hidden">
 
     <div class="flex min-h-screen relative">
         
         <!-- Overlay untuk Layar HP / Mobile -->
-        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-20 hidden lg:hidden backdrop-blur-sm transition-opacity"></div>
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-20 hidden lg:hidden backdrop-blur-sm transition-opacity"></div>
 
         <!-- ================= SIDEBAR ================= -->
-        <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 min-h-screen flex flex-col border-r border-slate-800 fixed lg:static z-30 sidebar-transition -translate-x-full lg:translate-x-0 flex-shrink-0">
+        <aside id="sidebar" class="w-64 bg-brand-dark text-white/60 min-h-screen flex flex-col border-r border-white/10 fixed lg:static z-30 sidebar-transition -translate-x-full lg:translate-x-0 flex-shrink-0">
             
             <!-- Logo & Tombol Close Mobile -->
-            <div class="h-16 flex items-center justify-between px-6 bg-slate-950 font-bold text-white text-lg border-b border-slate-800">
+            <div class="h-16 flex items-center justify-between px-6 bg-brand-dark font-bold text-white text-lg border-b border-white/10">
                 <div class="flex items-center gap-3">
-                    <div class="bg-indigo-600 p-2 rounded-lg">
+                    <div class="bg-brand-orange p-2 rounded-lg">
                         <i data-lucide="fingerprint" class="w-5 h-5 text-white"></i>
                     </div>
                     <span class="logo-text">AbsensiPro</span>
@@ -46,21 +46,21 @@
                 
                 <!-- 1. Dashboard -->
                 <a href="{{ route('dashboard') }}" 
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('dashboard') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('dashboard') ? 'bg-brand-orange text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white' }}">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     <span>Dashboard</span>
                 </a>
 
                 <!-- 2. Log Absensi -->
                 <a href="{{ route('attendance.index') }}" 
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('attendance.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('attendance.*') ? 'bg-brand-orange text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white' }}">
                     <i data-lucide="clock" class="w-4 h-4"></i>
                     <span>Log Absensi</span>
                 </a>
 
                 <!-- 3. Izin & Lembur -->
                 <a href="{{ route('permissions.index') }}" 
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('permissions.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('permissions.*') ? 'bg-brand-orange text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white' }}">
                     <i data-lucide="file-check-2" class="w-4 h-4"></i>
                     <span>Izin & Lembur</span>
                 </a>
@@ -69,21 +69,21 @@
 
                 <!-- 4. Data Karyawan -->
                 <a href="{{ route('employees.index') }}" 
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('employees.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('employees.*') ? 'bg-brand-orange text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white' }}">
                     <i data-lucide="users" class="w-4 h-4"></i>
                     <span>Data Karyawan</span>
                 </a>
 
                 <!-- 5. Penggajian (Payroll) -->
                 <a href="{{ route('payroll.index') }}" 
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('payroll.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('payroll.*') ? 'bg-brand-orange text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white' }}">
                     <i data-lucide="wallet" class="w-4 h-4"></i>
                     <span>Penggajian (Payroll)</span>
                 </a>
 
                 <!-- 6. Laporan Presensi -->
                 <a href="{{ route('reports.index') }}" 
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('reports.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('reports.*') ? 'bg-brand-orange text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white' }}">
                     <i data-lucide="file-bar-chart" class="w-4 h-4"></i>
                     <span>Laporan Presensi</span>
                 </a>
@@ -92,23 +92,23 @@
 
                 <!-- 7. Mesin Fingerprint -->
                 <a href="#" 
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('devices.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('devices.*') ? 'bg-brand-orange text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white' }}">
                     <i data-lucide="cpu" class="w-4 h-4"></i>
                     <span>Mesin Fingerprint</span>
                 </a>
 
                 <!-- 8. Pengaturan System -->
                 <a href="#" 
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('settings.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('settings.*') ? 'bg-brand-orange text-white shadow-md' : 'text-white/60 hover:bg-white/5 hover:text-white' }}">
                     <i data-lucide="settings" class="w-4 h-4"></i>
                     <span>Pengaturan System</span>
                 </a>
             </nav>
 
             <!-- Profil Admin / Logout -->
-            <div class="p-4 border-t border-slate-800 flex items-center justify-between">
+            <div class="p-4 border-t border-white/10 flex items-center justify-between">
                 <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-xs flex-shrink-0">
+                    <div class="w-9 h-9 rounded-full bg-brand-orange flex items-center justify-center font-bold text-white text-xs flex-shrink-0">
                         AD
                     </div>
                     <div class="truncate">

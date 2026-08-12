@@ -26,15 +26,15 @@
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Mulai</label>
-                <input type="date" value="2026-08-01" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <input type="date" value="2026-08-01" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-orange focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Selesai</label>
-                <input type="date" value="2026-08-15" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <input type="date" value="2026-08-15" class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-orange focus:outline-none">
             </div>
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Departemen</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="">Semua Departemen</option>
                     <option value="it">IT & Tech</option>
                     <option value="hrd">HRD & GA</option>
@@ -42,7 +42,7 @@
                 </select>
             </div>
             <div class="flex items-end">
-                <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg transition shadow-sm">
+                <button class="w-full bg-brand-orange hover:bg-brand-orange text-white text-xs font-bold py-2.5 px-4 rounded-lg transition shadow-sm">
                     Tampilkan Laporan
                 </button>
             </div>
@@ -87,7 +87,7 @@
                     <tr class="bg-slate-900 text-white font-bold border-b border-slate-800">
                         <th class="px-4 py-2.5 text-left border-r border-slate-800 min-w-[180px] sticky left-0 bg-slate-900 z-10" rowspan="2">Karyawan</th>
                         <th class="py-2 border-r border-slate-800" colspan="15">Agustus 2026</th>
-                        <th class="px-3 py-2 border-l border-slate-800 text-indigo-300 min-w-[60px]" rowspan="2">Hari</th>
+                        <th class="px-3 py-2 border-l border-slate-800 text-brand-orange/80 min-w-[60px]" rowspan="2">Hari</th>
                     </tr>
                     
                     <!-- HEADER BARIS 2: TANGGAL & NAMA HARI -->
@@ -104,7 +104,7 @@
                         <th class="px-2 py-1.5 border-r border-slate-700 min-w-[36px] bg-rose-950/40 text-rose-300"><div class="font-bold text-xs">9</div><div class="text-[9px] font-normal">Min</div></th>
                         <th class="px-2 py-1.5 border-r border-slate-700 min-w-[36px]"><div class="font-bold text-xs text-white">10</div><div class="text-[9px] text-slate-400 font-normal">Sen</div></th>
                         <th class="px-2 py-1.5 border-r border-slate-700 min-w-[36px]"><div class="font-bold text-xs text-white">11</div><div class="text-[9px] text-slate-400 font-normal">Sel</div></th>
-                        <th class="px-2 py-1.5 border-r border-slate-700 min-w-[36px] bg-indigo-900/60"><div class="font-bold text-xs text-indigo-200">12</div><div class="text-[9px] text-indigo-300 font-normal">Rab</div></th>
+                        <th class="px-2 py-1.5 border-r border-slate-700 min-w-[36px] bg-brand-dark/60"><div class="font-bold text-xs text-brand-orange/70">12</div><div class="text-[9px] text-brand-orange/80 font-normal">Rab</div></th>
                         <th class="px-2 py-1.5 border-r border-slate-700 min-w-[36px]"><div class="font-bold text-xs text-white">13</div><div class="text-[9px] text-slate-400 font-normal">Kam</div></th>
                         <th class="px-2 py-1.5 border-r border-slate-700 min-w-[36px]"><div class="font-bold text-xs text-white">14</div><div class="text-[9px] text-slate-400 font-normal">Jum</div></th>
                         <th class="px-2 py-1.5 border-r border-slate-700 min-w-[36px]"><div class="font-bold text-xs text-white">15</div><div class="text-[9px] text-slate-400 font-normal">Sab</div></th>
@@ -131,7 +131,7 @@
                         <td class="p-1 border-r border-slate-200 bg-slate-100 text-slate-400">L</td>
                         <td class="p-1 border-r border-slate-200 font-bold text-slate-700">H</td>
                         <td class="p-1 border-r border-slate-200 font-bold text-slate-700">H</td>
-                        <td class="p-1 border-r border-slate-200 font-bold text-indigo-700 bg-indigo-50/50">H</td>
+                        <td class="p-1 border-r border-slate-200 font-bold text-brand-orange bg-brand-orange/10/50">H</td>
                         <td class="p-1 border-r border-slate-200"></td>
                         <td class="p-1 border-r border-slate-200"></td>
                         <td class="p-1 border-r border-slate-200"></td>
@@ -155,7 +155,7 @@
                         <td class="p-1 border-r border-slate-200 bg-slate-100 text-slate-400">L</td>
                         <td class="p-1 border-r border-slate-200 font-bold text-slate-700">H</td>
                         <td class="p-1 border-r border-slate-200 font-bold text-slate-700">H</td>
-                        <td class="p-1 border-r border-slate-200 font-bold text-indigo-700 bg-indigo-50/50">H</td>
+                        <td class="p-1 border-r border-slate-200 font-bold text-brand-orange bg-brand-orange/10/50">H</td>
                         <td class="p-1 border-r border-slate-200"></td>
                         <td class="p-1 border-r border-slate-200"></td>
                         <td class="p-1 border-r border-slate-200"></td>
@@ -179,7 +179,7 @@
                         <td class="p-1 border-r border-slate-200 bg-slate-100 text-slate-400">L</td>
                         <td class="p-1 border-r border-slate-200 font-bold text-slate-700">H</td>
                         <td class="p-1 border-r border-slate-200 font-bold text-slate-700">H</td>
-                        <td class="p-1 border-r border-slate-200 font-bold text-indigo-700 bg-indigo-50/50">H</td>
+                        <td class="p-1 border-r border-slate-200 font-bold text-brand-orange bg-brand-orange/10/50">H</td>
                         <td class="p-1 border-r border-slate-200"></td>
                         <td class="p-1 border-r border-slate-200"></td>
                         <td class="p-1 border-r border-slate-200"></td>

@@ -15,7 +15,7 @@
             <button class="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
                 <i data-lucide="download" class="w-4 h-4"></i> Export Data
             </button>
-            <button onclick="openModalKaryawan()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+            <button onclick="openModalKaryawan()" class="flex items-center gap-2 bg-brand-orange hover:bg-brand-orange text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
                 <i data-lucide="user-plus" class="w-4 h-4"></i> Tambah Karyawan
             </button>
         </div>
@@ -45,7 +45,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Departemen / Divisi</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="">Semua Departemen</option>
                     <option value="it">IT & Tech</option>
                     <option value="hrd">HRD & General Affair</option>
@@ -55,7 +55,7 @@
             </div>
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Status Fingerprint</label>
-                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <select class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <option value="">Semua Status</option>
                     <option value="synced">Terhubung ID Finger</option>
                     <option value="unregistered">Belum Didaftarkan</option>
@@ -64,7 +64,7 @@
             <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">Cari Karyawan</label>
                 <div class="relative">
-                    <input type="text" placeholder="Nama / NIK / ID Mesin..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input type="text" placeholder="Nama / NIK / ID Mesin..." class="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
                 </div>
             </div>
@@ -91,7 +91,7 @@
                     <tr class="hover:bg-slate-50 transition">
                         <td class="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">BS</div>
+                                <div class="w-9 h-9 rounded-full bg-brand-orange/20 text-brand-orange font-bold flex items-center justify-center text-xs">BS</div>
                                 <div>
                                     <div class="font-semibold text-sm">Budi Santoso</div>
                                     <div class="text-xs text-slate-400">NIK: 20260101</div>
@@ -114,7 +114,7 @@
                         </td>
                         <td class="px-6 py-4 text-center whitespace-nowrap">
                             <div class="flex items-center justify-center gap-2">
-                                <button onclick="openModalKaryawan('Budi Santoso', '20260101', '101', 'IT & Tech', 'Software Engineer')" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Edit Data">
+                                <button onclick="openModalKaryawan('Budi Santoso', '20260101', '101', 'IT & Tech', 'Software Engineer')" class="p-1.5 text-slate-400 hover:text-brand-orange hover:bg-brand-orange/10 rounded-lg transition" title="Edit Data">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
                                 <button class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
@@ -151,7 +151,7 @@
                         </td>
                         <td class="px-6 py-4 text-center whitespace-nowrap">
                             <div class="flex items-center justify-center gap-2">
-                                <button onclick="openModalKaryawan('Ahmad Rizky', '20260104', '104', 'Marketing', 'Digital Marketer')" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Edit Data">
+                                <button onclick="openModalKaryawan('Ahmad Rizky', '20260104', '104', 'Marketing', 'Digital Marketer')" class="p-1.5 text-slate-400 hover:text-brand-orange hover:bg-brand-orange/10 rounded-lg transition" title="Edit Data">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
                                 <button class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
@@ -188,7 +188,7 @@
                         </td>
                         <td class="px-6 py-4 text-center whitespace-nowrap">
                             <div class="flex items-center justify-center gap-2">
-                                <button onclick="openModalKaryawan('Nadia Larasati', '20260120', '', 'HRD & GA', 'HR Specialist')" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Edit / Set ID Finger">
+                                <button onclick="openModalKaryawan('Nadia Larasati', '20260120', '', 'HRD & GA', 'HR Specialist')" class="p-1.5 text-slate-400 hover:text-brand-orange hover:bg-brand-orange/10 rounded-lg transition" title="Edit / Set ID Finger">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
                                 <button class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
@@ -218,34 +218,34 @@
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-medium text-slate-700 mb-1">Nama Lengkap</label>
-                    <input id="inputNama" type="text" placeholder="Contoh: Budi Santoso" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input id="inputNama" type="text" placeholder="Contoh: Budi Santoso" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                 </div>
                 <div>
                     <label class="block font-medium text-slate-700 mb-1">NIK Karyawan</label>
-                    <input id="inputNik" type="text" placeholder="Contoh: 20260101" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input id="inputNik" type="text" placeholder="Contoh: 20260101" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                 </div>
             </div>
 
             <div>
                 <label class="block font-medium text-slate-700 mb-1">ID Mesin Fingerprint</label>
-                <input id="inputIdFinger" type="number" placeholder="Contoh: 101" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <input id="inputIdFinger" type="number" placeholder="Contoh: 101" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 font-mono focus:ring-2 focus:ring-brand-orange focus:outline-none">
                 <span class="text-[10px] text-slate-400">Harus sesuai dengan ID di Mesin</span>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block font-medium text-slate-700 mb-1">Departemen</label>
-                    <input id="inputDept" type="text" placeholder="Contoh: IT & Tech" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input id="inputDept" type="text" placeholder="Contoh: IT & Tech" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                 </div>
                 <div>
                     <label class="block font-medium text-slate-700 mb-1">Jabatan</label>
-                    <input id="inputJabatan" type="text" placeholder="Contoh: Software Engineer" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <input id="inputJabatan" type="text" placeholder="Contoh: Software Engineer" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-brand-orange focus:outline-none">
                 </div>
             </div>
         </div>
         <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
             <button onclick="closeModalKaryawan()" class="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">Batal</button>
-            <button onclick="closeModalKaryawan()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition">Simpan Data</button>
+            <button onclick="closeModalKaryawan()" class="px-4 py-2 bg-brand-orange text-white rounded-lg text-xs font-semibold hover:bg-brand-orange transition">Simpan Data</button>
         </div>
     </div>
 </div>
