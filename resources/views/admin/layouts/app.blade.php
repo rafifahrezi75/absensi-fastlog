@@ -67,29 +67,39 @@
 
                 <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">Kepegawaian & Gaji</div>
 
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition text-slate-400">
+                <!-- 4. Data Karyawan -->
+                <a href="{{ route('employees.index') }}" 
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('employees.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
                     <i data-lucide="users" class="w-4 h-4"></i>
                     <span>Data Karyawan</span>
                 </a>
 
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition text-slate-400">
+                <!-- 5. Penggajian (Payroll) -->
+                <a href="{{ route('payroll.index') }}" 
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('payroll.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
                     <i data-lucide="wallet" class="w-4 h-4"></i>
                     <span>Penggajian (Payroll)</span>
                 </a>
 
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition text-slate-400">
+                <!-- 6. Laporan Presensi -->
+                <a href="{{ route('reports.index') }}" 
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('reports.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
                     <i data-lucide="file-bar-chart" class="w-4 h-4"></i>
                     <span>Laporan Presensi</span>
                 </a>
 
                 <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">Sistem & Device</div>
 
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition text-slate-400">
+                <!-- 7. Mesin Fingerprint -->
+                <a href="#" 
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('devices.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
                     <i data-lucide="cpu" class="w-4 h-4"></i>
                     <span>Mesin Fingerprint</span>
                 </a>
 
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 hover:text-white transition text-slate-400">
+                <!-- 8. Pengaturan System -->
+                <a href="#" 
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all {{ request()->routeIs('settings.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200' }}">
                     <i data-lucide="settings" class="w-4 h-4"></i>
                     <span>Pengaturan System</span>
                 </a>
@@ -111,7 +121,6 @@
                 </button>
             </div>
         </aside>
-
         <!-- ================= CONTENT WRAPPER ================= -->
         <div class="flex-1 flex flex-col min-w-0">
             
