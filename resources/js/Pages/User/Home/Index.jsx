@@ -1,19 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, FileText, AlertCircle, XCircle, Thermometer, Briefcase, Clock } from 'lucide-react';
+import PengajuanModal from '../../../Components/PengajuanModal';
 
 const Home = () => {
     const navigate = useNavigate();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalType, setModalType] = useState('Izin');
 
     const openForm = (type) => {
-        navigate(`/user/pengajuan?type=${type}`);
+        setModalType(type);
+        setIsModalOpen(true);
     };
 
     const riwayat = [
-        { id: 1, tanggal: 'Senin, 10 Agu 2026', ket: 'Tidak hadir · Acara Keluarga', status: 'Izin', dot: 'bg-blue-500', badge: 'bg-blue-50 text-blue-600' },
-        { id: 2, tanggal: 'Minggu, 9 Agu 2026', ket: 'Masuk: 08:05 · Pulang: 17:02', status: 'Hadir', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-600', jam: '8.95j' },
-        { id: 3, tanggal: 'Jumat, 7 Agu 2026', ket: 'Masuk: 09:15 · Pulang: 17:05', status: 'Terlambat', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-600', jam: '7.83j' },
-        { id: 4, tanggal: 'Rabu, 5 Agu 2026', ket: 'Tidak hadir · Demam Berdarah', status: 'Sakit', dot: 'bg-rose-500', badge: 'bg-rose-50 text-rose-600' },
+        { id: 1, tanggal: 'Senin, 10 Agu 2026', ket: 'Acara Keluarga', status: 'Izin', dot: 'bg-blue-500', badge: 'bg-blue-50 text-blue-600' },
+        { id: 2, tanggal: 'Jumat, 7 Agu 2026', ket: 'Meeting Klien Cabang', status: 'Dinas', dot: 'bg-orange-500', badge: 'bg-orange-50 text-orange-600' },
+        { id: 3, tanggal: 'Rabu, 5 Agu 2026', ket: 'Demam Berdarah', status: 'Sakit', dot: 'bg-rose-500', badge: 'bg-rose-50 text-rose-600' },
     ];
 
     return (
@@ -39,21 +42,11 @@ const Home = () => {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
-                    <div>
-                        <p className="text-xs text-gray-500 mb-0.5">Hadir</p>
-                        <p className="text-lg font-bold text-emerald-600">18 <span className="text-xs font-medium text-gray-400">hari</span></p>
-                    </div>
-                    <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                        <CheckCircle className="w-4 h-4" />
-                    </div>
-                </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
                     <div>
                         <p className="text-xs text-gray-500 mb-0.5">Izin</p>
-                        <p className="text-lg font-bold text-blue-600">1 <span className="text-xs font-medium text-gray-400">hari</span></p>
+                        <p className="text-lg font-bold text-blue-600">1 <span className="text-xs font-medium text-gray-400">pengajuan</span></p>
                     </div>
                     <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                         <FileText className="w-4 h-4" />
@@ -63,20 +56,20 @@ const Home = () => {
                 <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
                     <div>
                         <p className="text-xs text-gray-500 mb-0.5">Sakit</p>
-                        <p className="text-lg font-bold text-violet-600">1 <span className="text-xs font-medium text-gray-400">hari</span></p>
+                        <p className="text-lg font-bold text-rose-600">1 <span className="text-xs font-medium text-gray-400">pengajuan</span></p>
                     </div>
-                    <div className="w-9 h-9 rounded-full bg-violet-50 flex items-center justify-center text-violet-600">
-                        <AlertCircle className="w-4 h-4" />
+                    <div className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
+                        <Thermometer className="w-4 h-4" />
                     </div>
                 </div>
 
                 <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
                     <div>
-                        <p className="text-xs text-gray-500 mb-0.5">Alpha</p>
-                        <p className="text-lg font-bold text-rose-600">0 <span className="text-xs font-medium text-gray-400">hari</span></p>
+                        <p className="text-xs text-gray-500 mb-0.5">Dinas Luar</p>
+                        <p className="text-lg font-bold text-orange-600">1 <span className="text-xs font-medium text-gray-400">pengajuan</span></p>
                     </div>
-                    <div className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
-                        <XCircle className="w-4 h-4" />
+                    <div className="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
+                        <Briefcase className="w-4 h-4" />
                     </div>
                 </div>
             </div>
@@ -128,6 +121,13 @@ const Home = () => {
                     ))}
                 </div>
             </div>
+
+            {/* Modal Pengajuan */}
+            <PengajuanModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                type={modalType} 
+            />
         </div>
     );
 };
