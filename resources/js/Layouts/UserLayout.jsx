@@ -28,18 +28,14 @@ const UserLayout = () => {
                     sidebarOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
-                {/* Logo */}
-                <div className="h-20 flex items-center px-6 border-b border-white/10">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shrink-0">
-                            <Building2 className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                            <h1 className="text-white font-bold text-base leading-tight truncate">MCC Absensi</h1>
-                            <p className="text-xs text-white/50">Malang Creative Center</p>
-                        </div>
-                    </div>
-                </div>
+               {/* Logo */}
+            <div className="h-20 flex items-center px-6 border-b border-white/10">
+                <img 
+                    src="/images/front-end/logo2.png" 
+                    alt="Logo Fastlog Era Mandiri" 
+                    className="h-14 w-auto object-contain"
+                />
+            </div>
 
                 {/* Profile Card */}
                 <div className="p-5">
@@ -108,7 +104,7 @@ const UserLayout = () => {
 
                         <div>
                             <h2 className="text-lg font-bold text-gray-800">Sistem Absensi Karyawan</h2>
-                            <p className="text-sm text-gray-400 hidden sm:block">Malang Creative Center</p>
+                            <p className="text-sm text-gray-400 hidden sm:block">PT Fastlog Era Mandiri</p>
                         </div>
                     </div>
 
