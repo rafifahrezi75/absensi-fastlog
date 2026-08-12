@@ -15,17 +15,19 @@ import UserLayout from './Layouts/UserLayout';
 import Home from './Pages/User/Home/Index';
 import FormPengajuan from './Pages/User/FormPengajuan/Index';
 import Riwayat from './Pages/User/Riwayat/Index';
+import Login from './Pages/User/Auth/Login';
 
 function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* Redirect root to user dashboard or admin */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                
-                {/* User Routes (Assumed default dashboard is user, but based on routes/web.php it was admin. Let's make user home at /dashboard for now or /user) */}
-                {/* Wait, the original route '/' redirected to 'dashboard', which was 'admin/dashboard'. Let's match the old structure. */}
+                {/* Auth Route */}
+                <Route path="/login" element={<Login />} />
 
+                {/* Redirect root to /login */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                
+                {/* Admin Routes */}
                 <Route path="/admin" element={<AdminLayout />}>
                     <Route path="dashboard" element={<AdminDashboard />} />
                     <Route path="attendance" element={<Attendance />} />
@@ -35,6 +37,7 @@ function App() {
                     <Route path="reports" element={<Reports />} />
                 </Route>
 
+                {/* User Routes */}
                 <Route path="/user" element={<UserLayout />}>
                     <Route path="home" element={<Home />} />
                     <Route path="pengajuan" element={<FormPengajuan />} />
@@ -42,7 +45,7 @@ function App() {
                 </Route>
                 
                 {/* Fallback */}
-                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
         </BrowserRouter>
     );
