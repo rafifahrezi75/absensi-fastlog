@@ -16,10 +16,16 @@ import Home from './Pages/User/Home/Index';
 import FormPengajuan from './Pages/User/FormPengajuan/Index';
 import Riwayat from './Pages/User/Riwayat/Index';
 
+// Auth
+import Login from './Pages/Auth/Login';
+
 function App() {
     return (
         <BrowserRouter>
             <Routes>
+                {/* Auth Route */}
+                <Route path="/login" element={<Login />} />
+
                 {/* Redirect root to user dashboard or admin */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 
