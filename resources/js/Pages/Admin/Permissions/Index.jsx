@@ -160,47 +160,47 @@ const Permissions = () => {
         </div>
       </div>
 
-      {/* STATS CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+            {/* STATS CARDS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Menunggu Diproses</span>
-            <div className="p-1.5 bg-indigo-100 rounded-lg"><Clock className="w-4 h-4 text-indigo-700" /></div>
+            <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Menunggu Diproses</span>
+            <div className="p-1.5 bg-amber-50 rounded-lg"><Clock className="w-4 h-4 text-amber-600" /></div>
           </div>
-          <div className="text-2xl font-bold text-indigo-900">
+          <div className="text-2xl font-bold text-slate-900">
             {permissions.filter(p => p.status === 'pending').length}
           </div>
-          <span className="text-[11px] text-indigo-600">Perlu tinjauan segera</span>
+          <span className="text-[11px] text-slate-400">Perlu tinjauan segera</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Izin / Cuti</span>
-            <div className="p-1.5 bg-slate-50 rounded-lg"><FileCheck2 className="w-4 h-4 text-slate-500" /></div>
+            <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Total Izin / Cuti</span>
+            <div className="p-1.5 bg-emerald-50 rounded-lg"><FileCheck2 className="w-4 h-4 text-emerald-600" /></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">
             {permissions.filter(p => p.category === 'cuti' || p.category === 'izin').length}
           </div>
-          <span className="text-[11px] text-slate-500">Bulan ini</span>
+          <span className="text-[11px] text-slate-400">Bulan ini</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Sakit</span>
-            <div className="p-1.5 bg-slate-50 rounded-lg"><Stethoscope className="w-4 h-4 text-slate-500" /></div>
+            <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Total Sakit</span>
+            <div className="p-1.5 bg-blue-50 rounded-lg"><Stethoscope className="w-4 h-4 text-blue-600" /></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">
             {permissions.filter(p => p.category === 'sakit').length}
           </div>
-          <span className="text-[11px] text-slate-500">Bulan ini</span>
+          <span className="text-[11px] text-slate-400">Bulan ini</span>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Dinas & Lembur</span>
-            <div className="p-1.5 bg-slate-50 rounded-lg"><Briefcase className="w-4 h-4 text-slate-500" /></div>
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Dinas & Lembur</span>
+            <div className="p-1.5 bg-purple-50 rounded-lg"><Briefcase className="w-4 h-4 text-purple-600" /></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">
             {permissions.filter(p => p.category === 'dinas' || p.category === 'lembur').length}
           </div>
-          <span className="text-[11px] text-slate-500">Bulan ini</span>
+          <span className="text-[11px] text-slate-400">Bulan ini</span>
         </div>
       </div>
 
@@ -296,31 +296,31 @@ const Permissions = () => {
                       {renderStatusBadge(item.status)}
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => handleUpdateStatus(item.id, 'approved')}
-                          disabled={item.status === 'approved'}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm flex items-center gap-1 cursor-pointer ${
-                            item.status === 'approved' 
-                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
-                              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          }`}
-                        >
-                          <Check className="w-3.5 h-3.5" /> Setujui
-                        </button>
-                        <button 
-                          onClick={() => handleUpdateStatus(item.id, 'rejected')}
-                          disabled={item.status === 'rejected'}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 cursor-pointer ${
-                            item.status === 'rejected' 
-                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                              : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
-                          }`}
-                        >
-                          <X className="w-3.5 h-3.5" /> Tolak
-                        </button>
-                      </div>
-                    </td>
+                    <div className="flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => handleUpdateStatus(item.id, 'approved')}
+                        disabled={item.status === 'approved'}
+                        className={`px-4 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+                          item.status === 'approved' 
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                        }`}
+                      >
+                        <Check className="w-3.5 h-3.5" /> Setujui
+                      </button>
+                      <button 
+                        onClick={() => handleUpdateStatus(item.id, 'rejected')}
+                        disabled={item.status === 'rejected'}
+                        className={`px-4 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+                          item.status === 'rejected' 
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                            : 'bg-rose-50 hover:bg-rose-100 text-rose-600'
+                        }`}
+                      >
+                        <X className="w-3.5 h-3.5" /> Tolak
+                      </button>
+                    </div>
+                  </td>
                   </tr>
                 ))
               ) : (

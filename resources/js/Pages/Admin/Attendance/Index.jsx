@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw } from 'lucide-react';
+import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut } from 'lucide-react';
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
 
@@ -147,28 +147,39 @@ const Attendance = () => {
 
             {/* WIDGET RINGKASAN */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Hadir Hari Ini</span>
-                    <div className="text-2xl font-bold text-slate-900 mt-1">42 <span className="text-sm font-medium text-slate-500">/ 48</span></div>
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Hadir Hari Ini</span>
+                        <div className="p-1.5 bg-emerald-50 rounded-lg"><UserCheck className="w-4 h-4 text-emerald-600" /></div>
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900">42 <span className="text-sm font-medium text-slate-500">/ 48</span></div>
                     <span className="text-[11px] text-emerald-600 font-medium">+2 dari kemarin</span>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-rose-500 uppercase tracking-wider">Terlambat</span>
-                    <div className="text-2xl font-bold text-slate-900 mt-1">5</div>
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-rose-600 uppercase tracking-wider">Terlambat</span>
+                        <div className="p-1.5 bg-rose-50 rounded-lg"><AlertTriangle className="w-4 h-4 text-rose-600" /></div>
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900">5</div>
                     <span className="text-[11px] text-rose-600 font-medium">Potongan akumulatif aktif</span>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-blue-500 uppercase tracking-wider">Izin / Sakit</span>
-                    <div className="text-2xl font-bold text-slate-900 mt-1">2</div>
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Izin / Sakit / Dinas</span>
+                        <div className="p-1.5 bg-blue-50 rounded-lg"><Stethoscope className="w-4 h-4 text-blue-600" /></div>
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900">2</div>
                     <span className="text-[11px] text-blue-600 font-medium">Disetujui Admin</span>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-amber-500 uppercase tracking-wider">Belum Tap Pulang</span>
-                    <div className="text-2xl font-bold text-slate-900 mt-1">4</div>
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Belum Tap Pulang</span>
+                        <div className="p-1.5 bg-amber-50 rounded-lg"><LogOut className="w-4 h-4 text-amber-600" /></div>
+                    </div>
+                    <div className="text-2xl font-bold text-slate-900">4</div>
                     <span className="text-[11px] text-amber-600 font-medium">Menunggu jam pulang</span>
                 </div>
             </div>
-
             {/* BAR FILTER */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
