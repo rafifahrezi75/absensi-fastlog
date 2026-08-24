@@ -234,7 +234,7 @@ const Dashboard = () => {
       </div>
 
       {/* WIDGET WARNING */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-start md:items-center gap-3">
           <div className="p-2 bg-amber-500 text-white rounded-lg flex-shrink-0">
             <BellRing className="w-5 h-5" />
@@ -255,49 +255,49 @@ const Dashboard = () => {
 
       {/* KARTU STATISTIK */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase text-slate-400 tracking-wider">Total Karyawan</p>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">52</h3>
             <p className="text-xs text-slate-500 mt-1">48 Enrolled Fingerprint</p>
           </div>
-          <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Users className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase text-emerald-600 tracking-wider">Hadir Hari Ini</p>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">42</h3>
             <p className="text-xs text-emerald-600 font-medium mt-1">80.7% Kehadiran</p>
           </div>
-          <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
             <UserCheck className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold uppercase text-amber-600 tracking-wider">Terlambat</p>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">4</h3>
             <p className="text-xs text-amber-600 font-medium mt-1">Potongan Otomatis</p>
           </div>
-          <div className="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Clock className="w-6 h-6" />
           </div>
         </div>
 
         <div 
           onClick={handleGoToPermissions}
-          className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between cursor-pointer hover:border-blue-300 transition"
+          className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-between cursor-pointer hover:border-blue-200"
         >
           <div>
             <p className="text-xs font-semibold uppercase text-blue-600 tracking-wider">Dinas / Izin / Sakit</p>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">6</h3>
             <p className="text-xs text-blue-600 font-medium mt-1">ACC via Portal User</p>
           </div>
-          <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
             <FileText className="w-6 h-6" />
           </div>
         </div>
@@ -305,7 +305,7 @@ const Dashboard = () => {
 
       {/* SECTION DRILL-DOWN EVALUASI KEDISIPLINAN (3 LEVEL) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] space-y-4">
           
           {/* HEADER & BREADCRUMB NAVIGASI */}
           <div className="space-y-3 border-b border-slate-100 pb-4">
@@ -377,7 +377,7 @@ const Dashboard = () => {
 
         {/* PIE CHART & STATS */}
         <div className="space-y-6">
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] space-y-4">
             <div>
               <h2 className="font-bold text-slate-900">Komposisi Hari Ini</h2>
               <p className="text-xs text-slate-500">Persentase kehadiran pegawai.</p>
@@ -385,9 +385,31 @@ const Dashboard = () => {
             <div className="w-full flex justify-center items-center">
               <Chart options={pieChartOptions} series={pieChartSeries} type="donut" height={230} />
             </div>
+
+            {/* Legend keterangan donut */}
+            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">
+              <div className="flex flex-col items-center gap-1">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Tepat Waktu
+                </span>
+                <span className="text-sm font-bold text-slate-900">42</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span> Terlambat
+                </span>
+                <span className="text-sm font-bold text-slate-900">4</span>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span> Izin/Sakit
+                </span>
+                <span className="text-sm font-bold text-slate-900">6</span>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-indigo-900 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
+          <div className="bg-indigo-900 text-white p-5 rounded-2xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] flex items-center justify-between">
             <div>
               <span className="text-xs text-indigo-300 font-medium uppercase tracking-wider block">Total Jam Lembur Bulan Ini</span>
               <h3 className="text-2xl font-bold mt-1">128.5 Jam</h3>
@@ -402,7 +424,7 @@ const Dashboard = () => {
 
       {/* TABEL LOG TERKINI & HARDWARE STATUS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] overflow-hidden">
           <div className="p-5 border-b border-slate-200 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-slate-900">Log Absensi Masuk Terkini</h2>
@@ -493,7 +515,7 @@ const Dashboard = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <UserMinus className="w-4 h-4 text-rose-500" /> Belum Hadir (2 Orang)
@@ -518,7 +540,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="bg-slate-900 text-white p-5 rounded-xl shadow-sm space-y-4">
+          <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Status Hardware</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ONLINE</span>
