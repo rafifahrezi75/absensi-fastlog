@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { 
-    Fingerprint, X, LayoutDashboard, Clock, FileCheck2, 
-    Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell 
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import {
+    Fingerprint, X, LayoutDashboard, Clock, FileCheck2,
+    Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell, UserCog
 } from 'lucide-react';
+import { useAuth } from '../Contexts/AuthContext';
 
 const AdminLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } finally {
+            navigate('/login', { replace: true });
+        }
+    };
     
     // Check screen size
     useEffect(() => {
@@ -102,7 +113,11 @@ const AdminLayout = () => {
                     </NavLink>
 
                     <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">Sistem & Device</div>
-                    
+
+                    <NavLink to="/admin/master-akun" className={navLinkClass}>
+                        <UserCog className="w-4 h-4" />
+                        <span>Master Akun</span>
+                    </NavLink>
                     <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-slate-200">
                         <Cpu className="w-4 h-4" />
                         <span>Mesin Fingerprint</span>
@@ -117,14 +132,14 @@ const AdminLayout = () => {
                 <div className="p-4 border-t border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-3 overflow-hidden">
                         <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-xs flex-shrink-0">
-                            AD
+                            {user ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'AD'}
                         </div>
                         <div className="truncate">
-                            <div className="text-sm font-medium text-white truncate">Admin Utama</div>
-                            <div className="text-xs text-slate-500 truncate">admin@absensi.com</div>
+                            <div className="text-sm font-medium text-white truncate">{user?.name || 'Admin'}</div>
+                            <div className="text-xs text-slate-500 truncate">{user?.email || ''}</div>
                         </div>
                     </div>
-                    <button title="Logout" className="text-slate-400 hover:text-rose-400 p-1 transition flex-shrink-0">
+                    <button onClick={handleLogout} title="Logout" className="text-slate-400 hover:text-rose-400 p-1 transition flex-shrink-0">
                         <LogOut className="w-4 h-4" />
                     </button>
                 </div>
