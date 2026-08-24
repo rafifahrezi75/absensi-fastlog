@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Building2, LayoutGrid, Clock, LogOut, Menu, User } from 'lucide-react';
+import { useAuth } from '../Contexts/AuthContext';
 
 const UserLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     const closeSidebar = () => {
         if (window.innerWidth < 1024) {
             setSidebarOpen(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } finally {
+            navigate('/login', { replace: true });
         }
     };
 
@@ -41,11 +52,11 @@ const UserLayout = () => {
                 <div className="p-5">
                     <div className="bg-slate-800 rounded-2xl p-4 flex items-center space-x-3 border border-white/10">
                         <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
-                            B
+                            {user ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U'}
                         </div>
                         <div className="min-w-0">
-                            <h3 className="text-white font-semibold text-sm truncate">Budi Santoso</h3>
-                            <p className="text-xs text-white/50 truncate">Desainer Grafis</p>
+                            <h3 className="text-white font-semibold text-sm truncate">{user?.name || 'Karyawan'}</h3>
+                            <p className="text-xs text-white/50 truncate">{user?.email || ''}</p>
                         </div>
                     </div>
                 </div>
@@ -85,7 +96,7 @@ const UserLayout = () => {
 
                 {/* Logout */}
                 <div className="p-5 border-t border-white/10">
-                    <button className="w-full flex items-center space-x-3 px-4 py-3 text-rose-400 hover:text-rose-300 hover:bg-white/5 rounded-xl transition text-sm font-medium">
+                    <button onClick={handleLogout} className="w-full flex items-center space-x-3 px-4 py-3 text-rose-400 hover:text-rose-300 hover:bg-white/5 rounded-xl transition text-sm font-medium">
                         <LogOut className="w-[18px] h-[18px]" />
                         <span>Keluar</span>
                     </button>

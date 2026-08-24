@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../Contexts/AuthContext';
 
 export default function Login({ errors: propErrors }) {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [data, setData] = useState({
         email: '',
         password: '',
@@ -18,6 +20,12 @@ export default function Login({ errors: propErrors }) {
 
     const setFormData = (key, value) => {
         setData(prev => ({ ...prev, [key]: value }));
+        setErrors(prev => {
+            if (!(key in prev)) return prev;
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
     };
 
     const getErrorMessage = (message) => {
@@ -27,15 +35,23 @@ export default function Login({ errors: propErrors }) {
         return message;
     };
 
-    const submit = (e) => {
+    const submit = async (e) => {
         e.preventDefault();
         setProcessing(true);
-        // Handle login submission
-        console.log('Login submitted:', data);
-        setTimeout(() => {
+        setErrors({});
+
+        try {
+            const user = await login(data.email, data.password);
+            navigate(user?.role === 'admin' ? '/admin/dashboard' : '/user/home', { replace: true });
+        } catch (err) {
+            if (err.response?.status === 422 && err.response.data?.errors) {
+                setErrors(err.response.data.errors);
+            } else {
+                setErrors({ email: err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.' });
+            }
+        } finally {
             setProcessing(false);
-            navigate('/user/home');
-        }, 500);
+        }
     };
 
     return (
