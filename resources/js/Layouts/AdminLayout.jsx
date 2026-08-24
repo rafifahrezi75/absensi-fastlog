@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
     X, LayoutDashboard, Clock, FileCheck2, 
     Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell,
-    Check, AlertCircle, FileText, UserCheck, ShieldAlert
+    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog
 } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 
@@ -12,7 +12,6 @@ const AdminLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
     const { user, logout } = useAuth();
-    const navigate = useNavigate();
 
     const handleLogout = async () => {
         try {
