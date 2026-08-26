@@ -77,25 +77,27 @@ const Payroll = () => {
         periode: 'Agustus 2026'
     });
 
+    // Handle Tandai Dibayar (Draft -> Paid)
+    const handleTandaiDibayar = (item) => {
+        if (window.confirm(`Tandai gaji ${item.nama} sebagai sudah dibayar?`)) {
+            setPayrollList(prev => prev.map(p =>
+                p.id === item.id ? { ...p, status: 'paid' } : p
+            ));
+        }
+    };
+
     // Helper Currency Formatter
     const formatIDR = (val) => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
     };
 
-    // Filter Data Real-time (Sudah diperbaiki dengan menambahkan logika pencocokan 'periode')
+    // Filter Data Real-time
     const filteredPayroll = useMemo(() => {
         return payrollList.filter(item => {
-            // Check Filter Periode Bulan (YYYY-MM)
             const matchesPeriode = periode ? item.periode === periode : true;
-
-            // Check Search Nama/NIK
             const matchesSearch = item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 item.nik.toLowerCase().includes(searchQuery.toLowerCase());
-
-            // Check Filter Departemen
             const matchesDept = selectedDept ? item.dept === selectedDept : true;
-
-            // Check Filter Status
             const matchesStatus = selectedStatus ? item.status === selectedStatus : true;
 
             return matchesPeriode && matchesSearch && matchesDept && matchesStatus;
@@ -116,7 +118,6 @@ const Payroll = () => {
     const openModalSlip = useCallback((item) => {
         const thp = item.gapok + item.bonus - item.potongan;
 
-        // Format String Bulan & Tahun dari YYYY-MM
         const [year, month] = (item.periode || periode).split('-');
         const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         const formattedPeriode = `${monthNames[parseInt(month, 10) - 1]} ${year}`;
@@ -167,7 +168,8 @@ const Payroll = () => {
             ].join(','))
         ];
 
-        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const csvContent = 'sep=,\n' + csvRows.join('\n');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -324,12 +326,22 @@ const Payroll = () => {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 text-center whitespace-nowrap">
-                                                <button
-                                                    onClick={() => openModalSlip(item)}
-                                                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1.5"
-                                                >
-                                                    <FileText className="w-3.5 h-3.5" /> Slip Gaji
-                                                </button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => openModalSlip(item)}
+                                                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1.5"
+                                                    >
+                                                        <FileText className="w-3.5 h-3.5" /> Slip Gaji
+                                                    </button>
+                                                    {item.status !== 'paid' && (
+                                                        <button
+                                                            onClick={() => handleTandaiDibayar(item)}
+                                                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition inline-flex items-center gap-1.5"
+                                                        >
+                                                            <CheckCircle className="w-3.5 h-3.5" /> Tandai Dibayar
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );
