@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Users, Plus, Search, Download, CheckCircle2, AlertCircle, Edit3, Trash2 } from 'lucide-react';
+import { Users, Plus, Search, Download, CheckCircle2, AlertCircle, Edit3, Trash2, UserX } from 'lucide-react';
 import ModalKaryawan from './Components/ModalKaryawan';
 
 const INITIAL_EMPLOYEES = [
@@ -218,8 +218,8 @@ const Employees = () => {
                                                     {getInitials(emp.nama)}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-sm">{emp.nama}</div>
-                                                    <div className="text-xs text-slate-400">NIK: {emp.nik}</div>
+                                                    <div className="font-semibold text-sm">{emp.nama || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
+                                                    <div className="text-xs text-slate-400">NIK: {emp.nik || <span className="italic text-slate-300">-</span>}</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -229,14 +229,14 @@ const Employees = () => {
                                                     {emp.idFinger}
                                                 </span>
                                             ) : (
-                                                <span className="text-rose-500 text-xs italic font-medium">Belum set</span>
+                                                <span className="text-rose-500 text-xs italic font-medium">Belum diset</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-xs font-medium text-slate-800 whitespace-nowrap">
-                                            {emp.dept}
+                                            {emp.dept || <span className="text-slate-300 italic">-</span>}
                                         </td>
                                         <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
-                                            {emp.jabatan}
+                                            {emp.jabatan || <span className="text-slate-300 italic">Belum diisi</span>}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {emp.syncStatus === 'synced' ? (
@@ -271,8 +271,22 @@ const Employees = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" className="text-center py-8 text-slate-400 text-xs">
-                                        Data karyawan tidak ditemukan.
+                                    <td colSpan="6" className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <UserX className="w-7 h-7 text-slate-300" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-500">
+                                                    {searchQuery || deptFilter || syncFilter ? 'Data tidak ditemukan' : 'Belum ada data karyawan'}
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-0.5">
+                                                    {searchQuery || deptFilter || syncFilter
+                                                        ? 'Coba ubah filter atau kata kunci pencarian.'
+                                                        : 'Klik "Tambah Karyawan" untuk menambahkan data baru.'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             )}
