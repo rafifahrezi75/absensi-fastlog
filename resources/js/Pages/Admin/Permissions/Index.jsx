@@ -79,11 +79,23 @@ const Permissions = () => {
     );
   };
 
-  // Filter Data Dinamis
+  // Filter Data Dinamis (Strict Word-Starts-With Search)
   const filteredPermissions = useMemo(() => {
     return permissions.filter(item => {
-      const matchSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const searchLower = searchTerm.toLowerCase().trim();
+
+      // Logika Pencarian Kata Awalan
+      let matchSearch = true;
+      if (searchLower) {
+        // Pecah Nama & Keterangan menjadi kata-kata individu
+        const nameWords = item.name.toLowerCase().split(' ');
+        const descWords = item.description.toLowerCase().split(' ');
+        const allWords = [...nameWords, ...descWords];
+
+        // Cek apakah ada minimal satu kata yang diawali dengan pencarian
+        matchSearch = allWords.some(word => word.startsWith(searchLower));
+      }
+
       const matchCategory = categoryFilter === '' || item.category === categoryFilter;
       const matchStatus = statusFilter === '' || item.status === statusFilter;
 
@@ -160,7 +172,7 @@ const Permissions = () => {
         </div>
       </div>
 
-            {/* STATS CARDS */}
+      {/* STATS CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
@@ -296,31 +308,31 @@ const Permissions = () => {
                       {renderStatusBadge(item.status)}
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
-                    <div className="flex items-center justify-center gap-2">
-                      <button 
-                        onClick={() => handleUpdateStatus(item.id, 'approved')}
-                        disabled={item.status === 'approved'}
-                        className={`px-4 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
-                          item.status === 'approved' 
-                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
-                        }`}
-                      >
-                        <Check className="w-3.5 h-3.5" /> Setujui
-                      </button>
-                      <button 
-                        onClick={() => handleUpdateStatus(item.id, 'rejected')}
-                        disabled={item.status === 'rejected'}
-                        className={`px-4 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
-                          item.status === 'rejected' 
-                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
-                            : 'bg-rose-50 hover:bg-rose-100 text-rose-600'
-                        }`}
-                      >
-                        <X className="w-3.5 h-3.5" /> Tolak
-                      </button>
-                    </div>
-                  </td>
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => handleUpdateStatus(item.id, 'approved')}
+                          disabled={item.status === 'approved'}
+                          className={`px-4 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+                            item.status === 'approved' 
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                          }`}
+                        >
+                          <Check className="w-3.5 h-3.5" /> Setujui
+                        </button>
+                        <button 
+                          onClick={() => handleUpdateStatus(item.id, 'rejected')}
+                          disabled={item.status === 'rejected'}
+                          className={`px-4 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+                            item.status === 'rejected' 
+                              ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                              : 'bg-rose-50 hover:bg-rose-100 text-rose-600'
+                          }`}
+                        >
+                          <X className="w-3.5 h-3.5" /> Tolak
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
