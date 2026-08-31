@@ -6,14 +6,21 @@ import {
     Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog
 } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
+import LogoutModal from '../Components/LogoutModal';
 
 const AdminLayout = () => {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const { user, logout } = useAuth();
 
-    const handleLogout = async () => {
+    const handleLogout = (e) => {
+        if (e) e.preventDefault();
+        setShowLogoutModal(true);
+    };
+
+    const confirmLogout = async () => {
         try {
             await logout();
         } finally {
@@ -364,6 +371,11 @@ const AdminLayout = () => {
                 </main>
 
             </div>
+            <LogoutModal 
+                isOpen={showLogoutModal} 
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={confirmLogout}
+            />
         </div>
     );
 };

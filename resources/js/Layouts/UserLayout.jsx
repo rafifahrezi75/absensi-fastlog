@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Building2, LayoutGrid, Clock, LogOut, Menu, User } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
+import LogoutModal from '../Components/LogoutModal';
 
 const UserLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -14,7 +16,12 @@ const UserLayout = () => {
         }
     };
 
-    const handleLogout = async () => {
+    const handleLogout = (e) => {
+        if (e) e.preventDefault();
+        setShowLogoutModal(true);
+    };
+
+    const confirmLogout = async () => {
         try {
             await logout();
         } finally {
@@ -137,6 +144,11 @@ const UserLayout = () => {
                     </div>
                 </main>
             </div>
+            <LogoutModal 
+                isOpen={showLogoutModal} 
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={confirmLogout}
+            />
         </div>
     );
 };
