@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { FileCheck2, Search, Clock, Check, X, Paperclip, Stethoscope, Briefcase, Calendar, MapPin } from 'lucide-react';
+import { FileCheck2, Search, Clock, Check, X, Paperclip, Stethoscope, Briefcase, Calendar, MapPin, Inbox } from 'lucide-react';
 import ModalPreview from './Components/ModalPreview';
 
 // Mock Data Awal
@@ -290,7 +290,7 @@ const Permissions = () => {
                       <div className="text-slate-400">{item.duration}</div>
                     </td>
                     <td className="px-6 py-4 text-xs text-slate-600 max-w-xs truncate" title={item.description}>
-                      {item.description}
+                      {item.description || <span className="text-slate-300 italic">Tidak ada keterangan</span>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {item.attachment ? (
@@ -337,8 +337,22 @@ const Permissions = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="text-center py-8 text-sm text-slate-400">
-                    Tidak ada data pengajuan yang sesuai dengan filter.
+                  <td colSpan="7" className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+                        <Inbox className="w-7 h-7 text-slate-300" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-500">
+                          {searchTerm || categoryFilter || statusFilter ? 'Data tidak ditemukan' : 'Belum ada pengajuan izin'}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {searchTerm || categoryFilter || statusFilter
+                            ? 'Coba ubah filter atau kata kunci pencarian.'
+                            : 'Pengajuan izin dari karyawan akan muncul di sini.'}
+                        </p>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               )}

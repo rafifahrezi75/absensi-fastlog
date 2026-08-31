@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Users, Plus, Search, ShieldCheck, Edit3, Trash2, CheckCircle2, XCircle, X } from 'lucide-react';
+import { Users, Plus, Search, ShieldCheck, Edit3, Trash2, CheckCircle2, XCircle, X, UserX, Loader2 } from 'lucide-react';
 import ModalAkun from './Components/ModalAkun';
 import api from '../../../lib/api';
 
@@ -173,11 +173,32 @@ const MasterAkun = () => {
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-10 text-center text-sm text-slate-400">Memuat data akun...</td>
+                                    <td colSpan="5" className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                                            <p className="text-sm text-slate-400">Memuat data akun...</p>
+                                        </div>
+                                    </td>
                                 </tr>
                             ) : filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-10 text-center text-sm text-slate-400">Belum ada akun yang cocok.</td>
+                                    <td colSpan="5" className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <UserX className="w-7 h-7 text-slate-300" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-500">
+                                                    {search || roleFilter ? 'Akun tidak ditemukan' : 'Belum ada akun terdaftar'}
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-0.5">
+                                                    {search || roleFilter
+                                                        ? 'Coba ubah filter atau kata kunci pencarian.'
+                                                        : 'Klik "Tambah Akun" untuk membuat akun baru.'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
                                 </tr>
                             ) : (
                                 filteredUsers.map((user) => (
@@ -187,10 +208,10 @@ const MasterAkun = () => {
                                                 <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
                                                     {user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                                                 </div>
-                                                <div className="font-semibold text-sm">{user.name}</div>
+                                                <div className="font-semibold text-sm">{user.name || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-xs font-medium text-slate-800 whitespace-nowrap">{user.email}</td>
+                                        <td className="px-6 py-4 text-xs font-medium text-slate-800 whitespace-nowrap">{user.email || <span className="text-slate-300 italic">-</span>}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {user.role === 'admin' ? (
                                                 <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-full text-[11px] font-semibold">
@@ -203,7 +224,9 @@ const MasterAkun = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
-                                            {new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            {user.created_at
+                                                ? new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                                                : <span className="text-slate-300 italic">-</span>}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center justify-center gap-2">

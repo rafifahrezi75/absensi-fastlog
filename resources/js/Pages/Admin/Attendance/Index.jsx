@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut } from 'lucide-react';
+import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX } from 'lucide-react';
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
 
@@ -280,37 +280,37 @@ const Attendance = () => {
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
-                                                    {row.initials}
+                                                    {row.initials || '?'}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-sm">{row.nama}</div>
-                                                    <div className="text-xs text-slate-400">NIK: {row.nik} • ID Finger: {row.finger}</div>
+                                                    <div className="font-semibold text-sm">{row.nama || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
+                                                    <div className="text-xs text-slate-400">NIK: {row.nik || '-'} • ID Finger: {row.finger || <span className="italic text-slate-300">Belum diset</span>}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-xs font-medium text-slate-700 whitespace-nowrap">{row.tglDisplay}</td>
+                                        <td className="px-6 py-4 text-xs font-medium text-slate-700 whitespace-nowrap">{row.tglDisplay || <span className="text-slate-300 italic">-</span>}</td>
                                         <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
                                             <div className={`font-bold ${row.status === 'late' ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit' : 'text-slate-800'}`}>
-                                                {row.in}
+                                                {row.in && row.in !== '-' ? row.in : <span className="text-slate-300 font-normal italic">Belum tap masuk</span>}
                                             </div>
                                             <div className={`text-[10px] mt-0.5 flex items-center gap-1 ${row.status === 'late' ? 'text-amber-600' : 'text-emerald-600'}`}>
                                                 {row.status === 'ontime' && <Check className="w-3 h-3" />}
-                                                {row.inStatus}
+                                                {row.inStatus || '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
-                                            <div className="font-bold text-slate-800">{row.out || <span className="text-slate-400 font-normal">Belum Tap</span>}</div>
-                                            <div className="text-[10px] text-slate-500 mt-0.5">{row.outStatus}</div>
+                                            <div className="font-bold text-slate-800">{row.out && row.out !== '-' ? row.out : <span className="text-slate-400 font-normal italic">Belum tap pulang</span>}</div>
+                                            <div className="text-[10px] text-slate-500 mt-0.5">{row.outStatus || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {row.status === 'ontime' && (
                                                 <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200">
-                                                    Hadir ({row.dur})
+                                                    Hadir ({row.dur || '-'})
                                                 </span>
                                             )}
                                             {row.status === 'late' && (
                                                 <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded-full border border-amber-200">
-                                                    {row.inStatus}
+                                                    {row.inStatus || 'Terlambat'}
                                                 </span>
                                             )}
                                             {row.status === 'izin' && (
@@ -318,11 +318,18 @@ const Attendance = () => {
                                                     Izin / Sakit
                                                 </span>
                                             )}
+                                            {!row.status && (
+                                                <span className="text-slate-300 italic text-xs">-</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
-                                                <Fingerprint className="w-3.5 h-3.5 text-indigo-600" /> {row.locIn}
-                                            </span>
+                                            {row.locIn ? (
+                                                <span className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+                                                    <Fingerprint className="w-3.5 h-3.5 text-indigo-600" /> {row.locIn}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-300 italic text-xs">-</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-center whitespace-nowrap">
                                             <button 
@@ -337,8 +344,22 @@ const Attendance = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-8 text-center text-slate-400 text-xs">
-                                        Data absensi tidak ditemukan berdasarkan filter yang dipilih.
+                                    <td colSpan="7" className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <CalendarX className="w-7 h-7 text-slate-300" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-500">
+                                                    {isFilterActive ? 'Data tidak ditemukan' : 'Belum ada data absensi'}
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-0.5">
+                                                    {isFilterActive
+                                                        ? 'Coba ubah filter atau reset pencarian.'
+                                                        : 'Data absensi akan muncul setelah karyawan melakukan tap.'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             )}
