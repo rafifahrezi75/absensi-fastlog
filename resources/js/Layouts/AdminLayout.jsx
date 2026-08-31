@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { 
-    X, LayoutDashboard, Clock, FileCheck2, 
+import {
+    X, LayoutDashboard, Clock, FileCheck2,
     Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell,
     Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog
 } from 'lucide-react';
@@ -20,7 +20,7 @@ const AdminLayout = () => {
             navigate('/login', { replace: true });
         }
     };
-    
+
 
     // State Notifikasi
     const [unreadCount, setUnreadCount] = useState(4);
@@ -135,40 +135,38 @@ const AdminLayout = () => {
     };
 
     // Styling untuk link navigasi dengan warna oranye Fastlog saat aktif
-    const navLinkClass = ({ isActive }) => 
-        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-            isActive 
-            ? 'bg-[#FF7A3D] text-white shadow-md shadow-[#FF7A3D]/20' 
+    const navLinkClass = ({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
+            ? 'bg-[#FF7A3D] text-white shadow-md shadow-[#FF7A3D]/20'
             : 'text-white/60 hover:bg-white/10 hover:text-white'
         }`;
 
     return (
-        <div className="flex min-h-screen relative overflow-x-hidden bg-[#FAF6EF] text-slate-800 font-sans antialiased">
-            
+        <div className="flex min-h-screen relative bg-[#FAF6EF] text-slate-800 font-sans antialiased">
+
             {/* Overlay untuk Layar HP / Mobile */}
             {isMobile && sidebarOpen && (
-                <div 
-                    onClick={toggleSidebar} 
+                <div
+                    onClick={toggleSidebar}
                     className="fixed inset-0 bg-slate-900/50 z-20 backdrop-blur-sm transition-opacity"
                 ></div>
             )}
 
             {/* ================= SIDEBAR (Menggunakan warna biru Fastlog #052B35) ================= */}
-            <aside 
-                className={`w-64 bg-[#052B35] text-white/90 min-h-screen flex flex-col border-r border-[#052B35]/20 fixed lg:static z-30 transition-all duration-300 ease-in-out flex-shrink-0 ${
-                    isMobile 
-                        ? (sidebarOpen ? 'translate-x-0' : '-translate-x-full') 
-                        : (sidebarOpen ? 'ml-0' : '-ml-64')
-                }`}
+            <aside
+                className={`w-64 bg-[#052B35] text-white/90 h-screen flex flex-col border-r border-[#052B35]/20 fixed lg:sticky lg:top-0 z-30 transition-all duration-300 ease-in-out flex-shrink-0 ${isMobile
+                    ? (sidebarOpen ? 'translate-x-0' : '-translate-x-full')
+                    : (sidebarOpen ? 'ml-0' : '-ml-64')
+                    }`}
             >
                 {/* Logo & Tombol Close Mobile */}
                 <div className="h-16 flex items-center justify-between px-6 bg-[#042028] font-bold text-white text-lg border-b border-white/10">
                     <div className="flex items-center gap-3">
                         {/* Menggunakan Logo Fastlog yang sama dengan halaman login */}
-                        <img 
-                            src="/images/front-end/logo2.png" 
-                            alt="Fastlog" 
-                            className="h-8 w-auto object-contain" 
+                        <img
+                            src="/images/front-end/logo2.png"
+                            alt="Fastlog"
+                            className="h-8 w-auto object-contain"
                         />
                         <span className="text-base tracking-wide mt-1">Sistem Absensi</span>
                     </div>
@@ -180,9 +178,9 @@ const AdminLayout = () => {
                 </div>
 
                 {/* Navigasi Menu */}
-                <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+                <nav className="flex-1 p-4 space-y-1">
                     <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mb-2">Utama</div>
-                    
+
                     <NavLink to="/admin/dashboard" className={navLinkClass}>
                         <LayoutDashboard className="w-4 h-4" />
                         <span>Dashboard</span>
@@ -197,7 +195,7 @@ const AdminLayout = () => {
                     </NavLink>
 
                     <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mt-5 mb-2">Kepegawaian & Gaji</div>
-                    
+
                     <NavLink to="/admin/employees" className={navLinkClass}>
                         <Users className="w-4 h-4" />
                         <span>Data Karyawan</span>
@@ -243,13 +241,13 @@ const AdminLayout = () => {
                     </button>
                 </div>
             </aside>
-            
+
             {/* ================= CONTENT WRAPPER ================= */}
             <div className="flex-1 flex flex-col min-w-0">
-                
+
                 {/* Header / Navbar */}
                 <header className="h-16 bg-white border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-                    
+
                     <div className="flex items-center gap-3">
                         <button onClick={toggleSidebar} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition border border-slate-200" title="Geser Sidebar">
                             <PanelLeft className="w-5 h-5" />
