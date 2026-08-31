@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, FileText, AlertCircle, XCircle, Thermometer, Briefcase, Clock } from 'lucide-react';
 import PengajuanModal from '../../../Components/PengajuanModal';
@@ -12,6 +12,13 @@ const Home = () => {
         setModalType(type);
         setIsModalOpen(true);
     };
+
+    // Jam Realtime
+    const [now, setNow] = useState(new Date());
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     const riwayat = [
         { id: 1, tanggal: 'Senin, 10 Agu 2026', ket: 'Acara Keluarga', status: 'Izin', dot: 'bg-blue-500', badge: 'bg-blue-50 text-blue-600' },
@@ -33,10 +40,10 @@ const Home = () => {
                 </div>
                 <div className="relative text-left md:text-right">
                     <p className="text-orange-500 text-2xl md:text-3xl font-bold tracking-wide font-mono">
-                        {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':')}
+                        {now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':')}
                     </p>
                     <p className="text-white/50 text-xs mt-1">
-                        {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                        {now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                 </div>
             </div>
@@ -123,10 +130,10 @@ const Home = () => {
             </div>
 
             {/* Modal Pengajuan */}
-            <PengajuanModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
-                type={modalType} 
+            <PengajuanModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                type={modalType}
             />
         </div>
     );

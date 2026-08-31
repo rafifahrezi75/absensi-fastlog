@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FileSpreadsheet, Printer, Search } from 'lucide-react';
+import { FileSpreadsheet, Printer, Search, TableProperties } from 'lucide-react';
 
 // Data Dummy Karyawan & Presensi Sebulan Penuh
 const EMPLOYEES_DATA = [
@@ -372,8 +372,22 @@ const Reports = () => {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan={daysInPeriod.length + 5} className="py-8 text-center text-slate-400 text-xs">
-                                        Data rekap presensi tidak ditemukan.
+                                    <td colSpan={daysInPeriod.length + 5} className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <TableProperties className="w-7 h-7 text-slate-300" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-500">
+                                                    {searchQuery || selectedDept ? 'Data tidak ditemukan' : 'Belum ada data rekap presensi'}
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-0.5">
+                                                    {searchQuery || selectedDept
+                                                        ? 'Coba ubah filter atau kata kunci pencarian.'
+                                                        : 'Data rekap akan muncul setelah ada data absensi pada periode ini.'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             )}

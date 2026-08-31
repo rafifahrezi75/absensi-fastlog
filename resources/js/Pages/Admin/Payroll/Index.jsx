@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Download, Calculator, Search, CheckCircle, FileText, Clock } from 'lucide-react';
+import { Download, Calculator, Search, CheckCircle, FileText, Clock, ReceiptText } from 'lucide-react';
 import ModalSlip from './Components/ModalSlip';
 
 // Tambahkan field 'periode' (format YYYY-MM) pada mock data
@@ -305,14 +305,14 @@ const Payroll = () => {
                                                         {avatarInitials}
                                                     </div>
                                                     <div>
-                                                        <div className="font-semibold text-sm">{item.nama}</div>
-                                                        <div className="text-xs text-slate-400">{item.deptLabel} • {item.jabatan}</div>
+                                                        <div className="font-semibold text-sm">{item.nama || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
+                                                        <div className="text-xs text-slate-400">{item.deptLabel || '-'} &bull; {item.jabatan || <span className="italic">Belum diisi</span>}</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-xs font-mono text-slate-700 whitespace-nowrap">{formatIDR(item.gapok)}</td>
-                                            <td className="px-6 py-4 text-xs font-mono text-emerald-600 whitespace-nowrap">+ {formatIDR(item.bonus)}</td>
-                                            <td className="px-6 py-4 text-xs font-mono text-rose-600 whitespace-nowrap">- {formatIDR(item.potongan)}</td>
+                                            <td className="px-6 py-4 text-xs font-mono text-slate-700 whitespace-nowrap">{item.gapok != null ? formatIDR(item.gapok) : <span className="text-slate-300 italic">-</span>}</td>
+                                            <td className="px-6 py-4 text-xs font-mono text-emerald-600 whitespace-nowrap">+ {item.bonus != null ? formatIDR(item.bonus) : <span className="text-slate-300 italic">-</span>}</td>
+                                            <td className="px-6 py-4 text-xs font-mono text-rose-600 whitespace-nowrap">- {item.potongan != null ? formatIDR(item.potongan) : <span className="text-slate-300 italic">-</span>}</td>
                                             <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">{formatIDR(thp)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {item.status === 'paid' ? (
@@ -348,8 +348,22 @@ const Payroll = () => {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="text-center py-8 text-slate-400 text-xs">
-                                        Data payroll tidak ditemukan untuk periode {periode}.
+                                    <td colSpan="7" className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+                                                <ReceiptText className="w-7 h-7 text-slate-300" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-500">
+                                                    {searchQuery || selectedDept || selectedStatus ? 'Data tidak ditemukan' : `Belum ada data payroll untuk periode ${periode}`}
+                                                </p>
+                                                <p className="text-xs text-slate-400 mt-0.5">
+                                                    {searchQuery || selectedDept || selectedStatus
+                                                        ? 'Coba ubah filter atau kata kunci pencarian.'
+                                                        : 'Klik "Hitung Payroll" untuk memulai kalkulasi gaji.'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             )}
