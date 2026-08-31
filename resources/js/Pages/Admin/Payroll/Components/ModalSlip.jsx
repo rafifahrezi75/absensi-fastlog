@@ -1,5 +1,5 @@
 import React from 'react';
-import { Printer, X } from 'lucide-react';
+import { Printer, X, Fingerprint } from 'lucide-react';
 
 const ModalSlip = ({ isOpen, onClose, data }) => {
     if (!isOpen) return null;
@@ -14,27 +14,25 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
 
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center print:bg-white print:fixed print:inset-0 print:z-[9999]">
-            {/* CSS khusus untuk mengamankan tampilan saat Cetak/Export PDF */}
+            {/* CSS khusus cetak PDF */}
             <style>
                 {`
                     @media print {
-                        /* Sembunyikan header/footer bawaan browser (URL, Tanggal, dll) */
                         @page {
                             size: auto;
                             margin: 10mm;
                         }
 
-                        /* Sembunyikan seluruh isi body aplikasi */
                         body * {
                             visibility: hidden !important;
                         }
 
-                        /* Hanya tampilkan area Modal Slip */
                         #printable-slip, #printable-slip * {
                             visibility: visible !important;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
                         }
 
-                        /* Atur posisi modal slip agar pas di tengah kertas saat diprint */
                         #printable-slip {
                             position: absolute !important;
                             left: 0 !important;
@@ -49,7 +47,6 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                             background: #ffffff !important;
                         }
 
-                        /* Sembunyikan tombol aksi & tombol close */
                         .no-print {
                             display: none !important;
                         }
@@ -58,7 +55,7 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
             </style>
 
             <div id="printable-slip" className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full mx-4 overflow-hidden">
-                {/* Header Modal - Hilang saat Print */}
+                {/* Header Modal */}
                 <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between no-print">
                     <h3 className="font-bold text-sm">Preview Slip Gaji</h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-white transition">
@@ -66,12 +63,23 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                     </button>
                 </div>
 
-                {/* Content Slip - Tercetak Rapi */}
+                {/* Content Slip */}
                 <div className="p-6 space-y-4 text-xs text-slate-800">
-                    {/* Header Perusahaan */}
+                    
+                    {/* Header Perusahaan & Logo FastLog */}
                     <div className="text-center border-b border-slate-200 pb-4">
-                        <h4 className="font-bold text-base text-slate-900 tracking-wide">PT. TECH INDONESIA</h4>
-                        <p className="text-slate-500 font-medium">Slip Gaji Periode: {data?.periode || 'Agustus 2026'}</p>
+                        <div className="flex items-center justify-center gap-2 mb-1.5">
+                            <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-sm flex items-center justify-center">
+                                <Fingerprint className="w-5 h-5" />
+                            </div>
+                            <span className="font-bold text-lg text-indigo-900 tracking-tight">Fast<span className="text-indigo-600">Log</span></span>
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900 tracking-wide uppercase">
+                            PT. FASTLOG ERA MANDIRI
+                        </h4>
+                        <p className="text-slate-500 font-medium text-[11px] mt-0.5">
+                            Slip Gaji Periode: {data?.periode || 'Agustus 2026'}
+                        </p>
                     </div>
 
                     {/* Informasi Karyawan */}
@@ -109,18 +117,18 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                     </div>
 
                     {/* Total Take Home Pay */}
-                    <div className="p-3.5 bg-slate-100/80 rounded-lg flex justify-between items-center font-bold text-slate-900 text-sm border border-slate-200">
+                    <div className="p-3.5 bg-indigo-50/50 rounded-lg flex justify-between items-center font-bold text-slate-900 text-sm border border-indigo-100">
                         <span>Total Netto (THP):</span>
                         <span className="font-mono text-indigo-600 text-base">{formatIDR(data?.thp)}</span>
                     </div>
 
                     {/* Catatan Footer Slip */}
                     <div className="pt-2 text-[10px] text-slate-400 text-center italic leading-relaxed">
-                        *Dokumen ini diterbitkan otomatis oleh sistem payroll FastLog dan sah tanpa tanda tangan basah.
+                        *Dokumen ini diterbitkan otomatis oleh sistem payroll PT. FastLog Era Mandiri dan sah tanpa tanda tangan basah.
                     </div>
                 </div>
 
-                {/* Footer Modal Action Buttons - Hilang saat Print */}
+                {/* Footer Modal Action Buttons */}
                 <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2 no-print">
                     <button
                         onClick={onClose}
