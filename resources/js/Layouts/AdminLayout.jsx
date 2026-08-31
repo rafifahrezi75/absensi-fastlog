@@ -178,7 +178,7 @@ const AdminLayout = () => {
                 </div>
 
                 {/* Navigasi Menu */}
-                <nav className="flex-1 p-4 space-y-1">
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto hide-scrollbar">
                     <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mb-2">Utama</div>
 
                     <NavLink to="/admin/dashboard" className={navLinkClass}>
