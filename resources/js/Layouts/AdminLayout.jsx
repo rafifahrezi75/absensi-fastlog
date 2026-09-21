@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
     X, LayoutDashboard, Clock, FileCheck2,
     Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell,
-    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog
+    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers
 } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
@@ -148,6 +148,13 @@ const AdminLayout = () => {
             : 'text-white/60 hover:bg-white/10 hover:text-white'
         }`;
 
+    // Styling khusus untuk sub-menu agar terlihat menjorok ke dalam
+    const subNavLinkClass = ({ isActive }) =>
+        `flex items-center gap-3 pl-10 pr-3 py-2 mt-1 rounded-lg text-[13px] font-medium transition-all ${isActive
+            ? 'bg-[#FF7A3D] text-white shadow-md shadow-[#FF7A3D]/20'
+            : 'text-white/50 hover:bg-white/5 hover:text-white'
+        }`;
+
     return (
         <div className="flex min-h-screen relative bg-[#FAF6EF] text-slate-800 font-sans antialiased">
 
@@ -210,6 +217,11 @@ const AdminLayout = () => {
                     <NavLink to="/admin/payroll" className={navLinkClass}>
                         <Wallet className="w-4 h-4" />
                         <span>Penggajian (Payroll)</span>
+                    </NavLink>
+                    {/* Sub-menu Master Payroll */}
+                    <NavLink to="/admin/master-payroll" className={subNavLinkClass}>
+                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                        <span>Master Payroll</span>
                     </NavLink>
                     <NavLink to="/admin/reports" className={navLinkClass}>
                         <FileBarChart className="w-4 h-4" />
