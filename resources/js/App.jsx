@@ -11,6 +11,7 @@ import Employees from './Pages/Admin/Employees/Index';
 import Payroll from './Pages/Admin/Payroll/Index';
 import Reports from './Pages/Admin/Reports/Index';
 import MasterAkun from './Pages/Admin/MasterAkun/Index';
+import MasterPayroll from './Pages/Admin/MasterPayroll/Index';
 
 // User Layout & Pages
 import UserLayout from './Layouts/UserLayout';
@@ -94,6 +95,7 @@ function App() {
                         <Route path="permissions" element={<Permissions />} />
                         <Route path="employees" element={<Employees />} />
                         <Route path="payroll" element={<Payroll />} />
+                        <Route path="master-payroll" element={<MasterPayroll />} />
                         <Route path="reports" element={<Reports />} />
                         <Route path="master-akun" element={<MasterAkun />} />
                     </Route>
