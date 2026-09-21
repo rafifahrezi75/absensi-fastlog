@@ -1,14 +1,19 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX } from 'lucide-react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
+import api from '../../../lib/api';
 
 const Attendance = () => {
-    // State Modal
     const [modalData, setModalData] = useState({ isOpen: false, nama: '', masuk: '', keluar: '' });
     const [isTambahOpen, setIsTambahOpen] = useState(false);
 
-    // State Filters
+    const [attendanceData, setAttendanceData] = useState([]);
+    const [stats, setStats] = useState({ hadir: 0, terlambat: 0, izin: 0, belum_pulang: 0, total_karyawan: 0 });
+    const [loading, setLoading] = useState(true);
+    const [fetchingCloud, setFetchingCloud] = useState(false);
+    const [notif, setNotif] = useState(null);
+
     const [filterTanggal, setFilterTanggal] = useState('');
     const [filterDept, setFilterDept] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
@@ -22,101 +27,66 @@ const Attendance = () => {
         setModalData(prev => ({ ...prev, isOpen: false }));
     }, []);
 
-    // Master Data Dummy Absensi
-    const rawData = useMemo(() => [
-        { 
-            id: 1, 
-            nama: 'Budi Santoso', 
-            nik: '20260101', 
-            finger: '101', 
-            initials: 'BS', 
-            dept: 'it', 
-            tgl: '2026-08-10', 
-            tglDisplay: '10 Agt 2026', 
-            in: '07:55:10', 
-            out: '17:05:30', 
-            dur: '9j 10m', 
-            status: 'ontime', 
-            inStatus: 'Tepat', 
-            outStatus: 'Tepat', 
-            locIn: 'Mesin Lobi' 
-        },
-        { 
-            id: 2, 
-            nama: 'Ahmad Rizky', 
-            nik: '20260104', 
-            finger: '104', 
-            initials: 'AR', 
-            dept: 'hrd', 
-            tgl: '2026-08-10', 
-            tglDisplay: '10 Agt 2026', 
-            in: '08:14:22', 
-            out: '', 
-            dur: '-', 
-            status: 'late', 
-            inStatus: 'Telat 14 Mnt', 
-            outStatus: 'Belum Tap', 
-            locIn: 'Mesin Lobi' 
-        },
-        { 
-            id: 3, 
-            nama: 'Siti Aminah', 
-            nik: '20260108', 
-            finger: '108', 
-            initials: 'SA', 
-            dept: 'finance', 
-            tgl: '2026-08-10', 
-            tglDisplay: '10 Agt 2026', 
-            in: '07:45:00', 
-            out: '17:00:10', 
-            dur: '9j 15m', 
-            status: 'ontime', 
-            inStatus: 'Tepat', 
-            outStatus: 'Tepat', 
-            locIn: 'Mesin Lobi' 
-        },
-        { 
-            id: 4, 
-            nama: 'Dewi Lestari', 
-            nik: '20260112', 
-            finger: '112', 
-            initials: 'DL', 
-            dept: 'marketing', 
-            tgl: '2026-08-09', 
-            tglDisplay: '09 Agt 2026', 
-            in: '-', 
-            out: '-', 
-            dur: '-', 
-            status: 'izin', 
-            inStatus: 'Izin Sakit', 
-            outStatus: '-', 
-            locIn: 'Web Input' 
-        },
-    ], []);
+    const loadAttendance = useCallback(async () => {
+        try {
+            setLoading(true);
+            const params = {};
+            if (filterTanggal) params.tanggal = filterTanggal;
+            if (filterDept) params.dept = filterDept;
+            if (filterStatus) params.status = filterStatus;
+            if (searchQuery) params.search = searchQuery;
 
-    // Logika Filter Data
-    const filteredData = useMemo(() => {
-        return rawData.filter((item) => {
-            // Filter Tanggal
-            const matchTanggal = filterTanggal ? item.tgl === filterTanggal : true;
+            const res = await api.get('/api/admin/attendance', { params });
+            setAttendanceData(res.data.attendance || []);
+            if (res.data.stats) {
+                setStats(res.data.stats);
+            }
+        } catch (err) {
+            setNotif({
+                type: 'error',
+                message: err.response?.data?.message || 'Gagal memuat data absensi.',
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [filterTanggal, filterDept, filterStatus, searchQuery]);
 
-            // Filter Departemen
-            const matchDept = filterDept ? item.dept === filterDept : true;
+    useEffect(() => {
+        loadAttendance();
+    }, [loadAttendance]);
 
-            // Filter Status
-            const matchStatus = filterStatus ? item.status === filterStatus : true;
+    useEffect(() => {
+        if (notif) {
+            const timer = setTimeout(() => setNotif(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [notif]);
 
-            // Filter Search Query (Nama atau NIK)
-            const matchSearch = searchQuery
-                ? item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  item.nik.includes(searchQuery)
-                : true;
+    const handleFetchCloud = async () => {
+        try {
+            setFetchingCloud(true);
+            const payload = {};
+            if (filterTanggal) {
+                payload.start_date = filterTanggal;
+                payload.end_date = filterTanggal;
+            }
 
-            return matchTanggal && matchDept && matchStatus && matchSearch;
-        });
-    }, [rawData, filterTanggal, filterDept, filterStatus, searchQuery]);
+            const res = await api.post('/api/admin/attendance/fetch', payload);
+            setNotif({
+                type: 'success',
+                message: res.data.message || 'Berhasil melakukan sinkronisasi data dari mesin cloud.',
+            });
+            await loadAttendance();
+        } catch (err) {
+            setNotif({
+                type: 'error',
+                message: err.response?.data?.message || 'Gagal menyinkronkan data dari mesin cloud.',
+            });
+        } finally {
+            setFetchingCloud(false);
+        }
+    };
 
-    // Reset Semua Filter
     const handleResetFilter = () => {
         setFilterTanggal('');
         setFilterDept('');
@@ -124,17 +94,49 @@ const Attendance = () => {
         setSearchQuery('');
     };
 
-    const isFilterActive = filterTanggal || filterDept || filterStatus || searchQuery;
+    const isFilterActive = Boolean(filterTanggal || filterDept || filterStatus || searchQuery);
 
     return (
         <div className="space-y-6">
-            {/* HEADER */}
+            {notif && (
+                <div className={`p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm ${
+                    notif.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                }`}>
+                    <div className="flex items-center gap-3">
+                        {notif.type === 'success' ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                        )}
+                        <span className="font-medium">{notif.message}</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setNotif(null)}
+                        className="p-1 hover:bg-black/5 rounded-lg transition"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Data Log Absensi</h1>
-                    <p className="text-sm text-slate-500">Pantau kehadiran harian, keterlambatan, jam pulang, dan sinkronisasi mesin.</p>
+                    <p className="text-sm text-slate-500">Pantau kehadiran harian, keterlambatan, jam pulang, dan sinkronisasi mesin online.</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button 
+                        type="button"
+                        disabled={fetchingCloud}
+                        onClick={handleFetchCloud}
+                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${fetchingCloud ? 'animate-spin' : ''}`} />
+                        <span>{fetchingCloud ? 'Menarik Data Cloud...' : 'Tarik Data Mesin'}</span>
+                    </button>
                     <button 
                         type="button"
                         onClick={() => setIsTambahOpen(true)}
@@ -145,30 +147,31 @@ const Attendance = () => {
                 </div>
             </div>
 
-            {/* WIDGET RINGKASAN */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Hadir Hari Ini</span>
                         <div className="p-1.5 bg-emerald-50 rounded-lg"><UserCheck className="w-4 h-4 text-emerald-600" /></div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900">42 <span className="text-sm font-medium text-slate-500">/ 48</span></div>
-                    <span className="text-[11px] text-emerald-600 font-medium">+2 dari kemarin</span>
+                    <div className="text-2xl font-bold text-slate-900">
+                        {stats.hadir} <span className="text-sm font-medium text-slate-500">/ {stats.total_karyawan || stats.hadir}</span>
+                    </div>
+                    <span className="text-[11px] text-emerald-600 font-medium">Data realtime mesin</span>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-rose-600 uppercase tracking-wider">Terlambat</span>
                         <div className="p-1.5 bg-rose-50 rounded-lg"><AlertTriangle className="w-4 h-4 text-rose-600" /></div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900">5</div>
-                    <span className="text-[11px] text-rose-600 font-medium">Potongan akumulatif aktif</span>
+                    <div className="text-2xl font-bold text-slate-900">{stats.terlambat}</div>
+                    <span className="text-[11px] text-rose-600 font-medium">Lewat jam 08:00 WIB</span>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Izin / Sakit / Dinas</span>
                         <div className="p-1.5 bg-blue-50 rounded-lg"><Stethoscope className="w-4 h-4 text-blue-600" /></div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900">2</div>
+                    <div className="text-2xl font-bold text-slate-900">{stats.izin}</div>
                     <span className="text-[11px] text-blue-600 font-medium">Disetujui Admin</span>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
@@ -176,14 +179,13 @@ const Attendance = () => {
                         <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Belum Tap Pulang</span>
                         <div className="p-1.5 bg-amber-50 rounded-lg"><LogOut className="w-4 h-4 text-amber-600" /></div>
                     </div>
-                    <div className="text-2xl font-bold text-slate-900">4</div>
-                    <span className="text-[11px] text-amber-600 font-medium">Menunggu jam pulang</span>
+                    <div className="text-2xl font-bold text-slate-900">{stats.belum_pulang}</div>
+                    <span className="text-[11px] text-amber-600 font-medium">Menunggu tap pulang</span>
                 </div>
             </div>
-            {/* BAR FILTER */}
+
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    {/* Filter Tanggal */}
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Tanggal Absen</label>
                         <div className="relative">
@@ -197,7 +199,6 @@ const Attendance = () => {
                         </div>
                     </div>
 
-                    {/* Filter Departemen */}
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Departemen</label>
                         <select 
@@ -210,10 +211,10 @@ const Attendance = () => {
                             <option value="hrd">HRD & General Affair</option>
                             <option value="finance">Finance & Accounting</option>
                             <option value="marketing">Marketing</option>
+                            <option value="umum">Umum</option>
                         </select>
                     </div>
 
-                    {/* Filter Status Kehadiran */}
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Status Kehadiran</label>
                         <select 
@@ -228,7 +229,6 @@ const Attendance = () => {
                         </select>
                     </div>
 
-                    {/* Cari Karyawan */}
                     <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Cari Karyawan</label>
                         <div className="relative">
@@ -236,7 +236,7 @@ const Attendance = () => {
                                 type="text" 
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Nama atau NIK..." 
+                                placeholder="Nama, NIK, atau PIN..." 
                                 className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
                             />
                             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2 pointer-events-none" />
@@ -244,7 +244,6 @@ const Attendance = () => {
                     </div>
                 </div>
 
-                {/* Tombol Reset Filter jika ada filter yang aktif */}
                 {isFilterActive && (
                     <div className="flex justify-end pt-2 border-t border-slate-100">
                         <button
@@ -258,7 +257,6 @@ const Attendance = () => {
                 )}
             </div>
 
-            {/* TABEL DATA ABSENSI */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-600">
@@ -274,16 +272,25 @@ const Attendance = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredData.length > 0 ? (
-                                filteredData.map((row) => (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="7" className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                                            <p className="text-sm font-medium text-slate-600">Memuat data absensi...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : attendanceData.length > 0 ? (
+                                attendanceData.map((row) => (
                                     <tr key={row.id} className="hover:bg-slate-50 transition">
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
-                                                    {row.initials || '?'}
+                                                    {row.initials && row.initials !== '-' ? row.initials : (row.finger ? row.finger : '-')}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-sm">{row.nama || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
+                                                    <div className="font-semibold text-sm">{row.nama || <span className="text-slate-400 italic font-normal">(Nama belum sinkron)</span>}</div>
                                                     <div className="text-xs text-slate-400">NIK: {row.nik || '-'} • ID Finger: {row.finger || <span className="italic text-slate-300">Belum diset</span>}</div>
                                                 </div>
                                             </div>
@@ -356,7 +363,7 @@ const Attendance = () => {
                                                 <p className="text-xs text-slate-400 mt-0.5">
                                                     {isFilterActive
                                                         ? 'Coba ubah filter atau reset pencarian.'
-                                                        : 'Data absensi akan muncul setelah karyawan melakukan tap.'}
+                                                        : 'Klik tombol "Tarik Data Mesin" di atas untuk mengambil data dari cloud.'}
                                                 </p>
                                             </div>
                                         </div>
@@ -367,18 +374,11 @@ const Attendance = () => {
                     </table>
                 </div>
 
-                {/* PAGINATION */}
                 <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-                    <div>Menampilkan {filteredData.length} dari {rawData.length} data absensi</div>
-                    <div className="flex items-center gap-1">
-                        <button className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50" disabled>Previous</button>
-                        <button className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-medium">1</button>
-                        <button className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition">Next</button>
-                    </div>
+                    <div>Menampilkan {attendanceData.length} data absensi</div>
                 </div>
             </div>
 
-            {/* MODAL COMPONENTS */}
             <ModalKoreksi isOpen={modalData.isOpen} onClose={closeModalKoreksi} data={modalData} />
             <ModalTambahManual isOpen={isTambahOpen} onClose={() => setIsTambahOpen(false)} />
         </div>
