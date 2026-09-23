@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AkunController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\MasterPayrollController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Auth\AuthController;
@@ -39,6 +40,16 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('api.admin.employees.destroy');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('api.admin.reports.index');
+
+    Route::get('/master-payroll/golongan', [MasterPayrollController::class, 'indexGolongan'])->name('api.admin.master-payroll.golongan.index');
+    Route::post('/master-payroll/golongan', [MasterPayrollController::class, 'storeGolongan'])->name('api.admin.master-payroll.golongan.store');
+    Route::put('/master-payroll/golongan/{id}', [MasterPayrollController::class, 'updateGolongan'])->name('api.admin.master-payroll.golongan.update');
+    Route::delete('/master-payroll/golongan/{id}', [MasterPayrollController::class, 'destroyGolongan'])->name('api.admin.master-payroll.golongan.destroy');
+
+    Route::get('/master-payroll/komponen', [MasterPayrollController::class, 'indexKomponen'])->name('api.admin.master-payroll.komponen.index');
+    Route::post('/master-payroll/komponen', [MasterPayrollController::class, 'storeKomponen'])->name('api.admin.master-payroll.komponen.store');
+    Route::put('/master-payroll/komponen/{id}', [MasterPayrollController::class, 'updateKomponen'])->name('api.admin.master-payroll.komponen.update');
+    Route::delete('/master-payroll/komponen/{id}', [MasterPayrollController::class, 'destroyKomponen'])->name('api.admin.master-payroll.komponen.destroy');
 });
 
 Route::get('/{any}', function () {
