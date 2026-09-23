@@ -253,10 +253,10 @@ const AdminLayout = () => {
                         <UserCog className="w-4 h-4" />
                         <span>Master Akun</span>
                     </NavLink>
-                    <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+                    <NavLink to="/admin/devices" className={navLinkClass}>
                         <Cpu className="w-4 h-4" />
                         <span>Mesin Sidik Jari</span>
-                    </a>
+                    </NavLink>
                     <NavLink to="/admin/settings" className={navLinkClass}>
                         <Settings className="w-4 h-4" />
                         <span>Pengaturan Sistem</span>
