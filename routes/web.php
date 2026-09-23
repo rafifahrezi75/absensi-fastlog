@@ -15,10 +15,12 @@ use App\Http\Controllers\User\UserPermissionController;
 use Illuminate\Support\Facades\Route;
 
 Route::match(['get', 'post'], '/api/webhook/fingerspot', [WebhookController::class, 'handle'])->name('webhook.fingerspot');
+Route::match(['get', 'post'], '/api/webhook/fingerprint', [WebhookController::class, 'handle']);
 Route::match(['get', 'post'], '/api/store', [WebhookController::class, 'handle'])->name('webhook.store');
 Route::match(['get', 'post'], '/api/store.php', [WebhookController::class, 'handle']);
 Route::match(['get', 'post'], '/store.php', [WebhookController::class, 'handle']);
 Route::match(['get', 'post'], '/webhook/fingerspot', [WebhookController::class, 'handle']);
+Route::match(['get', 'post'], '/webhook/fingerprint', [WebhookController::class, 'handle']);
 Route::post('/api/attendance/tap', [AttendanceApiController::class, 'tap'])->name('api.attendance.tap');
 
 Route::middleware('guest')->group(function () {

@@ -49,84 +49,143 @@ class WebhookController extends Controller
             return response('OK', 200)->header('Content-Type', 'text/plain');
         }
 
-        if ($type === 'get_userinfo' && isset($payload['data']) && is_array($payload['data']) && isset($payload['data']['pin'])) {
-            $data = $payload['data'];
-            $pin = trim((string)$data['pin']);
-
-            $cloudName = isset($data['name']) && trim((string)$data['name']) !== ''
-                ? (string)$data['name']
-                : null;
-
-            $updateData = [
-                'nama' => $cloudName,
-                'cloud_id' => $cloudId,
-                'trans_id' => isset($payload['trans_id']) ? (string)$payload['trans_id'] : null,
-                'privilege' => isset($data['privilege']) ? (string)$data['privilege'] : null,
-                'finger' => isset($data['finger']) ? (string)$data['finger'] : null,
-                'face' => isset($data['face']) ? (string)$data['face'] : null,
-                'password' => isset($data['password']) ? (string)$data['password'] : null,
-                'rfid' => isset($data['rfid']) ? (string)$data['rfid'] : null,
-                'vein' => isset($data['vein']) ? (string)$data['vein'] : null,
-                'template' => isset($data['template']) ? (string)$data['template'] : null,
-                'raw_data' => $data,
-                'status' => 'active',
-            ];
-
-            if (isset($data['employee_number']) && trim((string)$data['employee_number']) !== '') {
-                $updateData['nik'] = trim((string)$data['employee_number']);
+        if (in_array($type, ['get_userinfo', 'userinfo', 'user_info', 'set_userinfo'])) {
+            $userItems = [];
+            if (isset($payload['data'])) {
+                if (is_array($payload['data'])) {
+                    if (isset($payload['data']['pin']) || isset($payload['data']['user_id'])) {
+                        $userItems[] = $payload['data'];
+                    } else {
+                        foreach ($payload['data'] as $item) {
+                            if (is_array($item) && (isset($item['pin']) || isset($item['user_id']))) {
+                                $userItems[] = $item;
+                            }
+                        }
+                    }
+                }
             }
 
-            Employee::updateOrCreate(
-                ['pin' => $pin],
-                $updateData
-            );
+            $updatedCount = 0;
+            foreach ($userItems as $data) {
+                $pin = trim((string)($data['pin'] ?? ($data['user_id'] ?? '')));
+                if ($pin === '') {
+                    continue;
+                }
 
-            FingerspotSyncLog::create([
-                'cloud_id' => $cloudId,
-                'action' => 'webhook_userinfo',
-                'records_received' => 1,
-                'records_inserted' => 1,
-                'status' => 'success',
-                'response_message' => 'Processed get_userinfo for PIN ' . $pin . ' name: ' . ($cloudName ?? 'null'),
-            ]);
+                $cloudName = null;
+                $candidateName = $data['name'] ?? ($data['nama'] ?? ($data['user_name'] ?? ($data['employee_name'] ?? null)));
+                if ($candidateName !== null && trim((string)$candidateName) !== '') {
+                    $cloudName = trim((string)$candidateName);
+                }
+
+                $updateData = [
+                    'cloud_id' => $cloudId,
+                    'trans_id' => isset($payload['trans_id']) ? (string)$payload['trans_id'] : null,
+                    'privilege' => isset($data['privilege']) ? (string)$data['privilege'] : null,
+                    'finger' => isset($data['finger']) ? (string)$data['finger'] : null,
+                    'face' => isset($data['face']) ? (string)$data['face'] : null,
+                    'password' => isset($data['password']) ? (string)$data['password'] : null,
+                    'rfid' => isset($data['rfid']) ? (string)$data['rfid'] : null,
+                    'vein' => isset($data['vein']) ? (string)$data['vein'] : null,
+                    'template' => isset($data['template']) ? (string)$data['template'] : null,
+                    'raw_data' => $data,
+                    'status' => 'active',
+                ];
+
+                if ($cloudName !== null) {
+                    $updateData['nama'] = $cloudName;
+                }
+
+                $nik = $data['employee_number'] ?? ($data['nik'] ?? null);
+                if ($nik !== null && trim((string)$nik) !== '') {
+                    $updateData['nik'] = trim((string)$nik);
+                }
+
+                Employee::updateOrCreate(
+                    ['pin' => $pin],
+                    $updateData
+                );
+                $updatedCount++;
+            }
+
+            if ($updatedCount > 0) {
+                FingerspotSyncLog::create([
+                    'cloud_id' => $cloudId,
+                    'action' => 'webhook_userinfo',
+                    'records_received' => count($userItems),
+                    'records_inserted' => $updatedCount,
+                    'status' => 'success',
+                    'response_message' => 'Processed ' . $updatedCount . ' userinfo records from webhook',
+                ]);
+            }
         }
 
-        if ($type === 'attlog' && isset($payload['data']) && is_array($payload['data']) && isset($payload['data']['pin'])) {
-            $data = $payload['data'];
-            $pin = trim((string)$data['pin']);
-            $scanAt = Carbon::parse($data['scan'] ?? ($data['scan_date'] ?? now()))->format('Y-m-d H:i:s');
-            $verify = isset($data['verify']) ? (string)$data['verify'] : '1';
-            $statusScan = isset($data['status_scan']) ? (string)$data['status_scan'] : '0';
+        if (in_array($type, ['attlog', 'get_attlog'])) {
+            $attItems = [];
+            if (isset($payload['data'])) {
+                if (is_array($payload['data'])) {
+                    if (isset($payload['data']['pin'])) {
+                        $attItems[] = $payload['data'];
+                    } else {
+                        foreach ($payload['data'] as $item) {
+                            if (is_array($item) && isset($item['pin'])) {
+                                $attItems[] = $item;
+                            }
+                        }
+                    }
+                }
+            }
 
             $device = Device::firstOrCreate(
                 ['cloud_id' => $cloudId],
                 ['name' => 'Mesin Fingerprint Utama', 'location' => 'Kantor Fastlog', 'status' => 'active']
             );
 
-            $employee = Employee::firstOrCreate(
-                ['pin' => $pin],
-                [
-                    'cloud_id' => $cloudId,
-                    'status' => 'active',
-                ]
-            );
+            foreach ($attItems as $data) {
+                $pin = trim((string)$data['pin']);
+                if ($pin === '') {
+                    continue;
+                }
 
-            AttendanceLog::firstOrCreate(
-                [
-                    'cloud_id' => $cloudId,
-                    'pin' => $pin,
-                    'scan_at' => $scanAt,
-                ],
-                [
-                    'employee_id' => $employee->id,
-                    'device_id' => $device->id,
-                    'verify_method' => $verify,
-                    'status_scan' => $statusScan,
-                    'raw_data' => $data,
-                ]
-            );
+                $scanAt = Carbon::parse($data['scan'] ?? ($data['scan_date'] ?? now()))->format('Y-m-d H:i:s');
+                $verify = isset($data['verify']) ? (string)$data['verify'] : '1';
+                $statusScan = isset($data['status_scan']) ? (string)$data['status_scan'] : '0';
 
-            app(AttendanceTimeWindowService::class)->processTap($employee, $scanAt);
+                $cloudName = null;
+                $candidateName = $data['name'] ?? ($data['nama'] ?? ($data['user_name'] ?? null));
+                if ($candidateName !== null && trim((string)$candidateName) !== '') {
+                    $cloudName = trim((string)$candidateName);
+                }
+
+                $employee = Employee::where('pin', $pin)->first();
+                if (!$employee) {
+                    $employee = Employee::create([
+                        'pin' => $pin,
+                        'nama' => $cloudName,
+                        'cloud_id' => $cloudId,
+                        'status' => 'active',
+                    ]);
+                } elseif ($cloudName !== null && $employee->nama !== $cloudName) {
+                    $employee->update(['nama' => $cloudName]);
+                }
+
+                AttendanceLog::firstOrCreate(
+                    [
+                        'cloud_id' => $cloudId,
+                        'pin' => $pin,
+                        'scan_at' => $scanAt,
+                    ],
+                    [
+                        'employee_id' => $employee->id,
+                        'device_id' => $device->id,
+                        'verify_method' => $verify,
+                        'status_scan' => $statusScan,
+                        'raw_data' => $data,
+                    ]
+                );
+
+                app(AttendanceTimeWindowService::class)->processTap($employee, $scanAt);
+            }
         }
 
         return response('OK', 200)->header('Content-Type', 'text/plain');

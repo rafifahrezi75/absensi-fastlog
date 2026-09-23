@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Users, Plus, Search, Download, CheckCircle2, AlertCircle, Edit3, Trash2, UserX, Loader2, RefreshCw, X } from 'lucide-react';
 import ModalKaryawan from './Components/ModalKaryawan';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Employees = () => {
     const [employees, setEmployees] = useState([]);
@@ -17,9 +18,9 @@ const Employees = () => {
         data: null
     });
 
-    const loadEmployees = useCallback(async () => {
+    const loadEmployees = useCallback(async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const res = await api.get('/api/admin/employees');
             const list = (res.data.employees || []).map(emp => ({
                 id: emp.id,
@@ -34,7 +35,7 @@ const Employees = () => {
         } catch (err) {
             console.error(err);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, []);
 
@@ -50,28 +51,49 @@ const Employees = () => {
     }, [notif]);
 
     const handleSyncCloud = async () => {
+        let pollTimer = null;
         try {
             setSyncingCloud(true);
+            pollTimer = setInterval(() => {
+                loadEmployees(true);
+            }, 1000);
+
             const res = await api.post('/api/admin/employees/sync-cloud');
-            setNotif({
-                type: 'success',
-                message: res.data.message || 'Permintaan sinkronisasi info nama dari cloud berhasil dikirim.',
-            });
-            await loadEmployees();
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+
+            if (res.data?.employees) {
+                const list = res.data.employees.map(emp => ({
+                    id: emp.id,
+                    nama: emp.nama,
+                    nik: emp.nik || '',
+                    idFinger: emp.pin || '',
+                    dept: emp.dept || 'Umum',
+                    jabatan: emp.jabatan || '',
+                    syncStatus: emp.pin ? 'synced' : 'unsynced'
+                }));
+                setEmployees(list);
+            } else {
+                await loadEmployees(true);
+            }
+            showSuccess(res.data?.message || 'Sinkronisasi data karyawan selesai.');
         } catch (err) {
             setNotif({
                 type: 'error',
-                message: err.response?.data?.message || 'Gagal menyinkronkan nama karyawan dari cloud.',
+                message: err.response?.data?.message || 'Gagal menyinkronkan data karyawan dari cloud.',
             });
         } finally {
+            if (pollTimer) clearInterval(pollTimer);
             setSyncingCloud(false);
         }
     };
 
-    const getInitials = (name) => {
-        if (!name || typeof name !== 'string') return '-';
+    const getInitials = (name, pin) => {
+        if (!name || typeof name !== 'string') return pin ? '#' + pin : '-';
         const parts = name.trim().split(/\s+/);
-        if (parts.length === 0 || !parts[0]) return '-';
+        if (parts.length === 0 || !parts[0]) return pin ? '#' + pin : '-';
         if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
         return (parts[0][0] + parts[1][0]).toUpperCase();
     };
@@ -125,18 +147,33 @@ const Employees = () => {
             }
             handleCloseModal();
             loadEmployees();
+            showSuccess(formData.id ? 'Data karyawan berhasil diperbarui.' : 'Data karyawan berhasil ditambahkan.');
         } catch (err) {
-            alert(err.response?.data?.message || 'Gagal menyimpan data karyawan.');
+            setNotif({
+                type: 'error',
+                message: err.response?.data?.message || 'Gagal menyimpan data karyawan.',
+            });
         }
     };
 
     const handleDeleteEmployee = async (id, nama) => {
-        if (window.confirm(`Apakah Anda yakin ingin menghapus data "${nama}"?`)) {
+        const confirmed = await showConfirm({
+            title: 'Hapus Data Karyawan',
+            text: `Apakah Anda yakin ingin menghapus data "${nama}"?`,
+            confirmText: 'Ya, Hapus',
+            confirmColor: '#e11d48'
+        });
+
+        if (confirmed) {
             try {
                 await api.delete(`/api/admin/employees/${id}`);
                 loadEmployees();
+                showSuccess('Data karyawan berhasil dihapus.');
             } catch (err) {
-                alert(err.response?.data?.message || 'Gagal menghapus data karyawan.');
+                setNotif({
+                    type: 'error',
+                    message: err.response?.data?.message || 'Gagal menghapus data karyawan.',
+                });
             }
         }
     };
@@ -173,18 +210,10 @@ const Employees = () => {
 
     return (
         <div className="space-y-6">
-            {notif && (
-                <div className={`p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm ${
-                    notif.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
-                }`}>
+            {notif && notif.type === 'error' && (
+                <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-rose-50 text-rose-800 border border-rose-200">
                     <div className="flex items-center gap-3">
-                        {notif.type === 'success' ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                        ) : (
-                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                        )}
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
                         <span className="font-medium">{notif.message}</span>
                     </div>
                     <button
@@ -210,7 +239,7 @@ const Employees = () => {
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <RefreshCw className={`w-4 h-4 ${syncingCloud ? 'animate-spin' : ''}`} />
-                        <span>{syncingCloud ? 'Menghubungkan...' : 'Sinkron Nama Mesin'}</span>
+                        <span>{syncingCloud ? 'Menyinkronkan Karyawan...' : 'Sinkron Data Karyawan'}</span>
                     </button>
                     <button
                         onClick={handleExport}
@@ -313,10 +342,20 @@ const Employees = () => {
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
-                                                    {getInitials(emp.nama)}
+                                                    {getInitials(emp.nama, emp.idFinger)}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-sm">{emp.nama || <span className="text-slate-400 italic font-normal">(Nama belum sinkron)</span>}</div>
+                                                    <div className="font-semibold text-sm">
+                                                        {emp.nama || (
+                                                            syncingCloud ? (
+                                                                <span className="text-amber-600 animate-pulse text-xs font-normal">Menyinkronkan data...</span>
+                                                            ) : emp.idFinger ? (
+                                                                <span className="text-slate-600 font-medium">Karyawan PIN #{emp.idFinger}</span>
+                                                            ) : (
+                                                                <span className="text-slate-400 italic font-normal">Belum ada nama</span>
+                                                            )
+                                                        )}
+                                                    </div>
                                                     <div className="text-xs text-slate-400">NIK: {emp.nik || <span className="italic text-slate-300">-</span>}</div>
                                                 </div>
                                             </div>
