@@ -5,6 +5,7 @@ import {
     FileText, Trash2, ExternalLink, Image as ImageIcon, Loader2, Plus 
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Riwayat = () => {
     const location = useLocation();
@@ -23,10 +24,7 @@ const Riwayat = () => {
 
     useEffect(() => {
         if (location.state?.flashMessage) {
-            setNotif({
-                type: 'success',
-                message: location.state.flashMessage
-            });
+            showSuccess(location.state.flashMessage);
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
@@ -63,15 +61,18 @@ const Riwayat = () => {
     }, [loadRiwayat]);
 
     const handleBatalPengajuan = async (id, jenis) => {
-        if (!window.confirm(`Yakin ingin membatalkan pengajuan ${jenis} ini?`)) return;
+        const confirmed = await showConfirm({
+            title: 'Batalkan Pengajuan',
+            text: `Yakin ingin membatalkan pengajuan ${jenis} ini?`,
+            confirmText: 'Ya, Batalkan',
+            confirmColor: '#e11d48'
+        });
+        if (!confirmed) return;
 
         try {
             setDeletingId(id);
             const res = await api.delete(`/api/user/permissions/${id}`);
-            setNotif({
-                type: 'success',
-                message: res.data.message || 'Pengajuan berhasil dibatalkan.'
-            });
+            showSuccess(res.data.message || 'Pengajuan berhasil dibatalkan.');
             await loadRiwayat();
         } catch (err) {
             setNotif({
@@ -113,18 +114,10 @@ const Riwayat = () => {
 
     return (
         <div className="space-y-6">
-            {notif && (
-                <div className={`p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm ${
-                    notif.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
-                }`}>
+            {notif && notif.type === 'error' && (
+                <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-rose-50 text-rose-800 border border-rose-200">
                     <div className="flex items-center gap-3">
-                        {notif.type === 'success' ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                        ) : (
-                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                        )}
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
                         <span className="font-medium">{notif.message}</span>
                     </div>
                     <button

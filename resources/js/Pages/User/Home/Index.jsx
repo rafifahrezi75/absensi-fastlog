@@ -7,6 +7,7 @@ import {
 import PengajuanModal from '../../../Components/PengajuanModal';
 import { useAuth } from '../../../Contexts/AuthContext';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Home = () => {
     const navigate = useNavigate();
@@ -60,10 +61,7 @@ const Home = () => {
     };
 
     const handleSuccessSubmission = (msg) => {
-        setNotif({
-            type: 'success',
-            message: msg || 'Pengajuan berhasil dikirimkan.'
-        });
+        showSuccess(msg || 'Pengajuan berhasil dikirimkan.');
         loadDashboard();
     };
 
@@ -104,18 +102,10 @@ const Home = () => {
 
     return (
         <div className="space-y-5">
-            {notif && (
-                <div className={`p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm ${
-                    notif.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
-                }`}>
+            {notif && notif.type === 'error' && (
+                <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-rose-50 text-rose-800 border border-rose-200">
                     <div className="flex items-center gap-3">
-                        {notif.type === 'success' ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                        ) : (
-                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                        )}
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
                         <span className="font-medium">{notif.message}</span>
                     </div>
                     <button
