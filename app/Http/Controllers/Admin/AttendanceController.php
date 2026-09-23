@@ -159,6 +159,7 @@ class AttendanceController extends Controller
                 'out' => $outTime,
                 'dur' => $dur,
                 'status' => $status,
+                'minutesLate' => $minutesLate,
                 'inStatus' => $inStatus,
                 'outStatus' => $outStatus,
                 'locIn' => $locIn,
