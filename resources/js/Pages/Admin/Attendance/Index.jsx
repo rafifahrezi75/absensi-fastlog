@@ -18,6 +18,8 @@ const Attendance = () => {
     const [filterDept, setFilterDept] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 15;
 
     const openModalKoreksi = useCallback((nama, masuk, keluar) => {
         setModalData({ isOpen: true, nama, masuk, keluar });
@@ -49,6 +51,11 @@ const Attendance = () => {
         } finally {
             setLoading(false);
         }
+    }, [filterTanggal, filterDept, filterStatus, searchQuery]);
+
+    // Reset page to 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
     }, [filterTanggal, filterDept, filterStatus, searchQuery]);
 
     useEffect(() => {
@@ -92,9 +99,16 @@ const Attendance = () => {
         setFilterDept('');
         setFilterStatus('');
         setSearchQuery('');
+        setCurrentPage(1);
     };
 
     const isFilterActive = Boolean(filterTanggal || filterDept || filterStatus || searchQuery);
+
+    const totalPages = Math.ceil(attendanceData.length / itemsPerPage);
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return attendanceData.slice(start, start + itemsPerPage);
+    }, [attendanceData, currentPage]);
 
     return (
         <div className="space-y-6">
@@ -281,8 +295,8 @@ const Attendance = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : attendanceData.length > 0 ? (
-                                attendanceData.map((row) => (
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((row) => (
                                     <tr key={row.id} className="hover:bg-slate-50 transition">
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
@@ -291,16 +305,24 @@ const Attendance = () => {
                                                 </div>
                                                 <div>
                                                     <div className="font-semibold text-sm">{row.nama || <span className="text-slate-400 italic font-normal">(Nama belum sinkron)</span>}</div>
-                                                    <div className="text-xs text-slate-400">NIK: {row.nik || '-'} • ID Finger: {row.finger || <span className="italic text-slate-300">Belum diset</span>}</div>
+                                                    <div className="text-xs text-slate-400">ID Finger: {row.finger || <span className="italic text-slate-300">Belum diset</span>}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-xs font-medium text-slate-700 whitespace-nowrap">{row.tglDisplay || <span className="text-slate-300 italic">-</span>}</td>
                                         <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
-                                            <div className={`font-bold ${row.status === 'late' ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit' : 'text-slate-800'}`}>
+                                            <div className={`font-bold ${
+                                                row.status === 'late' 
+                                                    ? (row.minutesLate > 15 ? 'text-rose-700 bg-rose-50 px-2 py-0.5 rounded w-fit' : 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit')
+                                                    : 'text-slate-800'
+                                            }`}>
                                                 {row.in && row.in !== '-' ? row.in : <span className="text-slate-300 font-normal italic">Belum tap masuk</span>}
                                             </div>
-                                            <div className={`text-[10px] mt-0.5 flex items-center gap-1 ${row.status === 'late' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                            <div className={`text-[10px] mt-0.5 flex items-center gap-1 ${
+                                                row.status === 'late' 
+                                                    ? (row.minutesLate > 15 ? 'text-rose-600' : 'text-amber-600') 
+                                                    : 'text-emerald-600'
+                                            }`}>
                                                 {row.status === 'ontime' && <Check className="w-3 h-3" />}
                                                 {row.inStatus || '-'}
                                             </div>
@@ -316,7 +338,11 @@ const Attendance = () => {
                                                 </span>
                                             )}
                                             {row.status === 'late' && (
-                                                <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded-full border border-amber-200">
+                                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
+                                                    row.minutesLate > 15 
+                                                        ? 'bg-rose-100 text-rose-800 border-rose-200' 
+                                                        : 'bg-amber-100 text-amber-800 border-amber-200'
+                                                }`}>
                                                     {row.inStatus || 'Terlambat'}
                                                 </span>
                                             )}
@@ -374,8 +400,57 @@ const Attendance = () => {
                     </table>
                 </div>
 
-                <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-                    <div>Menampilkan {attendanceData.length} data absensi</div>
+                <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+                    <div>
+                        Menampilkan {attendanceData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, attendanceData.length)} dari total {attendanceData.length} data absensi
+                    </div>
+                    {totalPages > 1 && (
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                Sebelumnya
+                            </button>
+                            
+                            <div className="flex items-center gap-1 px-2">
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    // Logic to show a window of pages around current page
+                                    let pageNum = currentPage;
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1;
+                                    } else {
+                                        if (currentPage <= 3) pageNum = i + 1;
+                                        else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                                        else pageNum = currentPage - 2 + i;
+                                    }
+                                    
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition font-medium ${
+                                                currentPage === pageNum 
+                                                    ? 'bg-indigo-600 text-white shadow-sm' 
+                                                    : 'text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                Selanjutnya
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
