@@ -355,7 +355,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard Utama</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Dasbor Utama</h1>
           <p className="text-sm text-slate-500">Ringkasan aktivitas absensi real-time, evaluasi kedisiplinan, dan monitoring mesin.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -590,17 +590,18 @@ const Dashboard = () => {
                             {row.initials && row.initials !== '-' ? row.initials : (row.finger ? row.finger : '-')}
                           </div>
                           <div>
-                            <div className="font-semibold text-sm">{row.nama || <span className="text-slate-400 italic font-normal">(Nama belum sinkron)</span>}</div>
+                            <div className="font-semibold text-sm">{row.nama || (row.finger ? `Karyawan PIN #${row.finger}` : <span className="text-slate-400 italic font-normal">Belum ada nama</span>)}</div>
                             <div className="text-xs text-slate-400">PIN: {row.finger} • {row.deptDisplay || 'Umum'}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-3.5 font-mono text-slate-700">{row.in || '-'}</td>
                       <td className="px-6 py-3.5">
-                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${row.status === 'late'
-                          ? 'bg-amber-100 text-amber-800 border-amber-200'
-                          : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                          }`}>
+                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${
+                          (row.status === 'late' || row.status === 'terlambat')
+                            ? 'bg-amber-100 text-amber-800 border-amber-200'
+                            : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        }`}>
                           {row.inStatus || 'Tepat Waktu'}
                         </span>
                       </td>
@@ -614,7 +615,7 @@ const Dashboard = () => {
                 ) : (
                   <tr>
                     <td colSpan="4" className="px-6 py-10 text-center text-xs text-slate-400">
-                      Belum ada log absensi hari ini. Klik tombol "Sync Fingerprint" untuk menarik data dari cloud.
+                      Belum ada log absensi hari ini. Klik tombol "Tarik Log Absensi" untuk menarik data dari cloud.
                     </td>
                   </tr>
                 )}

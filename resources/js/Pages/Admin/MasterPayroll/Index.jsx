@@ -3,6 +3,7 @@ import { Layers, Plus, Search, Edit3, Trash2, CheckCircle, XCircle, CheckCircle2
 import ModalGolongan from './Components/ModalGolongan';
 import ModalKomponen from './Components/ModalKomponen';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const MasterPayroll = () => {
     const [activeTab, setActiveTab] = useState('golongan');
@@ -16,7 +17,13 @@ const MasterPayroll = () => {
     const [modalGolongan, setModalGolongan] = useState({ isOpen: false, data: null });
     const [modalKomponen, setModalKomponen] = useState({ isOpen: false, data: null });
 
-    const showNotif = (message, type = 'success') => setNotif({ message, type });
+    const showNotif = (message, type = 'success') => {
+        if (type === 'success') {
+            showSuccess(message);
+        } else {
+            setNotif({ message, type });
+        }
+    };
 
     useEffect(() => {
         if (notif) {
@@ -108,14 +115,20 @@ const MasterPayroll = () => {
     };
 
     const handleDeleteGolongan = async (id, nama) => {
-        if (window.confirm(`Hapus golongan "${nama}"?`)) {
-            try {
-                await api.delete(`/api/admin/master-payroll/golongan/${id}`);
-                showNotif('Golongan gaji berhasil dihapus.', 'success');
-                fetchGolongan();
-            } catch (err) {
-                showNotif(err.response?.data?.message || 'Gagal menghapus golongan gaji.', 'error');
-            }
+        const confirmed = await showConfirm({
+            title: 'Hapus Golongan Gaji',
+            text: `Apakah Anda yakin ingin menghapus golongan "${nama}"?`,
+            confirmText: 'Ya, Hapus',
+            confirmColor: '#e11d48'
+        });
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/api/admin/master-payroll/golongan/${id}`);
+            showSuccess('Golongan gaji berhasil dihapus.');
+            fetchGolongan();
+        } catch (err) {
+            showNotif(err.response?.data?.message || 'Gagal menghapus golongan gaji.', 'error');
         }
     };
 
@@ -126,10 +139,10 @@ const MasterPayroll = () => {
         try {
             if (formData.id) {
                 await api.put(`/api/admin/master-payroll/komponen/${formData.id}`, formData);
-                showNotif('Komponen gaji berhasil diperbarui.', 'success');
+                showSuccess('Komponen gaji berhasil diperbarui.');
             } else {
                 await api.post('/api/admin/master-payroll/komponen', formData);
-                showNotif('Komponen gaji berhasil ditambahkan.', 'success');
+                showSuccess('Komponen gaji berhasil ditambahkan.');
             }
             closeModalKomponen();
             fetchKomponen();
@@ -140,14 +153,20 @@ const MasterPayroll = () => {
     };
 
     const handleDeleteKomponen = async (id, nama) => {
-        if (window.confirm(`Hapus komponen "${nama}"?`)) {
-            try {
-                await api.delete(`/api/admin/master-payroll/komponen/${id}`);
-                showNotif('Komponen gaji berhasil dihapus.', 'success');
-                fetchKomponen();
-            } catch (err) {
-                showNotif(err.response?.data?.message || 'Gagal menghapus komponen gaji.', 'error');
-            }
+        const confirmed = await showConfirm({
+            title: 'Hapus Komponen Gaji',
+            text: `Apakah Anda yakin ingin menghapus komponen "${nama}"?`,
+            confirmText: 'Ya, Hapus',
+            confirmColor: '#e11d48'
+        });
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/api/admin/master-payroll/komponen/${id}`);
+            showSuccess('Komponen gaji berhasil dihapus.');
+            fetchKomponen();
+        } catch (err) {
+            showNotif(err.response?.data?.message || 'Gagal menghapus komponen gaji.', 'error');
         }
     };
 
@@ -169,13 +188,9 @@ const MasterPayroll = () => {
                 </div>
             </div>
 
-            {notif && (
-                <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl border text-sm font-medium ${notif.type === 'success' ? 'bg-white text-emerald-700 border-emerald-200' : 'bg-white text-rose-700 border-rose-200'}`}>
-                    {notif.type === 'success' ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                    ) : (
-                        <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
-                    )}
+            {notif && notif.type === 'error' && (
+                <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl border text-sm font-medium bg-white text-rose-700 border-rose-200">
+                    <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
                     <span>{notif.message}</span>
                     <button onClick={() => setNotif(null)} className="ml-2 text-slate-300 hover:text-slate-500 transition">
                         <X className="w-4 h-4" />

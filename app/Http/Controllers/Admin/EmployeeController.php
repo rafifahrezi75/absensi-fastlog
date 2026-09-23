@@ -27,8 +27,16 @@ class EmployeeController extends Controller
             'pin' => 'nullable|string|max:50|unique:employees,pin',
             'dept' => 'nullable|string|max:100',
             'jabatan' => 'nullable|string|max:100',
-            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'status' => ['nullable', Rule::in(['active', 'inactive', 'aktif', 'nonaktif'])],
         ]);
+
+        if (isset($validated['status'])) {
+            $validated['status'] = match($validated['status']) {
+                'active' => 'aktif',
+                'inactive' => 'nonaktif',
+                default => $validated['status'],
+            };
+        }
 
         $employee = Employee::create($validated);
 
@@ -48,8 +56,16 @@ class EmployeeController extends Controller
             'pin' => ['nullable', 'string', 'max:50', Rule::unique('employees')->ignore($employee->id)],
             'dept' => 'nullable|string|max:100',
             'jabatan' => 'nullable|string|max:100',
-            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'status' => ['nullable', Rule::in(['active', 'inactive', 'aktif', 'nonaktif'])],
         ]);
+
+        if (isset($validated['status'])) {
+            $validated['status'] = match($validated['status']) {
+                'active' => 'aktif',
+                'inactive' => 'nonaktif',
+                default => $validated['status'],
+            };
+        }
 
         $employee->update($validated);
 
