@@ -1,44 +1,98 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Users, Plus, Search, Download, CheckCircle2, AlertCircle, Edit3, Trash2, UserX } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { Users, Plus, Search, Download, CheckCircle2, AlertCircle, Edit3, Trash2, UserX, Loader2, RefreshCw, X } from 'lucide-react';
 import ModalKaryawan from './Components/ModalKaryawan';
-
-const INITIAL_EMPLOYEES = [
-    { id: 1, nama: 'Budi Santoso', nik: '20260101', idFinger: '101', dept: 'IT & Tech', jabatan: 'Software Engineer', syncStatus: 'synced' },
-    { id: 2, nama: 'Ahmad Rizky', nik: '20260104', idFinger: '104', dept: 'Marketing', jabatan: 'Digital Marketer', syncStatus: 'synced' },
-    { id: 3, nama: 'Siti Aminah', nik: '20260105', idFinger: '', dept: 'HRD & GA', jabatan: 'HR Officer', syncStatus: 'unsynced' },
-    { id: 4, nama: 'Dewi Lestari', nik: '20260108', idFinger: '108', dept: 'IT & Tech', jabatan: 'UI/UX Designer', syncStatus: 'synced' },
-];
+import api from '../../../lib/api';
 
 const Employees = () => {
-    const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
+    const [employees, setEmployees] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [syncingCloud, setSyncingCloud] = useState(false);
+    const [notif, setNotif] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [deptFilter, setDeptFilter] = useState('');
     const [syncFilter, setSyncFilter] = useState('');
 
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
-        data: null // Null untuk 'Tambah', bertipe Object untuk 'Edit'
+        data: null
     });
 
-    // Helper Avatar Initial
-    const getInitials = (name) => {
-        if (!name) return '??';
-        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const loadEmployees = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await api.get('/api/admin/employees');
+            const list = (res.data.employees || []).map(emp => ({
+                id: emp.id,
+                nama: emp.nama,
+                nik: emp.nik || '',
+                idFinger: emp.pin || '',
+                dept: emp.dept || 'Umum',
+                jabatan: emp.jabatan || '',
+                syncStatus: emp.pin ? 'synced' : 'unsynced'
+            }));
+            setEmployees(list);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadEmployees();
+    }, [loadEmployees]);
+
+    useEffect(() => {
+        if (notif) {
+            const timer = setTimeout(() => setNotif(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [notif]);
+
+    const handleSyncCloud = async () => {
+        try {
+            setSyncingCloud(true);
+            const res = await api.post('/api/admin/employees/sync-cloud');
+            setNotif({
+                type: 'success',
+                message: res.data.message || 'Permintaan sinkronisasi info nama dari cloud berhasil dikirim.',
+            });
+            await loadEmployees();
+        } catch (err) {
+            setNotif({
+                type: 'error',
+                message: err.response?.data?.message || 'Gagal menyinkronkan nama karyawan dari cloud.',
+            });
+        } finally {
+            setSyncingCloud(false);
+        }
     };
 
-    // Filter Data
+    const getInitials = (name) => {
+        if (!name || typeof name !== 'string') return '-';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 0 || !parts[0]) return '-';
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    };
+
     const filteredEmployees = useMemo(() => {
         return employees.filter(emp => {
-            const matchesSearch = emp.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                emp.nik.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesDept = deptFilter ? emp.dept === deptFilter : true;
+            const nameStr = emp.nama || '';
+            const nikStr = emp.nik || '';
+            const pinStr = emp.idFinger || '';
+            const q = searchQuery.toLowerCase();
+
+            const matchesSearch = nameStr.toLowerCase().includes(q) ||
+                nikStr.toLowerCase().includes(q) ||
+                pinStr.includes(searchQuery);
+            const matchesDept = deptFilter ? emp.dept.toLowerCase() === deptFilter.toLowerCase() : true;
             const matchesSync = syncFilter ? emp.syncStatus === syncFilter : true;
 
             return matchesSearch && matchesDept && matchesSync;
         });
     }, [employees, searchQuery, deptFilter, syncFilter]);
 
-    // Counter Stats
     const stats = useMemo(() => {
         const total = employees.length;
         const synced = employees.filter(e => e.idFinger && e.syncStatus === 'synced').length;
@@ -46,7 +100,6 @@ const Employees = () => {
         return { total, synced, unsynced };
     }, [employees]);
 
-    // Handle Open/Close Modal
     const handleOpenModal = (employee = null) => {
         setModalConfig({ isOpen: true, data: employee });
     };
@@ -55,34 +108,39 @@ const Employees = () => {
         setModalConfig({ isOpen: false, data: null });
     };
 
-    // Handle Save (Create / Update)
-    const handleSaveEmployee = (formData) => {
-        if (formData.id) {
-            // Mode Edit
-            setEmployees(prev => prev.map(emp => emp.id === formData.id ? {
-                ...formData,
-                syncStatus: formData.idFinger ? 'synced' : 'unsynced'
-            } : emp));
-        } else {
-            // Mode Tambah
-            const newEmployee = {
-                ...formData,
-                id: Date.now(),
-                syncStatus: formData.idFinger ? 'synced' : 'unsynced'
+    const handleSaveEmployee = async (formData) => {
+        try {
+            const payload = {
+                nama: formData.nama,
+                nik: formData.nik || null,
+                pin: formData.idFinger || null,
+                dept: formData.dept || null,
+                jabatan: formData.jabatan || null,
             };
-            setEmployees(prev => [newEmployee, ...prev]);
+
+            if (formData.id) {
+                await api.put(`/api/admin/employees/${formData.id}`, payload);
+            } else {
+                await api.post('/api/admin/employees', payload);
+            }
+            handleCloseModal();
+            loadEmployees();
+        } catch (err) {
+            alert(err.response?.data?.message || 'Gagal menyimpan data karyawan.');
         }
-        handleCloseModal();
     };
 
-    // Handle Delete
-    const handleDeleteEmployee = (id, nama) => {
+    const handleDeleteEmployee = async (id, nama) => {
         if (window.confirm(`Apakah Anda yakin ingin menghapus data "${nama}"?`)) {
-            setEmployees(prev => prev.filter(emp => emp.id !== id));
+            try {
+                await api.delete(`/api/admin/employees/${id}`);
+                loadEmployees();
+            } catch (err) {
+                alert(err.response?.data?.message || 'Gagal menghapus data karyawan.');
+            }
         }
     };
 
-    // Export Data to CSV
     const handleExport = () => {
         if (filteredEmployees.length === 0) {
             alert('Tidak ada data untuk diexport');
@@ -115,7 +173,30 @@ const Employees = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
+            {notif && (
+                <div className={`p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm ${
+                    notif.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                }`}>
+                    <div className="flex items-center gap-3">
+                        {notif.type === 'success' ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                        ) : (
+                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                        )}
+                        <span className="font-medium">{notif.message}</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setNotif(null)}
+                        className="p-1 hover:bg-black/5 rounded-lg transition"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Data Karyawan</h1>
@@ -123,21 +204,29 @@ const Employees = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
+                        type="button"
+                        disabled={syncingCloud}
+                        onClick={handleSyncCloud}
+                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${syncingCloud ? 'animate-spin' : ''}`} />
+                        <span>{syncingCloud ? 'Menghubungkan...' : 'Sync Nama dari Mesin'}</span>
+                    </button>
+                    <button
                         onClick={handleExport}
-                        className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                        className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
                     >
                         <Download className="w-4 h-4" /> Export Data
                     </button>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
                     >
                         <Plus className="w-4 h-4" /> Tambah Karyawan
                     </button>
                 </div>
             </div>
 
-            {/* Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Karyawan</span>
@@ -161,7 +250,6 @@ const Employees = () => {
                 </div>
             </div>
 
-            {/* Filter Bar */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                     <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -169,7 +257,7 @@ const Employees = () => {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Cari nama atau NIK..."
+                        placeholder="Cari nama, NIK, atau PIN..."
                         className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                     />
                 </div>
@@ -182,6 +270,8 @@ const Employees = () => {
                     <option value="IT & Tech">IT & Tech</option>
                     <option value="Marketing">Marketing</option>
                     <option value="HRD & GA">HRD & GA</option>
+                    <option value="Finance & Accounting">Finance & Accounting</option>
+                    <option value="Umum">Umum</option>
                 </select>
                 <select
                     value={syncFilter}
@@ -190,11 +280,10 @@ const Employees = () => {
                 >
                     <option value="">Semua Status Sinkronisasi</option>
                     <option value="synced">Sudah Tersinkron</option>
-                    <option value="unsynced">Belum Tersinkron (Error)</option>
+                    <option value="unsynced">Belum Tersinkron</option>
                 </select>
             </div>
 
-            {/* Table */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-600">
@@ -209,7 +298,16 @@ const Employees = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredEmployees.length > 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="6" className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                                            <p className="text-sm font-medium text-slate-600">Memuat data karyawan...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredEmployees.length > 0 ? (
                                 filteredEmployees.map((emp) => (
                                     <tr key={emp.id} className="hover:bg-slate-50 transition">
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
@@ -218,7 +316,7 @@ const Employees = () => {
                                                     {getInitials(emp.nama)}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-sm">{emp.nama || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
+                                                    <div className="font-semibold text-sm">{emp.nama || <span className="text-slate-400 italic font-normal">(Nama belum sinkron)</span>}</div>
                                                     <div className="text-xs text-slate-400">NIK: {emp.nik || <span className="italic text-slate-300">-</span>}</div>
                                                 </div>
                                             </div>
@@ -253,14 +351,14 @@ const Employees = () => {
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
                                                     onClick={() => handleOpenModal(emp)}
-                                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
                                                     title="Edit Data"
                                                 >
                                                     <Edit3 className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteEmployee(emp.id, emp.nama)}
-                                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                                                     title="Hapus"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -295,7 +393,6 @@ const Employees = () => {
                 </div>
             </div>
 
-            {/* Modal Form */}
             <ModalKaryawan
                 isOpen={modalConfig.isOpen}
                 onClose={handleCloseModal}

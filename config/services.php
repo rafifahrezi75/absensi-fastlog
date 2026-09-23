@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'fingerspot' => [
+        'cloud_id' => env('FINGERSPOT_CLOUD_ID', 'C260503403233826'),
+        'api_token' => env('FINGERSPOT_API_TOKEN', 'JQY4F93WNJ28QYG8'),
+        'api_url' => env('FINGERSPOT_API_URL', 'https://developer.fingerspot.io/api'),
+    ],
+
 ];
