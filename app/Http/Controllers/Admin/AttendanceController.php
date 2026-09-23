@@ -86,8 +86,9 @@ class AttendanceController extends Controller
             if ($outScan) {
                 $isEarly = $outScan->lt($scheduleOut);
                 $outStatus = $isEarly ? 'Pulang Cepat' : 'Tepat';
-                $diffHours = $inScan->diffInHours($outScan);
-                $diffMins = $inScan->diffInMinutes($outScan) % 60;
+                $diffTotalMins = (int) $inScan->diffInMinutes($outScan);
+                $diffHours = (int) floor($diffTotalMins / 60);
+                $diffMins = $diffTotalMins % 60;
                 $dur = $diffHours . 'j ' . $diffMins . 'm';
             } else {
                 $outStatus = 'Belum Tap';
@@ -141,6 +142,7 @@ class AttendanceController extends Controller
                 'out' => $outTime,
                 'dur' => $dur,
                 'status' => $status,
+                'minutesLate' => $minutesLate,
                 'inStatus' => $inStatus,
                 'outStatus' => $outStatus,
                 'locIn' => $locIn,
