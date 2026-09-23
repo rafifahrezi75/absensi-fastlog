@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/store.php',
             'api/attendance/tap',
             'api/admin/*',
+            'api/user/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
