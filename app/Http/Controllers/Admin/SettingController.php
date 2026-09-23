@@ -3,39 +3,35 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\SystemSetting;
 use App\Models\Holiday;
+use App\Models\SystemSetting;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class SettingController extends Controller
 {
-    public function index()
+    public function index(): JsonResponse
     {
-        // Get all settings as key-value pairs
         $settingsData = SystemSetting::all();
         $settings = [];
         foreach ($settingsData as $setting) {
-            $settings[$setting->key] = $setting->value;
+            $settings[$setting->kunci] = $setting->nilai;
         }
 
-        // Default values if not set
         $defaultSettings = [
             'normal_check_in' => '08:00',
             'normal_check_out' => '17:00',
-            'normal_tolerance' => '15', // minutes
+            'normal_tolerance' => '15',
             'saturday_check_in' => '08:00',
             'saturday_check_out' => '12:00',
             'saturday_tolerance' => '15',
-            'late_fine_per_minute' => '1000', // Rp
-            'absent_deduction' => '50000', // Rp
+            'late_fine_per_minute' => '1000',
+            'absent_deduction' => '50000',
         ];
 
-        // Merge defaults with DB values
         $settings = array_merge($defaultSettings, $settings);
-
-        // Get upcoming and recent holidays
-        $holidays = Holiday::orderBy('date', 'desc')->get();
+        $holidays = Holiday::orderBy('tanggal', 'desc')->get();
 
         return response()->json([
             'settings' => $settings,
@@ -43,7 +39,7 @@ class SettingController extends Controller
         ]);
     }
 
-    public function update(Request $request)
+    public function update(Request $request): JsonResponse
     {
         $data = $request->validate([
             'normal_check_in' => 'nullable|string',
@@ -61,37 +57,44 @@ class SettingController extends Controller
             foreach ($data as $key => $value) {
                 if ($value !== null) {
                     SystemSetting::updateOrCreate(
-                        ['key' => $key],
-                        ['value' => $value]
+                        ['kunci' => $key],
+                        ['nilai' => (string)$value]
                     );
                 }
             }
             DB::commit();
             return response()->json(['message' => 'Pengaturan berhasil diperbarui.']);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json(['message' => 'Terjadi kesalahan saat menyimpan pengaturan.', 'error' => $e->getMessage()], 500);
         }
     }
 
-    public function addHoliday(Request $request)
+    public function addHoliday(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'date' => 'required|date|unique:holidays,date',
-            'description' => 'required|string|max:255',
-            'is_national' => 'boolean',
-        ]);
+        $date = $request->input('tanggal') ?? $request->input('date');
+        $desc = $request->input('keterangan') ?? $request->input('description');
+        $isNational = $request->boolean('libur_nasional', false) || $request->boolean('is_national', false);
+
+        if (!$date || !$desc) {
+            return response()->json(['message' => 'Tanggal dan keterangan hari libur wajib diisi.'], 422);
+        }
+
+        $exists = Holiday::where('tanggal', $date)->exists();
+        if ($exists) {
+            return response()->json(['message' => 'Tanggal hari libur ini sudah terdaftar.'], 422);
+        }
 
         $holiday = Holiday::create([
-            'date' => $data['date'],
-            'description' => $data['description'],
-            'is_national' => $request->boolean('is_national', false),
+            'tanggal' => $date,
+            'keterangan' => $desc,
+            'libur_nasional' => $isNational,
         ]);
 
         return response()->json(['message' => 'Hari libur berhasil ditambahkan.', 'holiday' => $holiday], 201);
     }
 
-    public function deleteHoliday($id)
+    public function deleteHoliday(string $id): JsonResponse
     {
         $holiday = Holiday::findOrFail($id);
         $holiday->delete();

@@ -22,6 +22,7 @@ const Reports = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [employees, setEmployees] = useState([]);
     const [departments, setDepartments] = useState([]);
+    const [holidays, setHolidays] = useState({});
     const [loading, setLoading] = useState(true);
 
     const loadReports = useCallback(async () => {
@@ -38,6 +39,9 @@ const Reports = () => {
             setEmployees(res.data.employees || []);
             if (res.data.departments) {
                 setDepartments(res.data.departments);
+            }
+            if (res.data.holidays) {
+                setHolidays(res.data.holidays);
             }
         } catch (err) {
             console.error(err);
@@ -66,17 +70,22 @@ const Reports = () => {
             const m = String(current.getMonth() + 1).padStart(2, '0');
             const d = String(current.getDate()).padStart(2, '0');
             const fullDate = `${y}-${m}-${d}`;
+            const isSun = current.getDay() === 0;
+            const isHol = Boolean(holidays && holidays[fullDate]);
+            const holName = (holidays && holidays[fullDate]) || '';
 
             days.push({
                 fullDate,
                 dayNum: current.getDate(),
                 dayName: dayNamesIndo[current.getDay()],
-                isSunday: current.getDay() === 0,
+                isSunday: isSun,
+                isHoliday: isHol,
+                holidayName: holName,
             });
             current.setDate(current.getDate() + 1);
         }
         return days;
-    }, [startDate, endDate]);
+    }, [startDate, endDate, holidays]);
 
     const renderStatusBadge = (status) => {
         switch (status) {
@@ -92,6 +101,8 @@ const Reports = () => {
                 return <span className="w-5 h-5 rounded font-bold bg-purple-100 text-purple-700 border border-purple-200 flex items-center justify-center text-[10px] mx-auto">S</span>;
             case 'L':
                 return <span className="w-5 h-5 rounded font-bold bg-slate-200 text-slate-500 border border-slate-300 flex items-center justify-center text-[10px] mx-auto">L</span>;
+            case 'LN':
+                return <span className="px-1 h-5 rounded font-bold bg-rose-100 text-rose-700 border border-rose-300 flex items-center justify-center text-[9px] mx-auto min-w-[20px]">LN</span>;
             default:
                 return <span className="text-slate-300">-</span>;
         }
@@ -169,7 +180,8 @@ const Reports = () => {
             let countH = 0, countT = 0, countOT = 0, countIS = 0;
 
             const dailyStatus = daysInPeriod.map(d => {
-                const st = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || (d.isSunday ? 'L' : '-');
+                const defaultSt = d.isHoliday ? 'LN' : (d.isSunday ? 'L' : '-');
+                const st = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || defaultSt;
                 if (st === 'H') countH++;
                 if (st === 'T') countT++;
                 if (st === 'OT') countOT++;
@@ -295,7 +307,11 @@ const Reports = () => {
                 </div>
                 <div className="flex items-center gap-1.5">
                     <span className="w-5 h-5 rounded font-bold bg-slate-200 text-slate-500 border border-slate-300 flex items-center justify-center text-[10px]">L</span>
-                    <span>Libur Pekan / Nasional</span>
+                    <span>Libur Minggu</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <span className="px-1 h-5 rounded font-bold bg-rose-100 text-rose-700 border border-rose-300 flex items-center justify-center text-[9px] min-w-[20px]">LN</span>
+                    <span>Libur Nasional</span>
                 </div>
             </div>
 
@@ -319,10 +335,15 @@ const Reports = () => {
                                 {daysInPeriod.map((d) => (
                                     <th
                                         key={d.fullDate || d.dayNum}
-                                        className={`px-1 py-1.5 border-r border-slate-700 min-w-[30px] ${d.isSunday ? 'bg-rose-950/40 text-rose-300' : ''}`}
+                                        title={d.holidayName || (d.isSunday ? 'Hari Minggu' : '')}
+                                        className={`px-1 py-1.5 border-r border-slate-700 min-w-[30px] ${
+                                            d.isSunday || d.isHoliday ? 'bg-rose-950/40 text-rose-300' : ''
+                                        }`}
                                     >
                                         <div className="font-bold text-xs">{d.dayNum}</div>
-                                        <div className={`text-[9px] font-normal ${d.isSunday ? 'text-rose-300' : 'text-slate-400'}`}>{d.dayName}</div>
+                                        <div className={`text-[9px] font-normal ${d.isSunday || d.isHoliday ? 'text-rose-300' : 'text-slate-400'}`}>
+                                            {d.dayName}
+                                        </div>
                                     </th>
                                 ))}
                             </tr>
@@ -349,7 +370,8 @@ const Reports = () => {
                                             </td>
 
                                             {daysInPeriod.map((d) => {
-                                                const status = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || (d.isSunday ? 'L' : '-');
+                                                const defaultSt = d.isHoliday ? 'LN' : (d.isSunday ? 'L' : '-');
+                                                const status = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || defaultSt;
 
                                                 if (status === 'H') countH++;
                                                 if (status === 'T') countT++;
@@ -359,7 +381,7 @@ const Reports = () => {
                                                 return (
                                                     <td
                                                         key={d.fullDate || d.dayNum}
-                                                        className={`p-1 border-r border-slate-200 ${status === 'L' ? 'bg-slate-50' : ''}`}
+                                                        className={`p-1 border-r border-slate-200 ${status === 'LN' ? 'bg-rose-50/40' : status === 'L' ? 'bg-slate-50' : ''}`}
                                                     >
                                                         {renderStatusBadge(status)}
                                                     </td>

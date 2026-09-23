@@ -8,6 +8,7 @@ use App\Models\Device;
 use App\Models\Employee;
 use App\Models\FingerspotSyncLog;
 use App\Models\TLog;
+use App\Services\AttendanceTimeWindowService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -124,6 +125,8 @@ class WebhookController extends Controller
                     'raw_data' => $data,
                 ]
             );
+
+            app(AttendanceTimeWindowService::class)->processTap($employee, $scanAt);
         }
 
         return response('OK', 200)->header('Content-Type', 'text/plain');
