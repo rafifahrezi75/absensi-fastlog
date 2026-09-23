@@ -259,10 +259,10 @@ const AdminLayout = () => {
                         <Cpu className="w-4 h-4" />
                         <span>Mesin Fingerprint</span>
                     </a>
-                    <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-white/60 hover:bg-white/10 hover:text-white">
+                    <NavLink to="/admin/settings" className={navLinkClass}>
                         <Settings className="w-4 h-4" />
                         <span>Pengaturan System</span>
-                    </a>
+                    </NavLink>
                 </nav>
 
                 {/* Profil Admin / Logout */}
