@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\User\UserPermissionController;
 use Illuminate\Support\Facades\Route;
 
 Route::match(['get', 'post'], '/api/webhook/fingerspot', [WebhookController::class, 'handle'])->name('webhook.fingerspot');
@@ -27,6 +28,13 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/api/user', [AuthController::class, 'me'])->name('api.user');
+
+    Route::prefix('api/user')->group(function () {
+        Route::get('/dashboard', [UserPermissionController::class, 'dashboard'])->name('api.user.dashboard');
+        Route::get('/permissions', [UserPermissionController::class, 'index'])->name('api.user.permissions.index');
+        Route::post('/permissions', [UserPermissionController::class, 'store'])->name('api.user.permissions.store');
+        Route::delete('/permissions/{id}', [UserPermissionController::class, 'destroy'])->name('api.user.permissions.destroy');
+    });
 });
 
 Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
