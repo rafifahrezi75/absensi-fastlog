@@ -1,18 +1,56 @@
-import React, { useState, useMemo } from 'react';
-import { Layers, Plus, Search, Edit3, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Layers, Plus, Search, Edit3, Trash2, CheckCircle, XCircle, CheckCircle2, X, Loader2 } from 'lucide-react';
 import ModalGolongan from './Components/ModalGolongan';
 import ModalKomponen from './Components/ModalKomponen';
-import { INITIAL_GOLONGAN, INITIAL_KOMPONEN, isGolonganDipakai, isKomponenDipakai } from './data/masterPayrollMock';
+import api from '../../../lib/api';
 
 const MasterPayroll = () => {
-    const [activeTab, setActiveTab] = useState('golongan'); // 'golongan' atau 'komponen'
+    const [activeTab, setActiveTab] = useState('golongan');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const [golonganList, setGolonganList] = useState(INITIAL_GOLONGAN);
-    const [komponenList, setKomponenList] = useState(INITIAL_KOMPONEN);
+    const [golonganList, setGolonganList] = useState([]);
+    const [komponenList, setKomponenList] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [notif, setNotif] = useState(null);
 
     const [modalGolongan, setModalGolongan] = useState({ isOpen: false, data: null });
     const [modalKomponen, setModalKomponen] = useState({ isOpen: false, data: null });
+
+    const showNotif = (message, type = 'success') => setNotif({ message, type });
+
+    useEffect(() => {
+        if (notif) {
+            const timer = setTimeout(() => setNotif(null), 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [notif]);
+
+    const fetchGolongan = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/master-payroll/golongan');
+            setGolonganList(res.data.golongan || []);
+        } catch (err) {
+            showNotif(err.response?.data?.message || 'Gagal memuat data golongan gaji.', 'error');
+        }
+    }, []);
+
+    const fetchKomponen = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/master-payroll/komponen');
+            setKomponenList(res.data.komponen || []);
+        } catch (err) {
+            showNotif(err.response?.data?.message || 'Gagal memuat data komponen gaji.', 'error');
+        }
+    }, []);
+
+    useEffect(() => {
+        const loadAll = async () => {
+            setLoading(true);
+            await Promise.all([fetchGolongan(), fetchKomponen()]);
+            setLoading(false);
+        };
+        loadAll();
+    }, [fetchGolongan, fetchKomponen]);
 
     const formatIDR = (val) => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
@@ -52,44 +90,64 @@ const MasterPayroll = () => {
     const openModalGolongan = (data = null) => setModalGolongan({ isOpen: true, data });
     const closeModalGolongan = () => setModalGolongan({ isOpen: false, data: null });
     
-    const handleSaveGolongan = (formData) => {
-        if (formData.id) {
-            setGolonganList(prev => prev.map(item => item.id === formData.id ? formData : item));
-        } else {
-            setGolonganList(prev => [{ ...formData, id: Date.now() }, ...prev]);
+    const handleSaveGolongan = async (formData) => {
+        try {
+            if (formData.id) {
+                await api.put(`/api/admin/master-payroll/golongan/${formData.id}`, formData);
+                showNotif('Golongan gaji berhasil diperbarui.', 'success');
+            } else {
+                await api.post('/api/admin/master-payroll/golongan', formData);
+                showNotif('Golongan gaji berhasil ditambahkan.', 'success');
+            }
+            closeModalGolongan();
+            fetchGolongan();
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Gagal menyimpan golongan gaji.';
+            showNotif(msg, 'error');
         }
-        closeModalGolongan();
     };
 
-    const handleDeleteGolongan = (id, nama) => {
-        if (isGolonganDipakai(id)) {
-            alert(`Golongan "${nama}" dipasang di data karyawan! Ubah statusnya menjadi Nonaktif saja.`);
-            return;
-        }
+    const handleDeleteGolongan = async (id, nama) => {
         if (window.confirm(`Hapus golongan "${nama}"?`)) {
-            setGolonganList(prev => prev.filter(item => item.id !== id));
+            try {
+                await api.delete(`/api/admin/master-payroll/golongan/${id}`);
+                showNotif('Golongan gaji berhasil dihapus.', 'success');
+                fetchGolongan();
+            } catch (err) {
+                showNotif(err.response?.data?.message || 'Gagal menghapus golongan gaji.', 'error');
+            }
         }
     };
 
     const openModalKomponen = (data = null) => setModalKomponen({ isOpen: true, data });
     const closeModalKomponen = () => setModalKomponen({ isOpen: false, data: null });
 
-    const handleSaveKomponen = (formData) => {
-        if (formData.id) {
-            setKomponenList(prev => prev.map(item => item.id === formData.id ? formData : item));
-        } else {
-            setKomponenList(prev => [{ ...formData, id: Date.now() }, ...prev]);
+    const handleSaveKomponen = async (formData) => {
+        try {
+            if (formData.id) {
+                await api.put(`/api/admin/master-payroll/komponen/${formData.id}`, formData);
+                showNotif('Komponen gaji berhasil diperbarui.', 'success');
+            } else {
+                await api.post('/api/admin/master-payroll/komponen', formData);
+                showNotif('Komponen gaji berhasil ditambahkan.', 'success');
+            }
+            closeModalKomponen();
+            fetchKomponen();
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Gagal menyimpan komponen gaji.';
+            showNotif(msg, 'error');
         }
-        closeModalKomponen();
     };
 
-    const handleDeleteKomponen = (id, nama) => {
-        if (isKomponenDipakai(id)) {
-            alert(`Komponen "${nama}" sudah terpakai dalam kalkulasi riwayat payroll! Ubah statusnya menjadi Nonaktif saja.`);
-            return;
-        }
+    const handleDeleteKomponen = async (id, nama) => {
         if (window.confirm(`Hapus komponen "${nama}"?`)) {
-            setKomponenList(prev => prev.filter(item => item.id !== id));
+            try {
+                await api.delete(`/api/admin/master-payroll/komponen/${id}`);
+                showNotif('Komponen gaji berhasil dihapus.', 'success');
+                fetchKomponen();
+            } catch (err) {
+                showNotif(err.response?.data?.message || 'Gagal menghapus komponen gaji.', 'error');
+            }
         }
     };
 
@@ -110,6 +168,20 @@ const MasterPayroll = () => {
                     </button>
                 </div>
             </div>
+
+            {notif && (
+                <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl border text-sm font-medium ${notif.type === 'success' ? 'bg-white text-emerald-700 border-emerald-200' : 'bg-white text-rose-700 border-rose-200'}`}>
+                    {notif.type === 'success' ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                    ) : (
+                        <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
+                    )}
+                    <span>{notif.message}</span>
+                    <button onClick={() => setNotif(null)} className="ml-2 text-slate-300 hover:text-slate-500 transition">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -171,7 +243,16 @@ const MasterPayroll = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {filteredGolongan.length > 0 ? (
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="6" className="py-12 text-center">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                                                <p className="text-sm font-medium text-slate-500">Memuat data golongan gaji...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : filteredGolongan.length > 0 ? (
                                     filteredGolongan.map((item) => (
                                         <tr key={item.id} className="hover:bg-slate-50 transition">
                                             <td className="px-6 py-4 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
@@ -238,7 +319,16 @@ const MasterPayroll = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {filteredKomponen.length > 0 ? (
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="6" className="py-12 text-center">
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                                                    <p className="text-sm font-medium text-slate-500">Memuat data komponen gaji...</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : filteredKomponen.length > 0 ? (
                                         filteredKomponen.map((item) => (
                                             <tr key={item.id} className="hover:bg-slate-50 transition">
                                                 <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
