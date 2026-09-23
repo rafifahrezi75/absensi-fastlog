@@ -551,14 +551,6 @@ const Permissions = () => {
           </button>
           <button
             type="button"
-            onClick={handleOpenSimulator}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition cursor-pointer shadow-sm"
-          >
-            <Play className="w-4 h-4" />
-            <span>Simulasi Tap Mesin</span>
-          </button>
-          <button
-            type="button"
             onClick={() => setIsCreateOpen(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer shadow-sm"
           >

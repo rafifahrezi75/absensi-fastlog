@@ -128,14 +128,34 @@ const Dashboard = () => {
     ]
   };
 
+  const toleransiCount = useMemo(() => {
+    return allAttendance.filter((r) => (r.status === 'late' || r.status === 'terlambat') && parseMinutesLate(r.inStatus) < 15).length;
+  }, [allAttendance]);
+
+  const sedangCount = useMemo(() => {
+    return allAttendance.filter((r) => (r.status === 'late' || r.status === 'terlambat') && parseMinutesLate(r.inStatus) >= 15 && parseMinutesLate(r.inStatus) < 30).length;
+  }, [allAttendance]);
+
+  const beratCount = useMemo(() => {
+    return allAttendance.filter((r) => (r.status === 'late' || r.status === 'terlambat') && parseMinutesLate(r.inStatus) >= 30).length;
+  }, [allAttendance]);
+
+  const lupaTapCount = useMemo(() => {
+    return allAttendance.filter((r) => r.outStatus === 'Belum Tap' || !r.out || r.out === '-').length;
+  }, [allAttendance]);
+
+  const ontimeCount = stats.hadir - stats.terlambat > 0 ? stats.hadir - stats.terlambat : 0;
+  const sangatAwalCount = Math.round(ontimeCount * 0.4);
+  const tepatWaktuNormalCount = ontimeCount - sangatAwalCount;
+
   const level2Data = {
     'Tepat Waktu': {
       categories: ['Sangat Awal (>15 Mnt)', 'Tepat Waktu (0-15 Mnt)', 'Shift Pagi', 'Shift Middle'],
-      series: [{ name: 'Jumlah Pegawai', data: [Math.round(stats.hadir * 0.4), Math.round(stats.hadir * 0.5), Math.round(stats.hadir * 0.08), Math.round(stats.hadir * 0.02)] }]
+      series: [{ name: 'Jumlah Pegawai', data: [sangatAwalCount, tepatWaktuNormalCount, 0, 0] }]
     },
     'Terlambat': {
       categories: ['Toleransi (<15 Mnt)', 'Sedang (15 - 30 Mnt)', 'Berat (>30 Mnt)'],
-      series: [{ name: 'Jumlah Kasus', data: [Math.round(stats.terlambat * 0.6), Math.round(stats.terlambat * 0.3), Math.round(stats.terlambat * 0.1)] }]
+      series: [{ name: 'Jumlah Kasus', data: [toleransiCount || Math.round(stats.terlambat * 0.6), sedangCount || Math.round(stats.terlambat * 0.3), beratCount || Math.round(stats.terlambat * 0.1)] }]
     },
     'Izin / Sakit / Dinas': {
       categories: ['Dinas Luar / Field', 'Sakit (Surat Dokter)', 'Izin Alasan Penting', 'Cuti Tahunan'],
@@ -143,7 +163,7 @@ const Dashboard = () => {
     },
     'Tanpa Ket. (Alpa)': {
       categories: ['Mangkir 1 Hari', 'Mangkir >2 Hari Berturut', 'Lupa Tap Out/In'],
-      series: [{ name: 'Jumlah Kasus', data: [stats.belum_pulang, 0, 0] }]
+      series: [{ name: 'Jumlah Kasus', data: [0, 0, lupaTapCount || stats.belum_pulang] }]
     }
   };
 
@@ -585,14 +605,9 @@ const Dashboard = () => {
                   recentLogs.map((row) => (
                     <tr key={row.id} className="hover:bg-slate-50">
                       <td className="px-6 py-3.5 font-medium text-slate-900 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
-                            {row.initials && row.initials !== '-' ? row.initials : (row.finger ? row.finger : '-')}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-sm">{row.nama || (row.finger ? `Karyawan PIN #${row.finger}` : <span className="text-slate-400 italic font-normal">Belum ada nama</span>)}</div>
-                            <div className="text-xs text-slate-400">PIN: {row.finger} • {row.deptDisplay || 'Umum'}</div>
-                          </div>
+                        <div>
+                          <div className="font-semibold text-sm">{row.nama || (row.finger ? `Karyawan PIN #${row.finger}` : <span className="text-slate-400 italic font-normal">Belum ada nama</span>)}</div>
+                          <div className="text-xs text-slate-400">PIN: {row.finger} • {row.deptDisplay || 'Umum'}</div>
                         </div>
                       </td>
                       <td className="px-6 py-3.5 font-mono text-slate-700">{row.in || '-'}</td>
