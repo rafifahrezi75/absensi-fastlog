@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('attendances')) {
+        if (Schema::hasTable('attendances') && Schema::hasColumn('attendances', 'date')) {
             Schema::table('attendances', function (Blueprint $table) {
                 $table->string('status', 50)->default('hadir')->change();
             });
@@ -25,7 +25,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('attendance_anomalies')) {
+        if (Schema::hasTable('attendance_anomalies') && Schema::hasColumn('attendance_anomalies', 'tap_time')) {
             Schema::table('attendance_anomalies', function (Blueprint $table) {
                 $table->string('status', 50)->default('MENUNGGU')->change();
             });
@@ -41,7 +41,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('overtime_logs')) {
+        if (Schema::hasTable('overtime_logs') && Schema::hasColumn('overtime_logs', 'tap_time')) {
             Schema::table('overtime_logs', function (Blueprint $table) {
                 $table->string('status', 50)->default('MENUNGGU')->change();
             });
@@ -57,7 +57,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('permissions')) {
+        if (Schema::hasTable('permissions') && Schema::hasColumn('permissions', 'start_date')) {
             Schema::table('permissions', function (Blueprint $table) {
                 $table->string('status', 50)->default('menunggu')->change();
             });
@@ -78,7 +78,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('holidays')) {
+        if (Schema::hasTable('holidays') && Schema::hasColumn('holidays', 'date')) {
             Schema::table('holidays', function (Blueprint $table) {
                 $table->renameColumn('date', 'tanggal');
                 $table->renameColumn('description', 'keterangan');
@@ -86,7 +86,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('system_settings')) {
+        if (Schema::hasTable('system_settings') && Schema::hasColumn('system_settings', 'key')) {
             Schema::table('system_settings', function (Blueprint $table) {
                 $table->renameColumn('key', 'kunci');
                 $table->renameColumn('value', 'nilai');
