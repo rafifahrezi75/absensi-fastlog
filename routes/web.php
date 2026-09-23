@@ -39,6 +39,11 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('api.admin.employees.destroy');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('api.admin.reports.index');
+
+    Route::get('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('api.admin.settings.index');
+    Route::post('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('api.admin.settings.update');
+    Route::post('/settings/holidays', [\App\Http\Controllers\Admin\SettingController::class, 'addHoliday'])->name('api.admin.settings.holidays.add');
+    Route::delete('/settings/holidays/{id}', [\App\Http\Controllers\Admin\SettingController::class, 'deleteHoliday'])->name('api.admin.settings.holidays.delete');
 });
 
 Route::get('/{any}', function () {
