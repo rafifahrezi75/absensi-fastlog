@@ -1,25 +1,64 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Chart from 'react-apexcharts';
-import { 
-  RefreshCw, 
-  BellRing, 
-  ArrowRight, 
-  Users, 
-  UserCheck, 
-  Clock, 
-  FileText, 
-  Timer, 
-  Fingerprint, 
-  Globe, 
-  UserMinus, 
+import {
+  RefreshCw,
+  BellRing,
+  ArrowRight,
+  Users,
+  UserCheck,
+  Clock,
+  FileText,
+  Timer,
+  Fingerprint,
+  Globe,
+  UserMinus,
   Cpu,
   ArrowLeft,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  Settings2
 } from 'lucide-react';
 import api from '../../../lib/api';
-import { dashboardMockRecentLogs, dashboardMockAbsentEmployees, dashboardMockStats } from './data/dashboardMock';
+import { dashboardMockRecentLogs, dashboardMockAbsentEmployees, dashboardMockStats, KATEGORI_TINDAKAN, INITIAL_TINDAKAN } from './data/dashboardMock';
+import ModalKelolaTindakan from './Components/ModalKelolaTindakan';
+import ModalEksekusiTindakan from './Components/ModalEksekusiTindakan';
+
+// Ekstrak angka menit dari teks status seperti "Telat 14 Mnt" -> 14
+const parseMinutesLate = (inStatus) => {
+  if (!inStatus) return 0;
+  const match = String(inStatus).match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : 0;
+};
+
+// Pemetaan kategori level-3 -> filter pegawai dari data absensi ASLI hari ini.
+// Kategori yang belum punya sumber data nyata (izin/cuti/shift/alpa) sengaja
+// dikembalikan null -> modal akan menampilkan status kosong yang jujur,
+// bukan data karangan.
+const getPegawaiUntukKategori = (kategori, attendanceToday) => {
+  let filterFn = null;
+
+  if (kategori === 'Toleransi (<15 Mnt)') {
+    filterFn = (r) => r.status === 'late' && parseMinutesLate(r.inStatus) < 15;
+  } else if (kategori === 'Sedang (15 - 30 Mnt)') {
+    filterFn = (r) => r.status === 'late' && parseMinutesLate(r.inStatus) >= 15 && parseMinutesLate(r.inStatus) < 30;
+  } else if (kategori === 'Berat (>30 Mnt)') {
+    filterFn = (r) => r.status === 'late' && parseMinutesLate(r.inStatus) >= 30;
+  } else if (kategori === 'Lupa Tap Out/In') {
+    filterFn = (r) => r.outStatus === 'Belum Tap';
+  }
+
+  if (!filterFn) return [];
+
+  return attendanceToday.filter(filterFn).map((r) => ({
+    id: r.id,
+    nama: r.nama || `(PIN ${r.finger})`,
+    pin: r.finger,
+    dept: r.deptDisplay || 'Umum',
+    keterangan: r.inStatus || r.outStatus || '-',
+    status: 'Pending',
+  }));
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -33,10 +72,32 @@ const Dashboard = () => {
     total_karyawan: 0
   });
   const [recentLogs, setRecentLogs] = useState([]);
+  const [allAttendance, setAllAttendance] = useState([]);
 
   const [drillLevel, setDrillLevel] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+
+  // Master Tindakan HR — bisa diedit langsung dari Dashboard (tombol gear di chart)
+  const [tindakanList, setTindakanList] = useState(INITIAL_TINDAKAN);
+  const [isKelolaTindakanOpen, setIsKelolaTindakanOpen] = useState(false);
+
+  // Modal eksekusi tindakan HR (level-3 drill-down)
+  const [isEksekusiOpen, setIsEksekusiOpen] = useState(false);
+  const [selectedTindakanNama, setSelectedTindakanNama] = useState('');
+  const [eksekusiRows, setEksekusiRows] = useState([]);
+
+  const handleSaveTindakan = (data) => {
+    if (data.id) {
+      setTindakanList(prev => prev.map(t => (t.id === data.id ? { ...t, ...data } : t)));
+    } else {
+      setTindakanList(prev => [{ ...data, id: Date.now() }, ...prev]);
+    }
+  };
+
+  const handleDeleteTindakan = (id) => {
+    setTindakanList(prev => prev.filter(t => t.id !== id));
+  };
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -46,6 +107,8 @@ const Dashboard = () => {
       }
       if (res.data.attendance) {
         setRecentLogs(res.data.attendance.slice(0, 5));
+        const todayStr = new Date().toISOString().slice(0, 10);
+        setAllAttendance(res.data.attendance.filter((r) => r.tgl === todayStr));
       }
     } catch (err) {
       console.error(err);
@@ -84,24 +147,18 @@ const Dashboard = () => {
     }
   };
 
-  const level3Data = {
-    'Toleransi (<15 Mnt)': {
-      categories: ['Teguran Otomatis System', 'Peringatan Lisan', 'Pemutihan System'],
-      series: [{ name: 'Jumlah Tindakan', data: [15, 5, 2] }]
-    },
-    'Sedang (15 - 30 Mnt)': {
-      categories: ['Potong Uang Makan 50%', 'Form Alasan Keterlambatan', 'Surat Teguran 1'],
-      series: [{ name: 'Jumlah Tindakan', data: [8, 4, 1] }]
-    },
-    'Berat (>30 Mnt)': {
-      categories: ['Potong Gaji/Transport 100%', 'Pemanggilan HRD', 'SP 1 (Surat Peringatan)'],
-      series: [{ name: 'Jumlah Tindakan', data: [3, 2, 1] }]
-    },
-    'Dinas Luar / Field': {
-      categories: ['Approved via Portal', 'Pending Verification', 'Rejected'],
-      series: [{ name: 'Status Approval', data: [5, 1, 0] }]
-    }
-  };
+  // Level 3 sekarang dibangun dinamis dari Master Tindakan HR (bisa diedit lewat tombol gear)
+  const level3Data = useMemo(() => {
+    const result = {};
+    KATEGORI_TINDAKAN.forEach(kategori => {
+      const items = tindakanList.filter(t => t.kategori === kategori && t.status === 'aktif');
+      result[kategori] = {
+        categories: items.map(t => t.nama),
+        series: [{ name: 'Jumlah Tindakan', data: items.map(t => t.jumlahKasus) }],
+      };
+    });
+    return result;
+  }, [tindakanList]);
 
   const getCurrentChartData = () => {
     if (drillLevel === 1) {
@@ -121,8 +178,8 @@ const Dashboard = () => {
       };
     } else if (drillLevel === 3) {
       const data = level3Data[selectedCategory] || {
-        categories: ['Resolusi 1', 'Resolusi 2'],
-        series: [{ name: 'Jumlah Kasus', data: [5, 2] }]
+        categories: [],
+        series: [{ name: 'Jumlah Kasus', data: [] }]
       };
       return {
         title: `Tindakan & Resolusi HR: ${selectedCategory}`,
@@ -149,7 +206,38 @@ const Dashboard = () => {
       const categoryName = currentLevel2.categories[clickedIndex];
       setSelectedCategory(categoryName);
       setDrillLevel(3);
+    } else if (drillLevel === 3) {
+      const currentLevel3 = level3Data[selectedCategory] || { categories: [] };
+      const tindakanNama = currentLevel3.categories[clickedIndex];
+      if (!tindakanNama) return;
+
+      const pegawai = getPegawaiUntukKategori(selectedCategory, allAttendance).map((p) => ({
+        ...p,
+        aksi: tindakanNama,
+      }));
+
+      setSelectedTindakanNama(tindakanNama);
+      setEksekusiRows(pegawai);
+      setIsEksekusiOpen(true);
     }
+  };
+
+  // Opsi tindakan aktif untuk kategori yang sedang dibuka di modal eksekusi —
+  // diambil dari master tindakanList (dinamis), bukan daftar hardcode.
+  const opsiTindakanUntukModal = tindakanList
+    .filter((t) => t.kategori === selectedCategory && t.status === 'aktif')
+    .map((t) => t.nama);
+
+  const handleExecuteTindakan = (rowId) => {
+    setEksekusiRows((prev) => prev.map((row) => (
+      row.id === rowId ? { ...row, status: 'Selesai' } : row
+    )));
+  };
+
+  const handleChangeTindakanAksi = (rowId, newAksi) => {
+    setEksekusiRows((prev) => prev.map((row) => (
+      row.id === rowId ? { ...row, aksi: newAksi } : row
+    )));
   };
 
   const handleResetDrill = () => {
@@ -171,7 +259,7 @@ const Dashboard = () => {
       events: {
         dataPointSelection: handleChartClick
       },
-      cursor: drillLevel < 3 ? 'pointer' : 'default'
+      cursor: 'pointer'
     },
     plotOptions: {
       bar: {
@@ -186,8 +274,8 @@ const Dashboard = () => {
       offsetY: -20,
       style: { fontSize: '11px', fontWeight: 600, colors: ['#475569'] }
     },
-    colors: drillLevel === 1 
-      ? ['#10b981', '#f59e0b', '#3b82f6', '#ef4444'] 
+    colors: drillLevel === 1
+      ? ['#10b981', '#f59e0b', '#3b82f6', '#ef4444']
       : (drillLevel === 2 ? ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'] : ['#f43f5e', '#fb7185', '#fda4af']),
     xaxis: {
       categories: activeChart.categories,
@@ -243,8 +331,8 @@ const Dashboard = () => {
   };
 
   const pieChartSeries = [
-    stats.hadir, 
-    stats.terlambat, 
+    stats.hadir,
+    stats.terlambat,
     stats.izin || 0
   ];
 
@@ -271,13 +359,13 @@ const Dashboard = () => {
           <p className="text-sm text-slate-500">Ringkasan aktivitas absensi real-time, evaluasi kedisiplinan, dan monitoring mesin.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             type="button"
             onClick={handleSyncFingerprint}
             disabled={isSyncing}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} /> 
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Syncing...' : 'Sync Fingerprint'}
           </button>
         </div>
@@ -293,7 +381,7 @@ const Dashboard = () => {
             <p className="text-xs text-amber-700">Terdapat pengajuan perizinan dan lembur dari portal user yang siap ditinjau.</p>
           </div>
         </div>
-        <button 
+        <button
           type="button"
           onClick={handleGoToPermissions}
           className="inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition whitespace-nowrap cursor-pointer"
@@ -338,7 +426,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div 
+        <div
           onClick={handleGoToPermissions}
           className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-between cursor-pointer hover:border-blue-200"
         >
@@ -369,26 +457,37 @@ const Dashboard = () => {
                 <p className="text-xs text-slate-500 mt-0.5">{activeChart.subtitle}</p>
               </div>
 
-              {drillLevel > 1 && (
-                <div className="flex items-center gap-2">
-                  {drillLevel === 3 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsKelolaTindakanOpen(true)}
+                  title="Kelola Tindakan HR"
+                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                >
+                  <Settings2 className="w-4 h-4" />
+                </button>
+
+                {drillLevel > 1 && (
+                  <>
+                    {drillLevel === 3 && (
+                      <button
+                        type="button"
+                        onClick={handleBackToLevel2}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                      >
+                        <ArrowLeft className="w-3 h-3" /> Kembali
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={handleBackToLevel2}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                      onClick={handleResetDrill}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"
                     >
-                      <ArrowLeft className="w-3 h-3" /> Kembali
+                      Reset Utama
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleResetDrill}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"
-                  >
-                    Reset Utama
-                  </button>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="w-full">
@@ -406,7 +505,7 @@ const Dashboard = () => {
               <span className={drillLevel === 3 ? 'text-indigo-600 font-bold' : ''}>{selectedCategory || 'Tindakan HR'}</span>
             </div>
             <span className="text-[11px] text-slate-400 italic">
-              {drillLevel < 3 ? 'Tip: Klik batang grafik untuk drill-down' : 'Level terdalam rincian'}
+              {drillLevel < 3 ? 'Tip: Klik batang grafik untuk drill-down' : 'Tip: Klik batang untuk membuka & mengeksekusi daftar pegawai'}
             </span>
           </div>
         </div>
@@ -463,7 +562,7 @@ const Dashboard = () => {
               <h2 className="font-bold text-slate-900">Log Absensi Masuk Terkini</h2>
               <p className="text-xs text-slate-500">Hasil tap mesin fingerprint secara real-time dari database.</p>
             </div>
-            <button 
+            <button
               type="button"
               onClick={handleGoToAttendance}
               className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition cursor-pointer"
@@ -498,11 +597,10 @@ const Dashboard = () => {
                       </td>
                       <td className="px-6 py-3.5 font-mono text-slate-700">{row.in || '-'}</td>
                       <td className="px-6 py-3.5">
-                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${
-                          row.status === 'late'
-                            ? 'bg-amber-100 text-amber-800 border-amber-200'
-                            : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        }`}>
+                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${row.status === 'late'
+                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          }`}>
                           {row.inStatus || 'Tepat Waktu'}
                         </span>
                       </td>
@@ -535,7 +633,7 @@ const Dashboard = () => {
             </div>
             <div className="space-y-2">
               <p className="text-xs text-slate-500">
-                {stats.belum_pulang > 0 
+                {stats.belum_pulang > 0
                   ? `${stats.belum_pulang} karyawan yang hadir belum melakukan tap pulang.`
                   : 'Semua karyawan yang hadir telah menyelesaikan tap pulang.'}
               </p>
@@ -566,6 +664,25 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      <ModalKelolaTindakan
+        isOpen={isKelolaTindakanOpen}
+        onClose={() => setIsKelolaTindakanOpen(false)}
+        tindakanList={tindakanList}
+        onSave={handleSaveTindakan}
+        onDelete={handleDeleteTindakan}
+      />
+
+      <ModalEksekusiTindakan
+        isOpen={isEksekusiOpen}
+        onClose={() => setIsEksekusiOpen(false)}
+        kategoriTitle={selectedCategory}
+        tindakanTitle={selectedTindakanNama}
+        dataKaryawan={eksekusiRows}
+        opsiTindakan={opsiTindakanUntukModal.length > 0 ? opsiTindakanUntukModal : [selectedTindakanNama]}
+        onExecute={handleExecuteTindakan}
+        onChangeAction={handleChangeTindakanAksi}
+      />
     </div>
   );
 };
