@@ -12,6 +12,8 @@ import Payroll from './Pages/Admin/Payroll/Index';
 import Reports from './Pages/Admin/Reports/Index';
 import MasterAkun from './Pages/Admin/MasterAkun/Index';
 import MasterPayroll from './Pages/Admin/MasterPayroll/Index';
+import Settings from './Pages/Admin/Settings/Index'; // Added Settings component
+
 
 // User Layout & Pages
 import UserLayout from './Layouts/UserLayout';
@@ -116,6 +118,7 @@ function App() {
                         <Route path="master-payroll" element={<MasterPayroll />} />
                         <Route path="reports" element={<Reports />} />
                         <Route path="master-akun" element={<MasterAkun />} />
+                        <Route path="settings" element={<Settings />} />
                     </Route>
 
                     {/* User Routes */}
