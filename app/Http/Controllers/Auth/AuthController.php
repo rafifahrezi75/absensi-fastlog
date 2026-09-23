@@ -25,7 +25,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'message' => 'Login berhasil.',
-                'user' => Auth::user(),
+                'user' => Auth::user()->load('employee'),
             ]);
         }
 
@@ -56,7 +56,7 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return response()->json([
-            'user' => $request->user(),
+            'user' => $request->user()->load('employee'),
         ]);
     }
 }

@@ -74,6 +74,24 @@ const GuestOnly = ({ children }) => {
     return children;
 };
 
+const RootRedirect = () => {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return <Navigate to={homePath(user)} replace />;
+};
+
 function App() {
     return (
         <AuthProvider>
@@ -83,7 +101,7 @@ function App() {
                     <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
 
                     {/* Redirect root '/' langsung ke admin/dashboard */}
-                    <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+                    <Route path="/" element={<RootRedirect />} />
 
                     {/* Admin Routes (khusus admin) */}
                     <Route path="/admin" element={<RequireAuth><RequireRole role="admin"><AdminLayout /></RequireRole></RequireAuth>}>
@@ -111,7 +129,7 @@ function App() {
                     </Route>
 
                     {/* Catch-all route jika URL tidak ditemukan */}
-                    <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                    <Route path="*" element={<RootRedirect />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
