@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
+use App\Models\Holiday;
+use App\Models\SystemSetting;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class ReportController extends Controller
 {
@@ -36,7 +40,7 @@ class ReportController extends Controller
             $end = Carbon::parse($endDate)->endOfDay();
         }
 
-        $query = Employee::query()->where('status', 'active');
+        $query = Employee::query()->whereIn('status', ['active', 'aktif']);
 
         if (!empty($dept)) {
             $query->where('dept', $dept);
@@ -76,6 +80,56 @@ class ReportController extends Controller
             ->pluck('dept')
             ->values();
 
+        $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
+        $normalIn = $settingsData['normal_check_in'] ?? '08:00';
+        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
+        $satIn = $settingsData['saturday_check_in'] ?? '08:00';
+        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
+
+        $nowYear = Carbon::now()->format('Y');
+        $apiHolidays = Cache::remember('holidays_api_' . $nowYear, 86400, function () use ($nowYear) {
+            try {
+                $response = Http::withoutVerifying()->timeout(8)->get('https://api-hari-libur.vercel.app/api?year=' . $nowYear);
+                if ($response->successful()) {
+                    return $response->json('data') ?? [];
+                }
+            } catch (\Throwable $e) {
+            }
+            return [];
+        });
+
+        $holidaysMap = [];
+        foreach ($apiHolidays as $item) {
+            if (!empty($item['date'])) {
+                $holidaysMap[$item['date']] = $item['description'] ?? 'Hari Libur Nasional';
+            }
+        }
+
+        $startYear = $start->format('Y');
+        if ($startYear !== $nowYear) {
+            $periodHolidays = Cache::remember('holidays_api_' . $startYear, 86400, function () use ($startYear) {
+                try {
+                    $response = Http::withoutVerifying()->timeout(8)->get('https://api-hari-libur.vercel.app/api?year=' . $startYear);
+                    if ($response->successful()) {
+                        return $response->json('data') ?? [];
+                    }
+                } catch (\Throwable $e) {
+                }
+                return [];
+            });
+            foreach ($periodHolidays as $item) {
+                if (!empty($item['date'])) {
+                    $holidaysMap[$item['date']] = $item['description'] ?? 'Hari Libur Nasional';
+                }
+            }
+        }
+
+        $dbHolidays = Holiday::all();
+        foreach ($dbHolidays as $h) {
+            $dStr = Carbon::parse($h->tanggal)->format('Y-m-d');
+            $holidaysMap[$dStr] = $h->keterangan;
+        }
+
         $data = [];
 
         foreach ($employees as $emp) {
@@ -85,6 +139,7 @@ class ReportController extends Controller
             while ($current->lte($end)) {
                 $dateStr = $current->format('Y-m-d');
                 $isSunday = $current->isSunday();
+                $isHoliday = isset($holidaysMap[$dateStr]);
 
                 $scans = [];
                 $empKey = 'emp_' . $emp->id . '_' . $dateStr;
@@ -99,8 +154,13 @@ class ReportController extends Controller
                     $firstScan = Carbon::parse($scans[0]);
                     $lastScan = count($scans) > 1 ? Carbon::parse(end($scans)) : null;
 
-                    $scheduleIn = Carbon::parse($dateStr . ' 08:00:00');
-                    $isLate = $firstScan->gt($scheduleIn);
+                    $isSat = $current->isSaturday();
+                    $schedInTime = $isSat ? $satIn : $normalIn;
+                    $tol = $isSat ? $satTol : $normalTol;
+
+                    $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInTime . ':00');
+                    $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
+                    $isLate = $firstScan->gt($lateThreshold);
 
                     $hasOvertime = false;
                     if ($lastScan) {
@@ -118,7 +178,13 @@ class ReportController extends Controller
                         $status = 'H';
                     }
                 } else {
-                    $status = $isSunday ? 'L' : '-';
+                    if ($isHoliday) {
+                        $status = 'LN';
+                    } elseif ($isSunday) {
+                        $status = 'L';
+                    } else {
+                        $status = '-';
+                    }
                 }
 
                 $attendance[$dateStr] = $status;
@@ -144,6 +210,7 @@ class ReportController extends Controller
             'end_date' => $endDate,
             'departments' => $departments,
             'employees' => $data,
+            'holidays' => $holidaysMap,
         ]);
     }
 }

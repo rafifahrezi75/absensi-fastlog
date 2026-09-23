@@ -102,20 +102,40 @@ class FingerspotService
     public function syncAllUserInfo(): array
     {
         $employees = Employee::whereNotNull('pin')->get();
-        $synced = 0;
+        $missingEmployees = Employee::whereNotNull('pin')
+            ->where(function ($q) {
+                $q->whereNull('nama')->orWhere('nama', '');
+            })->get();
 
-        foreach ($employees as $emp) {
-            $res = $this->requestUserInfo((string)$emp->pin);
-            if (!empty($res['name'])) {
-                $synced++;
-            }
+        $targetList = $missingEmployees->isNotEmpty() ? $missingEmployees : $employees;
+
+        foreach ($targetList as $emp) {
+            $this->requestUserInfo((string)$emp->pin);
         }
+
+        $startTime = time();
+        while ((time() - $startTime) < 6) {
+            $remainingMissing = Employee::whereNotNull('pin')
+                ->where(function ($q) {
+                    $q->whereNull('nama')->orWhere('nama', '');
+                })->count();
+
+            if ($remainingMissing === 0) {
+                break;
+            }
+            usleep(400000);
+        }
+
+        $allEmployees = Employee::orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
+        $totalEmployees = $allEmployees->count();
+        $syncedCount = $allEmployees->whereNotNull('nama')->where('nama', '!=', '')->count();
 
         return [
             'success' => true,
-            'total' => $employees->count(),
-            'synced' => $synced,
-            'message' => "Permintaan info user ke cloud berhasil dikirimkan untuk {$employees->count()} PIN karyawan.",
+            'total' => $totalEmployees,
+            'synced' => $syncedCount,
+            'employees' => $allEmployees,
+            'message' => "Sinkronisasi selesai. {$syncedCount} dari {$totalEmployees} nama karyawan telah terhubung.",
         ];
     }
 

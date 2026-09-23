@@ -50,7 +50,7 @@ const AdminLayout = () => {
         },
         {
             id: 2,
-            title: 'Pengajuan Overtime',
+            title: 'Pengajuan Lembur',
             desc: 'Ahmad Rizky meminta persetujuan Lembur 3 jam',
             time: '20 menit yang lalu',
             type: 'overtime',
@@ -68,8 +68,8 @@ const AdminLayout = () => {
         },
         {
             id: 4,
-            title: 'Mesin Fingerprint Offline',
-            desc: 'Device LT-2 sempat terputus dari jaringan',
+            title: 'Mesin Sidik Jari Terputus',
+            desc: 'Perangkat LT-2 sempat terputus dari jaringan',
             time: '2 jam yang lalu',
             type: 'system',
             link: '/admin/dashboard',
@@ -200,7 +200,7 @@ const AdminLayout = () => {
 
                     <NavLink to="/admin/dashboard" className={navLinkClass}>
                         <LayoutDashboard className="w-4 h-4" />
-                        <span>Dashboard</span>
+                        <span>Dasbor</span>
                     </NavLink>
                     <NavLink to="/admin/attendance" className={navLinkClass}>
                         <Clock className="w-4 h-4" />
@@ -218,7 +218,6 @@ const AdminLayout = () => {
                         <span>Data Karyawan</span>
                     </NavLink>
                     
-                    {/* Collapsible Payroll Menu */}
                     <div>
                         <button 
                             onClick={() => setPayrollMenuOpen(!payrollMenuOpen)}
@@ -226,7 +225,7 @@ const AdminLayout = () => {
                         >
                             <div className="flex items-center gap-3">
                                 <Wallet className="w-4 h-4" />
-                                <span>Penggajian (Payroll)</span>
+                                <span>Penggajian</span>
                             </div>
                             {payrollMenuOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         </button>
@@ -234,38 +233,36 @@ const AdminLayout = () => {
                         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${payrollMenuOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
                             <NavLink to="/admin/payroll" className={subNavLinkClass} end>
                                 <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
-                                <span>Data Payroll</span>
+                                <span>Data Penggajian</span>
                             </NavLink>
                             <NavLink to="/admin/master-payroll" className={subNavLinkClass}>
                                 <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
-                                <span>Master Payroll</span>
+                                <span>Master Penggajian</span>
                             </NavLink>
                         </div>
                     </div>
-
 
                     <NavLink to="/admin/reports" className={navLinkClass}>
                         <FileBarChart className="w-4 h-4" />
                         <span>Laporan Presensi</span>
                     </NavLink>
 
-                    <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">Sistem & Device</div>
+                    <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">Sistem & Perangkat</div>
 
                     <NavLink to="/admin/master-akun" className={navLinkClass}>
                         <UserCog className="w-4 h-4" />
                         <span>Master Akun</span>
                     </NavLink>
-                    <a href="#" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+                    <NavLink to="/admin/devices" className={navLinkClass}>
                         <Cpu className="w-4 h-4" />
-                        <span>Mesin Fingerprint</span>
-                    </a>
+                        <span>Mesin Sidik Jari</span>
+                    </NavLink>
                     <NavLink to="/admin/settings" className={navLinkClass}>
                         <Settings className="w-4 h-4" />
-                        <span>Pengaturan System</span>
+                        <span>Pengaturan Sistem</span>
                     </NavLink>
                 </nav>
 
-                {/* Profil Admin / Logout */}
                 <div className="p-4 border-t border-white/10 flex items-center justify-between bg-[#042028]">
                     <div className="flex items-center gap-3 overflow-hidden">
                         <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-white text-xs flex-shrink-0">
@@ -276,16 +273,14 @@ const AdminLayout = () => {
                             <div className="text-xs text-slate-500 truncate">{user?.email || ''}</div>
                         </div>
                     </div>
-                    <button onClick={handleLogout} title="Logout" className="text-slate-400 hover:text-rose-400 p-1 transition flex-shrink-0">
+                    <button onClick={handleLogout} title="Keluar" className="text-slate-400 hover:text-rose-400 p-1 transition flex-shrink-0 cursor-pointer">
                         <LogOut className="w-4 h-4" />
                     </button>
                 </div>
             </aside>
 
-            {/* ================= CONTENT WRAPPER ================= */}
             <div className="flex-1 flex flex-col min-w-0">
 
-                {/* Header / Navbar */}
                 <header className="h-16 bg-white border-b border-slate-100 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-10 shadow-sm">
 
                     <div className="flex items-center gap-3">
@@ -295,7 +290,7 @@ const AdminLayout = () => {
 
                         <span className="hidden sm:inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Mesin Fingerprint Online
+                            Mesin Sidik Jari Terhubung
                         </span>
                     </div>
 

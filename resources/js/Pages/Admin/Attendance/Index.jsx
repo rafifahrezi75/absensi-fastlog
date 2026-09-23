@@ -3,6 +3,7 @@ import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fi
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Attendance = () => {
     const [modalData, setModalData] = useState({ isOpen: false, nama: '', masuk: '', keluar: '' });
@@ -18,6 +19,8 @@ const Attendance = () => {
     const [filterDept, setFilterDept] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 15;
 
     const openModalKoreksi = useCallback((nama, masuk, keluar) => {
         setModalData({ isOpen: true, nama, masuk, keluar });
@@ -27,9 +30,9 @@ const Attendance = () => {
         setModalData(prev => ({ ...prev, isOpen: false }));
     }, []);
 
-    const loadAttendance = useCallback(async () => {
+    const loadAttendance = useCallback(async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const params = {};
             if (filterTanggal) params.tanggal = filterTanggal;
             if (filterDept) params.dept = filterDept;
@@ -47,8 +50,13 @@ const Attendance = () => {
                 message: err.response?.data?.message || 'Gagal memuat data absensi.',
             });
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
+    }, [filterTanggal, filterDept, filterStatus, searchQuery]);
+
+    // Reset page to 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
     }, [filterTanggal, filterDept, filterStatus, searchQuery]);
 
     useEffect(() => {
@@ -63,8 +71,13 @@ const Attendance = () => {
     }, [notif]);
 
     const handleFetchCloud = async () => {
+        let pollTimer = null;
         try {
             setFetchingCloud(true);
+            pollTimer = setInterval(() => {
+                loadAttendance(true);
+            }, 1000);
+
             const payload = {};
             if (filterTanggal) {
                 payload.start_date = filterTanggal;
@@ -72,17 +85,20 @@ const Attendance = () => {
             }
 
             const res = await api.post('/api/admin/attendance/fetch', payload);
-            setNotif({
-                type: 'success',
-                message: res.data.message || 'Berhasil melakukan sinkronisasi data dari mesin cloud.',
-            });
-            await loadAttendance();
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+
+            await loadAttendance(true);
+            showSuccess(res.data.message || 'Berhasil menarik data log absensi.');
         } catch (err) {
             setNotif({
                 type: 'error',
-                message: err.response?.data?.message || 'Gagal menyinkronkan data dari mesin cloud.',
+                message: err.response?.data?.message || 'Gagal menyinkronkan data log absensi.',
             });
         } finally {
+            if (pollTimer) clearInterval(pollTimer);
             setFetchingCloud(false);
         }
     };
@@ -92,24 +108,23 @@ const Attendance = () => {
         setFilterDept('');
         setFilterStatus('');
         setSearchQuery('');
+        setCurrentPage(1);
     };
 
     const isFilterActive = Boolean(filterTanggal || filterDept || filterStatus || searchQuery);
 
+    const totalPages = Math.ceil(attendanceData.length / itemsPerPage);
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return attendanceData.slice(start, start + itemsPerPage);
+    }, [attendanceData, currentPage]);
+
     return (
         <div className="space-y-6">
-            {notif && (
-                <div className={`p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm ${
-                    notif.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
-                }`}>
+            {notif && notif.type === 'error' && (
+                <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-rose-50 text-rose-800 border border-rose-200">
                     <div className="flex items-center gap-3">
-                        {notif.type === 'success' ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                        ) : (
-                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                        )}
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
                         <span className="font-medium">{notif.message}</span>
                     </div>
                     <button
@@ -135,7 +150,7 @@ const Attendance = () => {
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <RefreshCw className={`w-4 h-4 ${fetchingCloud ? 'animate-spin' : ''}`} />
-                        <span>{fetchingCloud ? 'Menarik Data Cloud...' : 'Tarik Data Mesin'}</span>
+                        <span>{fetchingCloud ? 'Menarik Log Absensi...' : 'Tarik Log Absensi'}</span>
                     </button>
                     <button 
                         type="button"
@@ -223,8 +238,8 @@ const Attendance = () => {
                             className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
                         >
                             <option value="">Semua Status</option>
-                            <option value="ontime">Hadir Tepat Waktu</option>
-                            <option value="late">Terlambat</option>
+                            <option value="hadir">Hadir Tepat Waktu</option>
+                            <option value="terlambat">Terlambat</option>
                             <option value="izin">Izin / Sakit / Cuti</option>
                         </select>
                     </div>
@@ -281,8 +296,8 @@ const Attendance = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : attendanceData.length > 0 ? (
-                                attendanceData.map((row) => (
+                            ) : paginatedData.length > 0 ? (
+                                paginatedData.map((row) => (
                                     <tr key={row.id} className="hover:bg-slate-50 transition">
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
@@ -290,18 +305,18 @@ const Attendance = () => {
                                                     {row.initials && row.initials !== '-' ? row.initials : (row.finger ? row.finger : '-')}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-sm">{row.nama || <span className="text-slate-400 italic font-normal">(Nama belum sinkron)</span>}</div>
-                                                    <div className="text-xs text-slate-400">NIK: {row.nik || '-'} • ID Finger: {row.finger || <span className="italic text-slate-300">Belum diset</span>}</div>
+                                                    <div className="font-semibold text-sm">{row.nama || (row.finger ? `Karyawan PIN #${row.finger}` : <span className="text-slate-400 italic font-normal">Belum ada nama</span>)}</div>
+                                                    <div className="text-xs text-slate-400">ID Finger: {row.finger || <span className="italic text-slate-300">Belum diset</span>}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-xs font-medium text-slate-700 whitespace-nowrap">{row.tglDisplay || <span className="text-slate-300 italic">-</span>}</td>
                                         <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
-                                            <div className={`font-bold ${row.status === 'late' ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit' : 'text-slate-800'}`}>
+                                            <div className={`font-bold ${(row.status === 'late' || row.status === 'terlambat') ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit' : 'text-slate-800'}`}>
                                                 {row.in && row.in !== '-' ? row.in : <span className="text-slate-300 font-normal italic">Belum tap masuk</span>}
                                             </div>
-                                            <div className={`text-[10px] mt-0.5 flex items-center gap-1 ${row.status === 'late' ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                                {row.status === 'ontime' && <Check className="w-3 h-3" />}
+                                            <div className={`text-[10px] mt-0.5 flex items-center gap-1 ${(row.status === 'late' || row.status === 'terlambat') ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                                {(row.status === 'ontime' || row.status === 'hadir') && <Check className="w-3 h-3" />}
                                                 {row.inStatus || '-'}
                                             </div>
                                         </td>
@@ -310,12 +325,12 @@ const Attendance = () => {
                                             <div className="text-[10px] text-slate-500 mt-0.5">{row.outStatus || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {row.status === 'ontime' && (
+                                            {(row.status === 'ontime' || row.status === 'hadir') && (
                                                 <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200">
                                                     Hadir ({row.dur || '-'})
                                                 </span>
                                             )}
-                                            {row.status === 'late' && (
+                                            {(row.status === 'late' || row.status === 'terlambat') && (
                                                 <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded-full border border-amber-200">
                                                     {row.inStatus || 'Terlambat'}
                                                 </span>
@@ -363,7 +378,7 @@ const Attendance = () => {
                                                 <p className="text-xs text-slate-400 mt-0.5">
                                                     {isFilterActive
                                                         ? 'Coba ubah filter atau reset pencarian.'
-                                                        : 'Klik tombol "Tarik Data Mesin" di atas untuk mengambil data dari cloud.'}
+                                                        : 'Klik tombol "Tarik Log Absensi" di atas untuk mengambil data dari cloud.'}
                                                 </p>
                                             </div>
                                         </div>
@@ -374,13 +389,69 @@ const Attendance = () => {
                     </table>
                 </div>
 
-                <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-                    <div>Menampilkan {attendanceData.length} data absensi</div>
+                <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+                    <div>
+                        Menampilkan {attendanceData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, attendanceData.length)} dari total {attendanceData.length} data absensi
+                    </div>
+                    {totalPages > 1 && (
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                Sebelumnya
+                            </button>
+                            
+                            <div className="flex items-center gap-1 px-2">
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    // Logic to show a window of pages around current page
+                                    let pageNum = currentPage;
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1;
+                                    } else {
+                                        if (currentPage <= 3) pageNum = i + 1;
+                                        else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                                        else pageNum = currentPage - 2 + i;
+                                    }
+                                    
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition font-medium ${
+                                                currentPage === pageNum 
+                                                    ? 'bg-indigo-600 text-white shadow-sm' 
+                                                    : 'text-slate-600 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                                Selanjutnya
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <ModalKoreksi isOpen={modalData.isOpen} onClose={closeModalKoreksi} data={modalData} />
-            <ModalTambahManual isOpen={isTambahOpen} onClose={() => setIsTambahOpen(false)} />
+            <ModalTambahManual 
+                isOpen={isTambahOpen} 
+                onClose={() => setIsTambahOpen(false)} 
+                onSuccess={(msg) => {
+                    setNotif({ type: 'success', message: msg });
+                    loadAttendance();
+                }}
+            />
         </div>
     );
 };
