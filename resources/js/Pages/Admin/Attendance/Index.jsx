@@ -223,8 +223,8 @@ const Attendance = () => {
                             className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
                         >
                             <option value="">Semua Status</option>
-                            <option value="ontime">Hadir Tepat Waktu</option>
-                            <option value="late">Terlambat</option>
+                            <option value="hadir">Hadir Tepat Waktu</option>
+                            <option value="terlambat">Terlambat</option>
                             <option value="izin">Izin / Sakit / Cuti</option>
                         </select>
                     </div>
@@ -297,11 +297,11 @@ const Attendance = () => {
                                         </td>
                                         <td className="px-6 py-4 text-xs font-medium text-slate-700 whitespace-nowrap">{row.tglDisplay || <span className="text-slate-300 italic">-</span>}</td>
                                         <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
-                                            <div className={`font-bold ${row.status === 'late' ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit' : 'text-slate-800'}`}>
+                                            <div className={`font-bold ${(row.status === 'late' || row.status === 'terlambat') ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit' : 'text-slate-800'}`}>
                                                 {row.in && row.in !== '-' ? row.in : <span className="text-slate-300 font-normal italic">Belum tap masuk</span>}
                                             </div>
-                                            <div className={`text-[10px] mt-0.5 flex items-center gap-1 ${row.status === 'late' ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                                {row.status === 'ontime' && <Check className="w-3 h-3" />}
+                                            <div className={`text-[10px] mt-0.5 flex items-center gap-1 ${(row.status === 'late' || row.status === 'terlambat') ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                                {(row.status === 'ontime' || row.status === 'hadir') && <Check className="w-3 h-3" />}
                                                 {row.inStatus || '-'}
                                             </div>
                                         </td>
@@ -310,12 +310,12 @@ const Attendance = () => {
                                             <div className="text-[10px] text-slate-500 mt-0.5">{row.outStatus || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {row.status === 'ontime' && (
+                                            {(row.status === 'ontime' || row.status === 'hadir') && (
                                                 <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200">
                                                     Hadir ({row.dur || '-'})
                                                 </span>
                                             )}
-                                            {row.status === 'late' && (
+                                            {(row.status === 'late' || row.status === 'terlambat') && (
                                                 <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded-full border border-amber-200">
                                                     {row.inStatus || 'Terlambat'}
                                                 </span>
@@ -380,7 +380,14 @@ const Attendance = () => {
             </div>
 
             <ModalKoreksi isOpen={modalData.isOpen} onClose={closeModalKoreksi} data={modalData} />
-            <ModalTambahManual isOpen={isTambahOpen} onClose={() => setIsTambahOpen(false)} />
+            <ModalTambahManual 
+                isOpen={isTambahOpen} 
+                onClose={() => setIsTambahOpen(false)} 
+                onSuccess={(msg) => {
+                    setNotif({ type: 'success', message: msg });
+                    loadAttendance();
+                }}
+            />
         </div>
     );
 };

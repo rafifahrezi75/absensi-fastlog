@@ -93,7 +93,7 @@ const UserLayout = () => {
                         }
                     >
                         <LayoutGrid className="w-[18px] h-[18px]" />
-                        <span>Dashboard</span>
+                        <span>Dasbor</span>
                     </NavLink>
 
                     <NavLink 

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
+use App\Models\SystemSetting;
+use App\Services\AttendanceTimeWindowService;
 use App\Services\FingerspotService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -52,6 +54,14 @@ class AttendanceController extends Controller
         $today = Carbon::today()->format('Y-m-d');
         $targetDate = !empty($filterTanggal) ? $filterTanggal : $today;
 
+        $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
+        $normalIn = $settingsData['normal_check_in'] ?? '08:00';
+        $normalOut = $settingsData['normal_check_out'] ?? '16:30';
+        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
+        $satIn = $settingsData['saturday_check_in'] ?? '08:00';
+        $satOut = $settingsData['saturday_check_out'] ?? '12:00';
+        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
+
         $stats = [
             'hadir' => 0,
             'terlambat' => 0,
@@ -74,20 +84,28 @@ class AttendanceController extends Controller
             $inTime = $inScan->format('H:i:s');
             $outTime = $outScan ? $outScan->format('H:i:s') : '';
 
-            $scheduleIn = Carbon::parse($item['date'] . ' 08:00:00');
-            $scheduleOut = Carbon::parse($item['date'] . ' 16:30:00');
+            $itemDate = Carbon::parse($item['date']);
+            $isSat = $itemDate->isSaturday();
+            $schedInTime = $isSat ? $satIn : $normalIn;
+            $schedOutTime = $isSat ? $satOut : $normalOut;
+            $tol = $isSat ? $satTol : $normalTol;
 
-            $isLate = $inScan->gt($scheduleIn);
+            $scheduleIn = Carbon::parse($item['date'] . ' ' . $schedInTime . ':00');
+            $scheduleOut = Carbon::parse($item['date'] . ' ' . $schedOutTime . ':00');
+            $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
+
+            $isLate = $inScan->gt($lateThreshold);
             $minutesLate = $isLate ? (int) round($scheduleIn->diffInMinutes($inScan)) : 0;
 
-            $status = $isLate ? 'late' : 'ontime';
+            $status = $isLate ? 'terlambat' : 'hadir';
             $inStatus = $isLate ? ('Telat ' . $minutesLate . ' Mnt') : 'Tepat';
 
             if ($outScan) {
                 $isEarly = $outScan->lt($scheduleOut);
                 $outStatus = $isEarly ? 'Pulang Cepat' : 'Tepat';
-                $diffHours = $inScan->diffInHours($outScan);
-                $diffMins = $inScan->diffInMinutes($outScan) % 60;
+                $totalMinutes = (int) $inScan->diffInMinutes($outScan);
+                $diffHours = intdiv($totalMinutes, 60);
+                $diffMins = $totalMinutes % 60;
                 $dur = $diffHours . 'j ' . $diffMins . 'm';
             } else {
                 $outStatus = 'Belum Tap';
@@ -150,8 +168,18 @@ class AttendanceController extends Controller
                 continue;
             }
 
-            if (!empty($filterStatus) && $status !== $filterStatus) {
-                continue;
+            if (!empty($filterStatus)) {
+                $isTargetHadir = in_array($filterStatus, ['hadir', 'ontime']);
+                $isTargetTerlambat = in_array($filterStatus, ['terlambat', 'late']);
+                if ($isTargetHadir && !in_array($status, ['hadir', 'ontime'])) {
+                    continue;
+                }
+                if ($isTargetTerlambat && !in_array($status, ['terlambat', 'late'])) {
+                    continue;
+                }
+                if (!$isTargetHadir && !$isTargetTerlambat && $status !== $filterStatus) {
+                    continue;
+                }
             }
 
             if (!empty($search)) {
@@ -189,5 +217,69 @@ class AttendanceController extends Controller
         $result = $service->fetchAttLog($startDate, $endDate);
 
         return response()->json($result, $result['success'] ? 200 : 400);
+    }
+
+    public function storeManual(Request $request, AttendanceTimeWindowService $service): JsonResponse
+    {
+        $validated = $request->validate([
+            'karyawan_id' => 'required',
+            'tanggal' => 'required|date',
+            'jam_masuk' => 'nullable|string',
+            'jam_keluar' => 'nullable|string',
+            'alasan' => 'nullable|string|max:500',
+        ]);
+
+        $employee = Employee::find($validated['karyawan_id'])
+            ?? Employee::where('pin', (string)$validated['karyawan_id'])->first()
+            ?? Employee::where('nik', (string)$validated['karyawan_id'])->first();
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Karyawan tidak ditemukan.'], 404);
+        }
+
+        $tanggal = $validated['tanggal'];
+        $jamMasuk = $validated['jam_masuk'] ?? null;
+        $jamKeluar = $validated['jam_keluar'] ?? null;
+        $alasan = $validated['alasan'] ?? null;
+
+        $results = [];
+
+        if ($jamMasuk) {
+            $inTime = Carbon::parse($tanggal . ' ' . $jamMasuk . (strlen($jamMasuk) <= 5 ? ':00' : ''));
+            AttendanceLog::create([
+                'cloud_id' => $employee->cloud_id ?? 'MANUAL',
+                'pin' => $employee->pin ?? (string)$employee->id,
+                'employee_id' => $employee->id,
+                'scan_at' => $inTime->format('Y-m-d H:i:s'),
+                'verify_method' => 'manual',
+                'status_scan' => '0',
+                'raw_data' => ['source' => 'manual_admin', 'reason' => $alasan],
+            ]);
+
+            $resIn = $service->processTap($employee, $inTime, $alasan, true);
+            $results['masuk'] = $resIn;
+        }
+
+        if ($jamKeluar) {
+            $outTime = Carbon::parse($tanggal . ' ' . $jamKeluar . (strlen($jamKeluar) <= 5 ? ':00' : ''));
+            AttendanceLog::create([
+                'cloud_id' => $employee->cloud_id ?? 'MANUAL',
+                'pin' => $employee->pin ?? (string)$employee->id,
+                'employee_id' => $employee->id,
+                'scan_at' => $outTime->format('Y-m-d H:i:s'),
+                'verify_method' => 'manual',
+                'status_scan' => '1',
+                'raw_data' => ['source' => 'manual_admin', 'reason' => $alasan],
+            ]);
+
+            $resOut = $service->processTap($employee, $outTime, $alasan, true);
+            $results['keluar'] = $resOut;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data absensi manual berhasil disimpan.',
+            'results' => $results,
+        ]);
     }
 }
