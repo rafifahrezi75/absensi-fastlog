@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Users, Plus, Search, ShieldCheck, Edit3, Trash2, CheckCircle2, XCircle, X, UserX, Loader2 } from 'lucide-react';
 import ModalAkun from './Components/ModalAkun';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const MasterAkun = () => {
     const [modalData, setModalData] = useState({ isOpen: false, editing: null });
@@ -35,7 +36,13 @@ const MasterAkun = () => {
         }
     }, [notif]);
 
-    const showNotif = (message, type) => setNotif({ message, type });
+    const showNotif = (message, type = 'success') => {
+        if (type === 'success') {
+            showSuccess(message);
+        } else {
+            setNotif({ message, type });
+        }
+    };
 
     const openModalTambah = useCallback(() => {
         setModalData({ isOpen: true, editing: null });
@@ -54,10 +61,10 @@ const MasterAkun = () => {
             setProcessing(true);
             if (modalData.editing) {
                 await api.put(`/api/admin/akun/${modalData.editing.id}`, data);
-                showNotif('Akun berhasil diperbarui.', 'success');
+                showSuccess('Akun berhasil diperbarui.');
             } else {
                 await api.post('/api/admin/akun', data);
-                showNotif('Akun berhasil ditambahkan.', 'success');
+                showSuccess('Akun berhasil ditambahkan.');
             }
             closeModal();
             fetchUsers();
@@ -73,11 +80,17 @@ const MasterAkun = () => {
     };
 
     const handleDelete = async (user) => {
-        if (!window.confirm(`Yakin ingin menghapus akun "${user.name}"?`)) return;
+        const confirmed = await showConfirm({
+            title: 'Hapus Akun',
+            text: `Yakin ingin menghapus akun "${user.name}"?`,
+            confirmText: 'Ya, Hapus',
+            confirmColor: '#e11d48'
+        });
+        if (!confirmed) return;
 
         try {
             const res = await api.delete(`/api/admin/akun/${user.id}`);
-            showNotif(res.data.message || 'Akun berhasil dihapus.', 'success');
+            showSuccess(res.data.message || 'Akun berhasil dihapus.');
             fetchUsers();
         } catch (err) {
             showNotif(err.response?.data?.message || 'Gagal menghapus akun.', 'error');
@@ -108,13 +121,9 @@ const MasterAkun = () => {
                 </div>
             </div>
 
-            {notif && (
-                <div className={`fixed bottom-6 right-6 z-[60] animate-toast flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl border text-sm font-medium ${notif.type === 'success' ? 'bg-white text-emerald-700 border-emerald-200' : 'bg-white text-rose-700 border-rose-200'}`}>
-                    {notif.type === 'success' ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                    ) : (
-                        <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
-                    )}
+            {notif && notif.type === 'error' && (
+                <div className="fixed bottom-6 right-6 z-[60] animate-toast flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl border text-sm font-medium bg-white text-rose-700 border-rose-200">
+                    <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
                     <span>{notif.message}</span>
                     <button onClick={() => setNotif(null)} className="ml-2 text-slate-300 hover:text-slate-500 transition">
                         <X className="w-4 h-4" />

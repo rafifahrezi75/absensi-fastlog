@@ -13,6 +13,7 @@ import {
     X
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Settings = () => {
     const [loading, setLoading] = useState(true);
@@ -69,8 +70,7 @@ const Settings = () => {
             setSaving(true);
             setErrorMsg(null);
             await api.post('/api/admin/settings', settings);
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 3500);
+            showSuccess('Pengaturan berhasil diperbarui dan disimpan.');
         } catch (error) {
             console.error(error);
             setErrorMsg('Gagal menyimpan pengaturan.');
@@ -100,8 +100,7 @@ const Settings = () => {
             setNewHolidayDate('');
             setNewHolidayDesc('');
             setIsNational(false);
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 3500);
+            showSuccess('Hari libur berhasil ditambahkan.');
         } catch (error) {
             console.error(error);
             setErrorMsg('Gagal menambahkan hari libur. Pastikan tanggal belum terdaftar.');
@@ -109,11 +108,18 @@ const Settings = () => {
     };
 
     const deleteHoliday = async (id) => {
-        if (!window.confirm('Yakin ingin menghapus hari libur ini?')) return;
+        const confirmed = await showConfirm({
+            title: 'Hapus Hari Libur',
+            text: 'Yakin ingin menghapus hari libur ini?',
+            confirmText: 'Ya, Hapus',
+            confirmColor: '#e11d48'
+        });
+        if (!confirmed) return;
 
         try {
             await api.delete(`/api/admin/settings/holidays/${id}`);
             setHolidays(holidays.filter(h => h.id !== id));
+            showSuccess('Hari libur berhasil dihapus.');
         } catch (error) {
             console.error(error);
             setErrorMsg('Gagal menghapus hari libur.');
@@ -122,7 +128,8 @@ const Settings = () => {
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        const [year, month, day] = dateString.split('-');
+        const cleanDate = dateString.split(' ')[0];
+        const [year, month, day] = cleanDate.split('-');
         const date = new Date(year, month - 1, day);
         return date.toLocaleDateString('id-ID', {
             weekday: 'long',
@@ -150,21 +157,6 @@ const Settings = () => {
                 </div>
             </div>
 
-            {saveSuccess && (
-                <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    <div className="flex items-center gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                        <span className="font-medium">Pengaturan berhasil diperbarui dan disimpan ke database.</span>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setSaveSuccess(false)}
-                        className="p-1 hover:bg-black/5 rounded-lg transition"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
 
             {errorMsg && (
                 <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-rose-50 text-rose-800 border border-rose-200">
