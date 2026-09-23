@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhook/*',
             'store.php',
             'api/store.php',
+            'api/attendance/tap',
+            'api/admin/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

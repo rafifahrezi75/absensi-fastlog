@@ -143,11 +143,11 @@ const Employees = () => {
 
     const handleExport = () => {
         if (filteredEmployees.length === 0) {
-            alert('Tidak ada data untuk diexport');
+            alert('Tidak ada data untuk diekspor');
             return;
         }
 
-        const headers = ['NIK', 'Nama Lengkap', 'ID Fingerprint', 'Departemen', 'Jabatan', 'Status Sync'];
+        const headers = ['NIK', 'Nama Lengkap', 'ID Fingerprint', 'Departemen', 'Jabatan', 'Status Sinkronisasi'];
         const csvRows = [
             headers.join(','),
             ...filteredEmployees.map(emp => [
@@ -156,7 +156,7 @@ const Employees = () => {
                 `"${emp.idFinger || '-'}"`,
                 `"${emp.dept}"`,
                 `"${emp.jabatan}"`,
-                `"${emp.syncStatus === 'synced' ? 'Sync Mesin' : 'Belum Sync'}"`
+                `"${emp.syncStatus === 'synced' ? 'Tersinkron' : 'Belum Tersinkron'}"`
             ].join(','))
         ];
 
@@ -210,13 +210,13 @@ const Employees = () => {
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <RefreshCw className={`w-4 h-4 ${syncingCloud ? 'animate-spin' : ''}`} />
-                        <span>{syncingCloud ? 'Menghubungkan...' : 'Sync Nama dari Mesin'}</span>
+                        <span>{syncingCloud ? 'Menghubungkan...' : 'Sinkron Nama Mesin'}</span>
                     </button>
                     <button
                         onClick={handleExport}
                         className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
                     >
-                        <Download className="w-4 h-4" /> Export Data
+                        <Download className="w-4 h-4" /> Ekspor Data
                     </button>
                     <button
                         onClick={() => handleOpenModal()}
@@ -245,7 +245,7 @@ const Employees = () => {
                     </div>
                     <div className="text-2xl font-bold text-rose-700 mt-1">{stats.unsynced}</div>
                     <span className="text-[11px] text-rose-600 font-medium">
-                        {stats.unsynced > 0 ? 'Segera assign ID Fingerprint!' : 'Semua ID tersinkronisasi'}
+                        {stats.unsynced > 0 ? 'Segera atur ID Sidik Jari!' : 'Semua ID tersinkronisasi'}
                     </span>
                 </div>
             </div>
@@ -293,7 +293,7 @@ const Employees = () => {
                                 <th scope="col" className="px-6 py-3.5 font-semibold">ID Fingerprint</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Departemen</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Jabatan</th>
-                                <th scope="col" className="px-6 py-3.5 font-semibold">Status Sync</th>
+                                <th scope="col" className="px-6 py-3.5 font-semibold">Status Sinkronisasi</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
                             </tr>
                         </thead>
@@ -339,11 +339,11 @@ const Employees = () => {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {emp.syncStatus === 'synced' ? (
                                                 <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                                                    <CheckCircle2 className="w-3 h-3" /> Sync Mesin
+                                                    <CheckCircle2 className="w-3 h-3" /> Tersinkron
                                                 </span>
                                             ) : (
                                                 <span className="bg-rose-100 text-rose-800 text-xs font-medium px-2.5 py-1 rounded-full border border-rose-200 inline-flex items-center gap-1">
-                                                    <AlertCircle className="w-3 h-3" /> Belum Sync
+                                                    <AlertCircle className="w-3 h-3" /> Belum Tersinkron
                                                 </span>
                                             )}
                                         </td>
@@ -352,7 +352,7 @@ const Employees = () => {
                                                 <button
                                                     onClick={() => handleOpenModal(emp)}
                                                     className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                                                    title="Edit Data"
+                                                    title="Ubah Data"
                                                 >
                                                     <Edit3 className="w-4 h-4" />
                                                 </button>

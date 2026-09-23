@@ -267,7 +267,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard Utama</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Dasbor Utama</h1>
           <p className="text-sm text-slate-500">Ringkasan aktivitas absensi real-time, evaluasi kedisiplinan, dan monitoring mesin.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -278,7 +278,7 @@ const Dashboard = () => {
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} /> 
-            {isSyncing ? 'Syncing...' : 'Sync Fingerprint'}
+            {isSyncing ? 'Menyinkronkan...' : 'Sinkronkan Mesin'}
           </button>
         </div>
       </div>
@@ -499,7 +499,7 @@ const Dashboard = () => {
                       <td className="px-6 py-3.5 font-mono text-slate-700">{row.in || '-'}</td>
                       <td className="px-6 py-3.5">
                         <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${
-                          row.status === 'late'
+                          (row.status === 'late' || row.status === 'terlambat')
                             ? 'bg-amber-100 text-amber-800 border-amber-200'
                             : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                         }`}>
@@ -516,7 +516,7 @@ const Dashboard = () => {
                 ) : (
                   <tr>
                     <td colSpan="4" className="px-6 py-10 text-center text-xs text-slate-400">
-                      Belum ada log absensi hari ini. Klik tombol "Sync Fingerprint" untuk menarik data dari cloud.
+                      Belum ada log absensi hari ini. Klik tombol "Sinkronkan Mesin" untuk menarik data dari cloud.
                     </td>
                   </tr>
                 )}
