@@ -278,7 +278,7 @@ const Dashboard = () => {
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} /> 
-            {isSyncing ? 'Menyinkronkan...' : 'Sinkronkan Mesin'}
+            {isSyncing ? 'Menarik Log Absensi...' : 'Tarik Log Absensi'}
           </button>
         </div>
       </div>
@@ -491,7 +491,7 @@ const Dashboard = () => {
                             {row.initials && row.initials !== '-' ? row.initials : (row.finger ? row.finger : '-')}
                           </div>
                           <div>
-                            <div className="font-semibold text-sm">{row.nama || <span className="text-slate-400 italic font-normal">(Nama belum sinkron)</span>}</div>
+                            <div className="font-semibold text-sm">{row.nama || (row.finger ? `Karyawan PIN #${row.finger}` : <span className="text-slate-400 italic font-normal">Belum ada nama</span>)}</div>
                             <div className="text-xs text-slate-400">PIN: {row.finger} • {row.deptDisplay || 'Umum'}</div>
                           </div>
                         </div>
@@ -516,7 +516,7 @@ const Dashboard = () => {
                 ) : (
                   <tr>
                     <td colSpan="4" className="px-6 py-10 text-center text-xs text-slate-400">
-                      Belum ada log absensi hari ini. Klik tombol "Sinkronkan Mesin" untuk menarik data dari cloud.
+                      Belum ada log absensi hari ini. Klik tombol "Tarik Log Absensi" untuk menarik data dari cloud.
                     </td>
                   </tr>
                 )}

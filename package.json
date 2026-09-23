@@ -22,6 +22,7 @@
         "react": "^19.2.8",
         "react-apexcharts": "^2.1.1",
         "react-dom": "^19.2.8",
-        "react-router-dom": "^7.18.2"
+        "react-router-dom": "^7.18.2",
+        "sweetalert2": "^11.26.25"
     }
 }

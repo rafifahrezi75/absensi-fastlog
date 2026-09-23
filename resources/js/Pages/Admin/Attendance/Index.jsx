@@ -3,6 +3,7 @@ import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fi
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Attendance = () => {
     const [modalData, setModalData] = useState({ isOpen: false, nama: '', masuk: '', keluar: '' });
@@ -29,9 +30,9 @@ const Attendance = () => {
         setModalData(prev => ({ ...prev, isOpen: false }));
     }, []);
 
-    const loadAttendance = useCallback(async () => {
+    const loadAttendance = useCallback(async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const params = {};
             if (filterTanggal) params.tanggal = filterTanggal;
             if (filterDept) params.dept = filterDept;
@@ -49,7 +50,7 @@ const Attendance = () => {
                 message: err.response?.data?.message || 'Gagal memuat data absensi.',
             });
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [filterTanggal, filterDept, filterStatus, searchQuery]);
 
@@ -70,8 +71,13 @@ const Attendance = () => {
     }, [notif]);
 
     const handleFetchCloud = async () => {
+        let pollTimer = null;
         try {
             setFetchingCloud(true);
+            pollTimer = setInterval(() => {
+                loadAttendance(true);
+            }, 1000);
+
             const payload = {};
             if (filterTanggal) {
                 payload.start_date = filterTanggal;
@@ -79,17 +85,20 @@ const Attendance = () => {
             }
 
             const res = await api.post('/api/admin/attendance/fetch', payload);
-            setNotif({
-                type: 'success',
-                message: res.data.message || 'Berhasil melakukan sinkronisasi data dari mesin cloud.',
-            });
-            await loadAttendance();
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+
+            await loadAttendance(true);
+            showSuccess(res.data.message || 'Berhasil menarik data log absensi.');
         } catch (err) {
             setNotif({
                 type: 'error',
-                message: err.response?.data?.message || 'Gagal menyinkronkan data dari mesin cloud.',
+                message: err.response?.data?.message || 'Gagal menyinkronkan data log absensi.',
             });
         } finally {
+            if (pollTimer) clearInterval(pollTimer);
             setFetchingCloud(false);
         }
     };
@@ -112,18 +121,10 @@ const Attendance = () => {
 
     return (
         <div className="space-y-6">
-            {notif && (
-                <div className={`p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm ${
-                    notif.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
-                }`}>
+            {notif && notif.type === 'error' && (
+                <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-rose-50 text-rose-800 border border-rose-200">
                     <div className="flex items-center gap-3">
-                        {notif.type === 'success' ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                        ) : (
-                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                        )}
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
                         <span className="font-medium">{notif.message}</span>
                     </div>
                     <button
@@ -149,7 +150,7 @@ const Attendance = () => {
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <RefreshCw className={`w-4 h-4 ${fetchingCloud ? 'animate-spin' : ''}`} />
-                        <span>{fetchingCloud ? 'Menarik Data Cloud...' : 'Tarik Data Mesin'}</span>
+                        <span>{fetchingCloud ? 'Menarik Log Absensi...' : 'Tarik Log Absensi'}</span>
                     </button>
                     <button 
                         type="button"
@@ -304,7 +305,7 @@ const Attendance = () => {
                                                     {row.initials && row.initials !== '-' ? row.initials : (row.finger ? row.finger : '-')}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-sm">{row.nama || <span className="text-slate-400 italic font-normal">(Nama belum sinkron)</span>}</div>
+                                                    <div className="font-semibold text-sm">{row.nama || (row.finger ? `Karyawan PIN #${row.finger}` : <span className="text-slate-400 italic font-normal">Belum ada nama</span>)}</div>
                                                     <div className="text-xs text-slate-400">ID Finger: {row.finger || <span className="italic text-slate-300">Belum diset</span>}</div>
                                                 </div>
                                             </div>
@@ -377,7 +378,7 @@ const Attendance = () => {
                                                 <p className="text-xs text-slate-400 mt-0.5">
                                                     {isFilterActive
                                                         ? 'Coba ubah filter atau reset pencarian.'
-                                                        : 'Klik tombol "Tarik Data Mesin" di atas untuk mengambil data dari cloud.'}
+                                                        : 'Klik tombol "Tarik Log Absensi" di atas untuk mengambil data dari cloud.'}
                                                 </p>
                                             </div>
                                         </div>

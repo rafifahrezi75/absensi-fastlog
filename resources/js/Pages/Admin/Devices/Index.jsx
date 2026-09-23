@@ -6,6 +6,7 @@ import {
     Loader2, X, Send, Database, HardDrive, Smartphone
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const DevicesIndex = () => {
     const [deviceData, setDeviceData] = useState(null);
@@ -75,10 +76,7 @@ const DevicesIndex = () => {
             setPingResult(null);
             const res = await api.post('/api/admin/devices/ping');
             setPingResult(res.data);
-            setNotif({
-                type: 'success',
-                message: res.data.message || 'Koneksi ke Fingerspot Cloud berhasil.'
-            });
+            showSuccess(res.data.message || 'Koneksi ke Fingerspot Cloud berhasil.');
         } catch (err) {
             const errData = err.response?.data || {};
             setPingResult({
@@ -101,10 +99,7 @@ const DevicesIndex = () => {
         try {
             setSyncLoading(true);
             const res = await api.post('/api/admin/devices/sync-logs', fetchDates);
-            setNotif({
-                type: 'success',
-                message: res.data.message || `Berhasil menarik ${res.data.total_inserted || 0} scan log baru dari cloud.`
-            });
+            showSuccess(res.data.message || `Berhasil menarik ${res.data.total_inserted || 0} scan log baru dari cloud.`);
             setIsFetchLogOpen(false);
             await loadDevice();
         } catch (err) {
@@ -121,10 +116,7 @@ const DevicesIndex = () => {
         try {
             setSyncUserLoading(true);
             const res = await api.post('/api/admin/devices/sync-users');
-            setNotif({
-                type: 'success',
-                message: res.data.message || 'Permintaan sinkronisasi data user berhasil dikirim ke mesin.'
-            });
+            showSuccess(res.data.message || 'Permintaan sinkronisasi data user berhasil dikirim ke mesin.');
             await loadDevice();
         } catch (err) {
             setNotif({
@@ -143,10 +135,7 @@ const DevicesIndex = () => {
         try {
             setEditSaving(true);
             const res = await api.put(`/api/admin/devices/${deviceData.id}`, editForm);
-            setNotif({
-                type: 'success',
-                message: res.data.message || 'Data mesin berhasil diperbarui.'
-            });
+            showSuccess(res.data.message || 'Data mesin berhasil diperbarui.');
             setIsEditOpen(false);
             await loadDevice();
         } catch (err) {
@@ -172,18 +161,10 @@ const DevicesIndex = () => {
 
     return (
         <div className="space-y-6">
-            {notif && (
-                <div className={`p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm ${
-                    notif.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-rose-50 text-rose-800 border border-rose-200'
-                }`}>
+            {notif && notif.type === 'error' && (
+                <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-rose-50 text-rose-800 border border-rose-200">
                     <div className="flex items-center gap-3">
-                        {notif.type === 'success' ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                        ) : (
-                            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
-                        )}
+                        <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
                         <span className="font-medium">{notif.message}</span>
                     </div>
                     <button
@@ -219,7 +200,7 @@ const DevicesIndex = () => {
                         className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition shadow-xs cursor-pointer disabled:opacity-60"
                     >
                         <Users className={`w-3.5 h-3.5 ${syncUserLoading ? 'animate-spin' : ''}`} />
-                        <span>{syncUserLoading ? 'Menyinkronkan User...' : 'Sinkron Nama User'}</span>
+                        <span>{syncUserLoading ? 'Menyinkronkan Karyawan...' : 'Sinkron Data Karyawan'}</span>
                     </button>
 
                     <button
@@ -228,7 +209,7 @@ const DevicesIndex = () => {
                         className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm cursor-pointer"
                     >
                         <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Tarik Log Presensi</span>
+                        <span>Tarik Log Absensi</span>
                     </button>
                 </div>
             </div>
