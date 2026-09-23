@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AkunController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,8 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::post('/employees/sync-cloud', [EmployeeController::class, 'syncCloud'])->name('api.admin.employees.sync-cloud');
     Route::put('/employees/{id}', [EmployeeController::class, 'update'])->name('api.admin.employees.update');
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('api.admin.employees.destroy');
+
+    Route::get('/reports', [ReportController::class, 'index'])->name('api.admin.reports.index');
 });
 
 Route::get('/{any}', function () {
