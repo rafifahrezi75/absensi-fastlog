@@ -1,52 +1,58 @@
-import React, { useState, useMemo } from 'react';
-import { FileSpreadsheet, Printer, Search, TableProperties } from 'lucide-react';
-
-// Data Dummy Karyawan & Presensi Sebulan Penuh
-const EMPLOYEES_DATA = [
-    {
-        id: 1,
-        nama: 'Budi Santoso',
-        dept: 'it',
-        deptLabel: 'IT & Tech',
-        attendance: {
-            1: 'H', 2: 'L', 3: 'H', 4: 'H', 5: 'T', 6: 'H', 7: 'H', 8: 'H', 9: 'L', 10: 'H',
-            11: 'H', 12: 'H', 13: 'OT', 14: 'H', 15: 'H', 16: 'L', 17: 'L', 18: 'H', 19: 'H', 20: 'T',
-            21: 'H', 22: 'H', 23: 'L', 24: 'H', 25: 'H', 26: 'OT', 27: 'H', 28: 'H', 29: 'H', 30: 'L', 31: 'H'
-        }
-    },
-    {
-        id: 2,
-        nama: 'Ahmad Rizky',
-        dept: 'marketing',
-        deptLabel: 'Marketing',
-        attendance: {
-            1: 'H', 2: 'L', 3: 'I', 4: 'H', 5: 'H', 6: 'H', 7: 'H', 8: 'H', 9: 'L', 10: 'H',
-            11: 'H', 12: 'T', 13: 'H', 14: 'H', 15: 'S', 16: 'L', 17: 'L', 18: 'H', 19: 'H', 20: 'H',
-            21: 'H', 22: 'H', 23: 'L', 24: 'H', 25: 'I', 26: 'H', 27: 'H', 28: 'H', 29: 'H', 30: 'L', 31: 'H'
-        }
-    },
-    {
-        id: 3,
-        nama: 'Siti Aminah',
-        dept: 'hrd',
-        deptLabel: 'HRD & GA',
-        attendance: {
-            1: 'H', 2: 'L', 3: 'H', 4: 'H', 5: 'H', 6: 'H', 7: 'OT', 8: 'H', 9: 'L', 10: 'H',
-            11: 'H', 12: 'H', 13: 'H', 14: 'H', 15: 'H', 16: 'L', 17: 'L', 18: 'H', 19: 'T', 20: 'H',
-            21: 'H', 22: 'H', 23: 'L', 24: 'H', 25: 'H', 26: 'H', 27: 'OT', 28: 'H', 29: 'H', 30: 'L', 31: 'H'
-        }
-    }
-];
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { FileSpreadsheet, Printer, Search, TableProperties, Loader2 } from 'lucide-react';
+import api from '../../../lib/api';
 
 const dayNamesIndo = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 const Reports = () => {
-    const [startDate, setStartDate] = useState('2026-08-01');
-    const [endDate, setEndDate] = useState('2026-08-31');
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        return `${y}-${m}-01`;
+    });
+    const [endDate, setEndDate] = useState(() => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = d.getMonth() + 1;
+        const lastDay = new Date(y, m, 0).getDate();
+        return `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    });
     const [selectedDept, setSelectedDept] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [employees, setEmployees] = useState([]);
+    const [departments, setDepartments] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Generate Kolom Hari Sebulan Berdasarkan Filter
+    const loadReports = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await api.get('/api/admin/reports', {
+                params: {
+                    start_date: startDate,
+                    end_date: endDate,
+                    dept: selectedDept || undefined,
+                    search: searchQuery || undefined,
+                }
+            });
+            setEmployees(res.data.employees || []);
+            if (res.data.departments) {
+                setDepartments(res.data.departments);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [startDate, endDate, selectedDept, searchQuery]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            loadReports();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [loadReports]);
+
     const daysInPeriod = useMemo(() => {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -56,7 +62,13 @@ const Reports = () => {
 
         let current = new Date(start);
         while (current <= end) {
+            const y = current.getFullYear();
+            const m = String(current.getMonth() + 1).padStart(2, '0');
+            const d = String(current.getDate()).padStart(2, '0');
+            const fullDate = `${y}-${m}-${d}`;
+
             days.push({
+                fullDate,
                 dayNum: current.getDate(),
                 dayName: dayNamesIndo[current.getDay()],
                 isSunday: current.getDay() === 0,
@@ -66,16 +78,6 @@ const Reports = () => {
         return days;
     }, [startDate, endDate]);
 
-    // Filter Data Karyawan
-    const filteredEmployees = useMemo(() => {
-        return EMPLOYEES_DATA.filter(emp => {
-            const matchesSearch = emp.nama.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesDept = selectedDept ? emp.dept === selectedDept : true;
-            return matchesSearch && matchesDept;
-        });
-    }, [searchQuery, selectedDept]);
-
-    // Fungsi Render Badge Warna Status
     const renderStatusBadge = (status) => {
         switch (status) {
             case 'H':
@@ -95,7 +97,6 @@ const Reports = () => {
         }
     };
 
-    // Fungsi khusus Cetak PDF: HANYA mengambil elemen tabel data
     const handlePrintPDF = () => {
         const printArea = document.getElementById('table-to-print');
         if (!printArea) return;
@@ -156,20 +157,19 @@ const Reports = () => {
         printWindow.document.close();
     };
 
-    // Export CSV
     const handleExportExcel = () => {
-        if (filteredEmployees.length === 0) {
+        if (employees.length === 0) {
             alert('Tidak ada data untuk diexport');
             return;
         }
 
         const headers = ['Nama', 'Departemen', ...daysInPeriod.map(d => `${d.dayNum}/${d.dayName}`), 'Hadir (H)', 'Terlambat (T)', 'Lembur (OT)', 'Izin/Sakit (I/S)'];
 
-        const rows = filteredEmployees.map(emp => {
+        const rows = employees.map(emp => {
             let countH = 0, countT = 0, countOT = 0, countIS = 0;
 
             const dailyStatus = daysInPeriod.map(d => {
-                const st = emp.attendance[d.dayNum] || '-';
+                const st = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || (d.isSunday ? 'L' : '-');
                 if (st === 'H') countH++;
                 if (st === 'T') countT++;
                 if (st === 'OT') countOT++;
@@ -201,7 +201,6 @@ const Reports = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header Utama */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Laporan Rekap Presensi & OT</h1>
@@ -223,7 +222,6 @@ const Reports = () => {
                 </div>
             </div>
 
-            {/* Filter Card */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
@@ -252,10 +250,9 @@ const Reports = () => {
                             className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                         >
                             <option value="">Semua Departemen</option>
-                            <option value="it">IT & Tech</option>
-                            <option value="hrd">HRD & GA</option>
-                            <option value="finance">Finance</option>
-                            <option value="marketing">Marketing</option>
+                            {departments.map((d) => (
+                                <option key={d} value={d}>{d}</option>
+                            ))}
                         </select>
                     </div>
                     <div>
@@ -274,7 +271,6 @@ const Reports = () => {
                 </div>
             </div>
 
-            {/* Legend Status */}
             <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-700">
                 <span className="font-bold text-slate-900 border-r border-slate-200 pr-4">Keterangan Status:</span>
                 <div className="flex items-center gap-1.5">
@@ -303,10 +299,8 @@ const Reports = () => {
                 </div>
             </div>
 
-            {/* Container Tabel Rekap */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    {/* ID khusus untuk dicetak ke PDF */}
                     <table id="table-to-print" className="w-full text-xs border-collapse border border-slate-200 text-center">
                         <thead>
                             <tr className="bg-slate-900 text-white font-bold border-b border-slate-800">
@@ -324,7 +318,7 @@ const Reports = () => {
                             <tr className="bg-slate-800 text-slate-200 border-b border-slate-700">
                                 {daysInPeriod.map((d) => (
                                     <th
-                                        key={d.dayNum}
+                                        key={d.fullDate || d.dayNum}
                                         className={`px-1 py-1.5 border-r border-slate-700 min-w-[30px] ${d.isSunday ? 'bg-rose-950/40 text-rose-300' : ''}`}
                                     >
                                         <div className="font-bold text-xs">{d.dayNum}</div>
@@ -334,8 +328,17 @@ const Reports = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 text-slate-700">
-                            {filteredEmployees.length > 0 ? (
-                                filteredEmployees.map((emp) => {
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={daysInPeriod.length + 5} className="py-16 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                                            <p className="text-sm text-slate-400">Memuat data rekap presensi...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : employees.length > 0 ? (
+                                employees.map((emp) => {
                                     let countH = 0, countT = 0, countOT = 0, countIS = 0;
 
                                     return (
@@ -346,7 +349,7 @@ const Reports = () => {
                                             </td>
 
                                             {daysInPeriod.map((d) => {
-                                                const status = emp.attendance[d.dayNum] || (d.isSunday ? 'L' : '-');
+                                                const status = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || (d.isSunday ? 'L' : '-');
 
                                                 if (status === 'H') countH++;
                                                 if (status === 'T') countT++;
@@ -355,7 +358,7 @@ const Reports = () => {
 
                                                 return (
                                                     <td
-                                                        key={d.dayNum}
+                                                        key={d.fullDate || d.dayNum}
                                                         className={`p-1 border-r border-slate-200 ${status === 'L' ? 'bg-slate-50' : ''}`}
                                                     >
                                                         {renderStatusBadge(status)}

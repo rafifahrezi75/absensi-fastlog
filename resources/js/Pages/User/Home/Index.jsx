@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, FileText, AlertCircle, XCircle, Thermometer, Briefcase, Clock } from 'lucide-react';
 import PengajuanModal from '../../../Components/PengajuanModal';
+import { useAuth } from '../../../Contexts/AuthContext';
 
 const Home = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState('Izin');
 
@@ -20,6 +22,14 @@ const Home = () => {
         return () => clearInterval(timer);
     }, []);
 
+    const getGreeting = () => {
+        const hour = now.getHours();
+        if (hour >= 4 && hour < 11) return 'Selamat Pagi';
+        if (hour >= 11 && hour < 15) return 'Selamat Siang';
+        if (hour >= 15 && hour < 18) return 'Selamat Sore';
+        return 'Selamat Malam';
+    };
+
     const riwayat = [
         { id: 1, tanggal: 'Senin, 10 Agu 2026', ket: 'Acara Keluarga', status: 'Izin', dot: 'bg-blue-500', badge: 'bg-blue-50 text-blue-600' },
         { id: 2, tanggal: 'Jumat, 7 Agu 2026', ket: 'Meeting Klien Cabang', status: 'Dinas', dot: 'bg-orange-500', badge: 'bg-orange-50 text-orange-600' },
@@ -32,11 +42,13 @@ const Home = () => {
             <div className="bg-slate-900 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative overflow-hidden">
                 <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-orange-500/10 rounded-full blur-2xl"></div>
                 <div className="relative">
-                    <p className="text-white/60 text-xs mb-1">Selamat Siang,</p>
+                    <p className="text-white/60 text-xs mb-1">{getGreeting()},</p>
                     <h2 className="text-white text-xl md:text-2xl font-bold flex items-center gap-2">
-                        Budi Santoso <span>👋</span>
+                        {user?.name || 'Karyawan'}
                     </h2>
-                    <p className="text-white/50 text-xs mt-1">Desainer Grafis · Kreatif</p>
+                    <p className="text-white/50 text-xs mt-1">
+                        {user?.employee?.dept ? `${user.employee.dept}${user.employee.jabatan ? ` · ${user.employee.jabatan}` : ''}` : (user?.role === 'admin' ? 'Administrator' : 'Karyawan')}
+                    </p>
                 </div>
                 <div className="relative text-left md:text-right">
                     <p className="text-orange-500 text-2xl md:text-3xl font-bold tracking-wide font-mono">
