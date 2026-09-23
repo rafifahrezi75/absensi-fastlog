@@ -5,10 +5,21 @@ import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
 
 const UserLayout = () => {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 1024) {
+                setSidebarOpen(false);
+            }
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const closeSidebar = () => {
         if (window.innerWidth < 1024) {
@@ -42,8 +53,8 @@ const UserLayout = () => {
 
             {/* Sidebar */}
             <aside 
-                className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 ${
-                    sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+                className={`fixed inset-y-0 left-0 z-50 w-72 shrink-0 bg-slate-900 flex flex-col transition-all duration-300 lg:static ${
+                    sidebarOpen ? 'translate-x-0 lg:ml-0' : '-translate-x-full lg:-ml-72'
                 }`}
             >
                {/* Logo */}
@@ -116,7 +127,7 @@ const UserLayout = () => {
                 {/* Header */}
                 <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 shrink-0">
                     <div className="flex items-center space-x-4">
-                        <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-500 hover:text-gray-700">
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500 hover:text-gray-700 transition-colors">
                             <Menu className="w-6 h-6" />
                         </button>
 
@@ -139,7 +150,7 @@ const UserLayout = () => {
 
                 {/* Dynamic Content Area */}
                 <main className="flex-1 overflow-y-auto p-4 md:p-8">
-                    <div className="max-w-5xl mx-auto space-y-6">
+                    <div className="w-full space-y-6">
                         <Outlet />
                     </div>
                 </main>
