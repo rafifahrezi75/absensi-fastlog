@@ -209,7 +209,7 @@ const DevicesIndex = () => {
                         className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm cursor-pointer"
                     >
                         <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Tarik Log Absensi</span>
+                        <span>Sync Log Absensi</span>
                     </button>
                 </div>
             </div>
@@ -547,8 +547,8 @@ const DevicesIndex = () => {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
                         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50/50">
                             <div>
-                                <h3 className="font-bold text-slate-900 text-base">Tarik Log Presensi Mesin</h3>
-                                <p className="text-xs text-slate-500">Rentang penarikan data maksimal 2 hari berturut-turut</p>
+                                <h3 className="font-bold text-slate-900 text-base">Sync Log Absensi Mesin</h3>
+                                <p className="text-xs text-slate-500">Rentang sinkronisasi data maksimal 2 hari berturut-turut</p>
                             </div>
                             <button
                                 type="button"
@@ -602,7 +602,7 @@ const DevicesIndex = () => {
                                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-60"
                                 >
                                     <RefreshCw className={`w-3.5 h-3.5 ${syncLoading ? 'animate-spin' : ''}`} />
-                                    <span>{syncLoading ? 'Menarik Data...' : 'Mulai Tarik Log'}</span>
+                                    <span>{syncLoading ? 'Menyinkronkan...' : 'Mulai Sync Log'}</span>
                                 </button>
                             </div>
                         </form>

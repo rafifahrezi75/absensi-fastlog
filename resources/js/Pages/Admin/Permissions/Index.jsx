@@ -539,31 +539,31 @@ const Permissions = () => {
           <p className="text-sm text-slate-500">Tinjau dan kelola seluruh pencatatan tap di luar jadwal, lembur mesin, serta pengajuan izin, cuti, dan sakit karyawan.</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer shadow-sm"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Tambah Pengajuan</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenSimulator}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200 rounded-xl transition cursor-pointer shadow-sm"
-          >
-            <Play className="w-3.5 h-3.5" />
-            <span>Simulasi Tap Mesin</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={loadData}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition cursor-pointer shadow-sm disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition cursor-pointer shadow-sm disabled:opacity-60"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Segarkan</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenSimulator}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition cursor-pointer shadow-sm"
+          >
+            <Play className="w-4 h-4" />
+            <span>Simulasi Tap Mesin</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsCreateOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Pengajuan</span>
           </button>
         </div>
       </div>

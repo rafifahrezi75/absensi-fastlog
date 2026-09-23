@@ -150,7 +150,7 @@ const Attendance = () => {
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <RefreshCw className={`w-4 h-4 ${fetchingCloud ? 'animate-spin' : ''}`} />
-                        <span>{fetchingCloud ? 'Menarik Log Absensi...' : 'Tarik Log Absensi'}</span>
+                        <span>{fetchingCloud ? 'Syncing Log Absensi...' : 'Sync Log Absensi'}</span>
                     </button>
                     <button 
                         type="button"
@@ -378,7 +378,7 @@ const Attendance = () => {
                                                 <p className="text-xs text-slate-400 mt-0.5">
                                                     {isFilterActive
                                                         ? 'Coba ubah filter atau reset pencarian.'
-                                                        : 'Klik tombol "Tarik Log Absensi" di atas untuk mengambil data dari cloud.'}
+                                                        : 'Klik tombol "Sync Log Absensi" di atas untuk mengambil data dari cloud.'}
                                                 </p>
                                             </div>
                                         </div>

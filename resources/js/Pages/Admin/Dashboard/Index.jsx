@@ -615,7 +615,7 @@ const Dashboard = () => {
                 ) : (
                   <tr>
                     <td colSpan="4" className="px-6 py-10 text-center text-xs text-slate-400">
-                      Belum ada log absensi hari ini. Klik tombol "Tarik Log Absensi" untuk menarik data dari cloud.
+                      Belum ada log absensi hari ini. Klik tombol "Sync Log Absensi" untuk menyinkronkan data dari cloud.
                     </td>
                   </tr>
                 )}
