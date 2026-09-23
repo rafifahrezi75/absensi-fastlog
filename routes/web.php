@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AkunController;
 use App\Http\Controllers\Admin\AttendanceController;
+use App\Http\Controllers\Admin\DeviceController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\MasterPayrollController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -59,6 +60,12 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::post('/settings', [SettingController::class, 'update'])->name('api.admin.settings.update');
     Route::post('/settings/holidays', [SettingController::class, 'addHoliday'])->name('api.admin.settings.holidays.add');
     Route::delete('/settings/holidays/{id}', [SettingController::class, 'deleteHoliday'])->name('api.admin.settings.holidays.delete');
+
+    Route::get('/devices', [DeviceController::class, 'index'])->name('api.admin.devices.index');
+    Route::put('/devices/{id}', [DeviceController::class, 'update'])->name('api.admin.devices.update');
+    Route::post('/devices/ping', [DeviceController::class, 'ping'])->name('api.admin.devices.ping');
+    Route::post('/devices/sync-logs', [DeviceController::class, 'syncLogs'])->name('api.admin.devices.sync-logs');
+    Route::post('/devices/sync-users', [DeviceController::class, 'syncUsers'])->name('api.admin.devices.sync-users');
     Route::get('/master-payroll/golongan', [MasterPayrollController::class, 'indexGolongan'])->name('api.admin.master-payroll.golongan.index');
     Route::post('/master-payroll/golongan', [MasterPayrollController::class, 'storeGolongan'])->name('api.admin.master-payroll.golongan.store');
     Route::put('/master-payroll/golongan/{id}', [MasterPayrollController::class, 'updateGolongan'])->name('api.admin.master-payroll.golongan.update');
