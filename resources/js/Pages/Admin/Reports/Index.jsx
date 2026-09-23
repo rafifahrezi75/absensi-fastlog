@@ -304,7 +304,7 @@ const Reports = () => {
                     <table id="table-to-print" className="w-full text-xs border-collapse border border-slate-200 text-center">
                         <thead>
                             <tr className="bg-slate-900 text-white font-bold border-b border-slate-800">
-                                <th className="px-4 py-2.5 text-left border-r border-slate-800 min-w-[180px] sticky left-0 bg-slate-900 z-10" rowSpan="2">
+                                <th className="px-4 py-2.5 text-left border-r border-slate-800 min-w-[180px] sticky left-0 bg-slate-900 z-[5]" rowSpan="2">
                                     Karyawan
                                 </th>
                                 <th className="py-2 border-r border-slate-800" colSpan={daysInPeriod.length}>
@@ -343,7 +343,7 @@ const Reports = () => {
 
                                     return (
                                         <tr key={emp.id} className="hover:bg-slate-100/60 transition">
-                                            <td className="px-4 py-2 text-left font-semibold border-r border-slate-200 sticky left-0 bg-white z-10 shadow-sm">
+                                            <td className="px-4 py-2 text-left font-semibold border-r border-slate-200 sticky left-0 bg-white z-[5] shadow-sm">
                                                 <div className="text-slate-900 font-bold leading-tight">{emp.nama}</div>
                                                 <div className="text-[10px] font-normal text-slate-400">{emp.deptLabel}</div>
                                             </td>

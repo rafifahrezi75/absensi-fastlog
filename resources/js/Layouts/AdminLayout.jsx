@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     X, LayoutDashboard, Clock, FileCheck2,
     Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell,
-    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers
+    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
@@ -14,6 +14,9 @@ const AdminLayout = () => {
     const [isMobile, setIsMobile] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const { user, logout } = useAuth();
+    const location = useLocation();
+    const isPayrollPath = location.pathname.startsWith('/admin/payroll') || location.pathname.startsWith('/admin/master-payroll');
+    const [payrollMenuOpen, setPayrollMenuOpen] = useState(isPayrollPath);
 
     const handleLogout = (e) => {
         if (e) e.preventDefault();
@@ -214,15 +217,33 @@ const AdminLayout = () => {
                         <Users className="w-4 h-4" />
                         <span>Data Karyawan</span>
                     </NavLink>
-                    <NavLink to="/admin/payroll" className={navLinkClass}>
-                        <Wallet className="w-4 h-4" />
-                        <span>Penggajian (Payroll)</span>
-                    </NavLink>
-                    {/* Sub-menu Master Payroll */}
-                    <NavLink to="/admin/master-payroll" className={subNavLinkClass}>
-                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
-                        <span>Master Payroll</span>
-                    </NavLink>
+                    
+                    {/* Collapsible Payroll Menu */}
+                    <div>
+                        <button 
+                            onClick={() => setPayrollMenuOpen(!payrollMenuOpen)}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isPayrollPath ? 'bg-white/5 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Wallet className="w-4 h-4" />
+                                <span>Penggajian (Payroll)</span>
+                            </div>
+                            {payrollMenuOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </button>
+                        
+                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${payrollMenuOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                            <NavLink to="/admin/payroll" className={subNavLinkClass} end>
+                                <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                <span>Data Payroll</span>
+                            </NavLink>
+                            <NavLink to="/admin/master-payroll" className={subNavLinkClass}>
+                                <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                <span>Master Payroll</span>
+                            </NavLink>
+                        </div>
+                    </div>
+
+
                     <NavLink to="/admin/reports" className={navLinkClass}>
                         <FileBarChart className="w-4 h-4" />
                         <span>Laporan Presensi</span>
