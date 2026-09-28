@@ -119,12 +119,24 @@ const Dashboard = () => {
     loadDashboardData();
   }, [loadDashboardData]);
 
+  const ontimeCount = stats.hadir - stats.terlambat > 0 ? stats.hadir - stats.terlambat : 0;
+  const sangatAwalCount = Math.round(ontimeCount * 0.4);
+  const tepatWaktuNormalCount = ontimeCount - sangatAwalCount;
+
   const level1Data = {
     title: "Evaluasi Kedisiplinan & Kehadiran (Bulan Ini)",
     subtitle: "Klik pada salah satu batang status untuk melihat rincian kriteria keparahannya.",
     categories: ['Tepat Waktu', 'Terlambat', 'Izin / Sakit / Dinas', 'Tanpa Ket. (Alpa)'],
     series: [
-      { name: 'Jumlah Kasus/Pegawai', data: [stats.hadir, stats.terlambat, stats.izin, stats.belum_pulang] }
+      {
+        name: 'Jumlah Kasus/Pegawai',
+        data: [
+          ontimeCount,
+          stats.terlambat,
+          stats.izin,
+          Math.max(0, stats.total_karyawan - (stats.hadir + stats.izin))
+        ]
+      }
     ]
   };
 
@@ -144,9 +156,6 @@ const Dashboard = () => {
     return allAttendance.filter((r) => r.outStatus === 'Belum Tap' || !r.out || r.out === '-').length;
   }, [allAttendance]);
 
-  const ontimeCount = stats.hadir - stats.terlambat > 0 ? stats.hadir - stats.terlambat : 0;
-  const sangatAwalCount = Math.round(ontimeCount * 0.4);
-  const tepatWaktuNormalCount = ontimeCount - sangatAwalCount;
 
   const level2Data = {
     'Tepat Waktu': {
@@ -613,8 +622,8 @@ const Dashboard = () => {
                       <td className="px-6 py-3.5 font-mono text-slate-700">{row.in || '-'}</td>
                       <td className="px-6 py-3.5">
                         <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${(row.status === 'late' || row.status === 'terlambat')
-                            ? 'bg-amber-100 text-amber-800 border-amber-200'
-                            : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                           }`}>
                           {row.inStatus || 'Tepat Waktu'}
                         </span>
