@@ -194,7 +194,7 @@ export default function Login({ errors: propErrors }) {
                                         />
                                         Ingat saya
                                     </label>
-                                    <Link to="#" className="text-sm text-[#FF7A3D] font-medium hover:underline">Lupa password?</Link>
+                                    <Link to="/forgot-password" className="text-sm text-[#FF7A3D] font-medium hover:underline">Lupa password?</Link>
                                 </div>
 
                                 <button 

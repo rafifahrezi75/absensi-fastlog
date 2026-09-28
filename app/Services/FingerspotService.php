@@ -148,30 +148,65 @@ class FingerspotService
             $endDate = Carbon::now()->format('Y-m-d');
         }
 
-        $start = Carbon::parse($startDate);
-        $end = Carbon::parse($endDate);
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end = Carbon::parse($endDate)->startOfDay();
 
         if ($start->gt($end)) {
-            $temp = $startDate;
-            $startDate = $endDate;
-            $endDate = $temp;
-            $start = Carbon::parse($startDate);
-            $end = Carbon::parse($endDate);
+            $temp = $start;
+            $start = $end;
+            $end = $temp;
         }
 
-        if ($start->diffInDays($end) > 2) {
-            return [
-                'success' => false,
-                'message' => 'Rentang tanggal tidak boleh lebih dari 2 hari.',
-                'total_received' => 0,
-                'total_inserted' => 0,
-                'total_skipped' => 0,
+        $chunks = [];
+        $curr = $start->copy();
+        while ($curr->lte($end)) {
+            $chunkEnd = $curr->copy()->addDays(1);
+            if ($chunkEnd->gt($end)) {
+                $chunkEnd = $end->copy();
+            }
+            $chunks[] = [
+                'start' => $curr->format('Y-m-d'),
+                'end' => $chunkEnd->format('Y-m-d'),
             ];
+            $curr = $chunkEnd->copy()->addDay();
         }
 
+        $totalReceived = 0;
+        $totalInserted = 0;
+        $totalSkipped = 0;
+        $errors = [];
+
+        foreach ($chunks as $chunk) {
+            $res = $this->executeChunkFetch($chunk['start'], $chunk['end']);
+            if ($res['success']) {
+                $totalReceived += $res['total_received'];
+                $totalInserted += $res['total_inserted'];
+                $totalSkipped += $res['total_skipped'];
+            } else {
+                $errors[] = $chunk['start'] . ' s/d ' . $chunk['end'] . ': ' . $res['message'];
+            }
+        }
+
+        $hasSuccess = count($errors) === 0 || $totalReceived > 0;
+        $msg = "Sinkronisasi selesai ({$start->format('d/m/Y')} s/d {$end->format('d/m/Y')}): {$totalReceived} data diterima, {$totalInserted} data baru tersimpan, {$totalSkipped} duplikat dilewati.";
+        if (!$hasSuccess && !empty($errors)) {
+            $msg = implode('; ', $errors);
+        }
+
+        return [
+            'success' => $hasSuccess,
+            'message' => $msg,
+            'total_received' => $totalReceived,
+            'total_inserted' => $totalInserted,
+            'total_skipped' => $totalSkipped,
+        ];
+    }
+
+    protected function executeChunkFetch(string $startDate, string $endDate): array
+    {
         $endpoint = $this->apiUrl . '/get_attlog';
         $payload = [
-            'trans_id' => '1',
+            'trans_id' => (string)time(),
             'cloud_id' => $this->cloudId,
             'start_date' => $startDate,
             'end_date' => $endDate,
@@ -247,7 +282,6 @@ class FingerspotService
                         'cloud_id' => $this->cloudId,
                         'status' => 'active',
                     ]);
-
                     $this->requestUserInfo($pin);
                 } elseif ($cloudName && $employee->nama !== $cloudName) {
                     $employee->update(['nama' => $cloudName]);
@@ -288,7 +322,7 @@ class FingerspotService
 
             return [
                 'success' => true,
-                'message' => "Sinkronisasi berhasil: {$totalReceived} data diterima, {$totalInserted} data baru tersimpan, {$totalSkipped} duplikat dilewati.",
+                'message' => "Chunk {$startDate} - {$endDate}: {$totalReceived} data diterima, {$totalInserted} baru tersimpan.",
                 'total_received' => $totalReceived,
                 'total_inserted' => $totalInserted,
                 'total_skipped' => $totalSkipped,
@@ -307,7 +341,7 @@ class FingerspotService
 
             return [
                 'success' => false,
-                'message' => 'Terjadi kesalahan saat memproses data cloud: ' . $e->getMessage(),
+                'message' => $e->getMessage(),
                 'total_received' => 0,
                 'total_inserted' => 0,
                 'total_skipped' => 0,

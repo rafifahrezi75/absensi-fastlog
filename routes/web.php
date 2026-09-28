@@ -25,6 +25,10 @@ Route::post('/api/attendance/tap', [AttendanceApiController::class, 'tap'])->nam
 
 Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+    Route::post('/api/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/api/reset-password', [AuthController::class, 'resetPassword']);
 });
 
 Route::middleware('auth')->group(function () {
@@ -54,6 +58,7 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
 
     Route::get('/permissions', [PermissionController::class, 'index'])->name('api.admin.permissions.index');
     Route::post('/permissions', [PermissionController::class, 'store'])->name('api.admin.permissions.store');
+    Route::put('/permissions/{id}', [PermissionController::class, 'update'])->name('api.admin.permissions.update');
     Route::post('/permissions/{id}/approve', [PermissionController::class, 'approve'])->name('api.admin.permissions.approve');
     Route::post('/permissions/{id}/reject', [PermissionController::class, 'reject'])->name('api.admin.permissions.reject');
     Route::delete('/permissions/{id}', [PermissionController::class, 'destroy'])->name('api.admin.permissions.destroy');
