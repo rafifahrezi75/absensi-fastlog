@@ -391,7 +391,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+      {/* <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-start md:items-center gap-3">
           <div className="p-2 bg-amber-500 text-white rounded-lg flex-shrink-0">
             <BellRing className="w-5 h-5" />
@@ -408,7 +408,7 @@ const Dashboard = () => {
         >
           Tinjau Pengajuan <ArrowRight className="w-3.5 h-3.5" />
         </button>
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-between">
@@ -612,11 +612,10 @@ const Dashboard = () => {
                       </td>
                       <td className="px-6 py-3.5 font-mono text-slate-700">{row.in || '-'}</td>
                       <td className="px-6 py-3.5">
-                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${
-                          (row.status === 'late' || row.status === 'terlambat')
+                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${(row.status === 'late' || row.status === 'terlambat')
                             ? 'bg-amber-100 text-amber-800 border-amber-200'
                             : 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        }`}>
+                          }`}>
                           {row.inStatus || 'Tepat Waktu'}
                         </span>
                       </td>
