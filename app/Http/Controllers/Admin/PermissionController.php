@@ -236,6 +236,66 @@ class PermissionController extends Controller
         ]);
     }
 
+    public function update(Request $request, string|int $id): JsonResponse
+    {
+        $permission = Permission::find($id);
+
+        if (!$permission) {
+            return response()->json(['success' => false, 'message' => 'Data pengajuan tidak ditemukan.'], 404);
+        }
+
+        $validated = $request->validate([
+            'status' => 'nullable|string|in:menunggu,disetujui,ditolak,pending,approved,rejected',
+            'catatan_admin' => 'nullable|string|max:500',
+            'keterangan' => 'nullable|string|max:1000',
+        ]);
+
+        if (isset($validated['status'])) {
+            $newStatus = match(strtolower($validated['status'])) {
+                'pending' => 'menunggu',
+                'approved' => 'disetujui',
+                'rejected' => 'ditolak',
+                default => strtolower($validated['status']),
+            };
+            $permission->status = $newStatus;
+
+            if ($newStatus === 'disetujui' && in_array($permission->category, ['izin', 'sakit', 'cuti'])) {
+                $startDate = Carbon::parse($permission->tanggal_mulai);
+                $endDate = $permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : $startDate;
+
+                $curr = $startDate->copy();
+                while ($curr->lte($endDate)) {
+                    $attendance = Attendance::firstOrNew([
+                        'employee_id' => $permission->employee_id,
+                        'tanggal' => $curr->toDateString(),
+                    ]);
+                    if (!$attendance->exists) {
+                        $attendance->user_id = $permission->user_id;
+                        $attendance->status = 'hadir';
+                        $attendance->save();
+                    }
+                    $curr->addDay();
+                }
+            }
+        }
+
+        if (array_key_exists('catatan_admin', $validated)) {
+            $permission->catatan_admin = $validated['catatan_admin'];
+        }
+
+        if (!empty($validated['keterangan'])) {
+            $permission->keterangan = $validated['keterangan'];
+        }
+
+        $permission->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data perizinan berhasil diperbarui.',
+            'permission' => $permission->load('employee'),
+        ]);
+    }
+
     public function destroy(string|int $id): JsonResponse
     {
         $permission = Permission::find($id);

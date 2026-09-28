@@ -25,6 +25,8 @@ import Login from './Pages/User/Auth/Login';
 
 // Auth
 import AuthLogin from './Pages/Auth/Login';
+import ForgotPassword from './Pages/Auth/ForgotPassword';
+import ResetPassword from './Pages/Auth/ResetPassword';
 
 const homePath = (user) => (user?.role === 'admin' ? '/admin/dashboard' : '/user/home');
 
@@ -102,6 +104,8 @@ function App() {
                 <Routes>
                     {/* Auth Route */}
                     <Route path="/login" element={<GuestOnly><Login /></GuestOnly>} />
+                    <Route path="/forgot-password" element={<GuestOnly><ForgotPassword /></GuestOnly>} />
+                    <Route path="/reset-password" element={<GuestOnly><ResetPassword /></GuestOnly>} />
 
                     {/* Redirect root '/' langsung ke admin/dashboard */}
                     <Route path="/" element={<RootRedirect />} />

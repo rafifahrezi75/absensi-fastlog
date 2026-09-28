@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, MapPin, UploadCloud, Send, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { X, Camera, MapPin, UploadCloud, Send, RefreshCw, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import api from '../lib/api';
 
 const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
@@ -15,6 +15,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
     const [isLocating, setIsLocating] = useState(false);
 
     const [cameraActive, setCameraActive] = useState(false);
+    const [mediaStream, setMediaStream] = useState(null);
     const [photoData, setPhotoData] = useState(null);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
@@ -36,8 +37,16 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
             setErrorMsg(null);
         } else if (isOpen && type === 'Dinas') {
             getLocation();
+            setKeterangan(prev => prev ? prev : "Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: ");
         }
     }, [isOpen, type]);
+
+    useEffect(() => {
+        if (cameraActive && videoRef.current && mediaStream) {
+            videoRef.current.srcObject = mediaStream;
+            videoRef.current.play().catch(() => {});
+        }
+    }, [cameraActive, mediaStream]);
 
     const getLocation = () => {
         setIsLocating(true);
@@ -72,9 +81,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
     const startCamera = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
+            setMediaStream(stream);
             setCameraActive(true);
         } catch (err) {
             alert("Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.");
@@ -83,22 +90,93 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
 
     const takePhoto = () => {
         if (videoRef.current && canvasRef.current) {
-            const context = canvasRef.current.getContext('2d');
-            canvasRef.current.width = videoRef.current.videoWidth;
-            canvasRef.current.height = videoRef.current.videoHeight;
-            context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-            const dataUrl = canvasRef.current.toDataURL('image/jpeg');
+            const canvas = canvasRef.current;
+            const video = videoRef.current;
+            const w = video.videoWidth || 640;
+            const h = video.videoHeight || 480;
+            canvas.width = w;
+            canvas.height = h;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, w, h);
+
+            const bannerHeight = Math.max(90, Math.floor(h * 0.24));
+            const yStart = h - bannerHeight;
+
+            const gradient = ctx.createLinearGradient(0, yStart, 0, h);
+            gradient.addColorStop(0, 'rgba(15, 23, 42, 0.45)');
+            gradient.addColorStop(0.35, 'rgba(15, 23, 42, 0.88)');
+            gradient.addColorStop(1, 'rgba(15, 23, 42, 0.96)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, yStart, w, bannerHeight);
+
+            const pinX = 22;
+            const pinY = yStart + 22;
+            ctx.fillStyle = '#EA4335';
+            ctx.beginPath();
+            ctx.arc(pinX, pinY, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(pinX, pinY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }) + ', ' + now.toLocaleTimeString('id-ID') + ' WIB';
+
+            const coordStr = location 
+                ? `GPS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` 
+                : 'GPS: Memindai koordinat...';
+
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            ctx.fillStyle = '#FF7A3D';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText('PT FASTLOG ERA MANDIRI', 36, yStart + 16);
+
+            ctx.fillStyle = '#38BDF8';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillText('• Google Maps Location', 195, yStart + 16);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 11px sans-serif';
+            let displayAddr = address || 'Lokasi Dinas Luar Kantor';
+            if (displayAddr.length > 55) {
+                displayAddr = displayAddr.substring(0, 52) + '...';
+            }
+            ctx.fillText(displayAddr, 22, yStart + 36);
+
+            ctx.fillStyle = '#CBD5E1';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(timeStr, 22, yStart + 54);
+
+            ctx.fillStyle = '#FBBF24';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(coordStr, 22, yStart + 70);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
             setPhotoData(dataUrl);
             stopCamera();
         }
     };
 
     const stopCamera = () => {
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            setMediaStream(null);
+        }
         if (videoRef.current && videoRef.current.srcObject) {
             const tracks = videoRef.current.srcObject.getTracks();
             tracks.forEach(track => track.stop());
-            setCameraActive(false);
+            videoRef.current.srcObject = null;
         }
+        setCameraActive(false);
     };
 
     const retakePhoto = () => {
@@ -219,45 +297,76 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Keterangan / Alasan</label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-xs font-semibold text-gray-700">Keterangan / Alasan</label>
+                                {type === 'Dinas' && (
+                                    <span className="text-[10px] text-orange-600 font-medium">Format Dinas Luar Kantor</span>
+                                )}
+                            </div>
                             <textarea 
                                 required 
-                                rows="3" 
+                                rows={type === 'Dinas' ? 4 : 3} 
                                 value={keterangan}
                                 onChange={(e) => setKeterangan(e.target.value)}
-                                placeholder={`Jelaskan alasan pengajuan ${type.toLowerCase()}...`} 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition resize-none"
+                                placeholder={
+                                    type === 'Dinas'
+                                        ? "Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: "
+                                        : `Jelaskan alasan pengajuan ${type.toLowerCase()}...`
+                                } 
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition resize-none font-mono text-xs"
                             ></textarea>
+                            {type === 'Dinas' && (
+                                <p className="text-[11px] text-gray-500 mt-1">Lengkapi instansi tujuan, agenda, perkiraan jam pelaksanaan, dan kendaraan yang digunakan.</p>
+                            )}
                         </div>
 
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                {type === 'Dinas' ? 'Foto Bukti (Kamera Langsung)' : 'Lampiran Dokumen / Foto Bukti'}
+                                {type === 'Dinas' ? 'Foto Bukti Kamera (Watermark Google Maps)' : 'Lampiran Dokumen / Foto Bukti'}
                             </label>
 
                             <div className="relative">
                                 {type === 'Dinas' ? (
                                     <div className="w-full border-2 border-orange-200 border-dashed rounded-lg bg-orange-50/50 p-2">
                                         {photoData ? (
-                                            <div className="relative rounded overflow-hidden">
-                                                <img src={photoData} alt="Captured" className="w-full h-auto rounded" />
-                                                <button type="button" onClick={retakePhoto} className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-3 py-1.5 rounded-lg backdrop-blur-xs flex items-center gap-1.5 hover:bg-black/80 transition cursor-pointer">
-                                                    <RefreshCw className="w-3.5 h-3.5" /> Ulangi
-                                                </button>
+                                            <div>
+                                                <div className="relative rounded overflow-hidden">
+                                                    <img src={photoData} alt="Captured" className="w-full h-auto rounded" />
+                                                    <button type="button" onClick={retakePhoto} className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-3 py-1.5 rounded-lg backdrop-blur-xs flex items-center gap-1.5 hover:bg-black/80 transition cursor-pointer">
+                                                        <RefreshCw className="w-3.5 h-3.5" /> Ulangi
+                                                    </button>
+                                                </div>
+                                                {location && (
+                                                    <div className="mt-2 p-2 rounded-lg bg-white border border-orange-200 flex items-center justify-between text-xs">
+                                                        <div className="flex items-center gap-1.5 truncate text-gray-700">
+                                                            <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                                            <span className="truncate text-[11px]">{address || `GPS: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}</span>
+                                                        </div>
+                                                        <a
+                                                            href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-semibold shrink-0 ml-2"
+                                                        >
+                                                            <span>Google Maps</span>
+                                                            <ExternalLink className="w-3 h-3" />
+                                                        </a>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : cameraActive ? (
                                             <div className="relative rounded overflow-hidden bg-black flex flex-col items-center">
                                                 <video ref={videoRef} autoPlay playsInline className="w-full h-auto" />
                                                 <canvas ref={canvasRef} className="hidden" />
                                                 <button type="button" onClick={takePhoto} className="absolute bottom-4 bg-orange-500 text-white font-semibold text-xs px-4 py-2 rounded-full shadow-lg hover:bg-orange-600 transition flex items-center gap-1.5 cursor-pointer">
-                                                    <Camera className="w-4 h-4" /> Ambil Foto
+                                                    <Camera className="w-4 h-4" /> Ambil Foto + Lokasi Google
                                                 </button>
                                             </div>
                                         ) : (
                                             <button type="button" onClick={startCamera} className="w-full flex flex-col items-center justify-center py-6 hover:bg-orange-50 transition rounded-lg cursor-pointer">
                                                 <Camera className="w-6 h-6 text-orange-500 mb-1" />
                                                 <p className="text-xs text-orange-600 font-medium">Buka Kamera</p>
-                                                <p className="text-[10px] text-gray-500 mt-1">Klik untuk mengaktifkan kamera perangkat</p>
+                                                <p className="text-[10px] text-gray-500 mt-1">Klik sekali untuk mengaktifkan kamera perangkat</p>
                                             </button>
                                         )}
                                     </div>

@@ -16,7 +16,8 @@ import {
   RefreshCw,
   Loader2,
   Plus,
-  Trash2
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import ModalPreview from './Components/ModalPreview';
 import ModalCreatePermission from './Components/ModalCreatePermission';
@@ -52,6 +53,14 @@ const Permissions = () => {
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     item: null,
+    loading: false
+  });
+
+  const [editModal, setEditModal] = useState({
+    isOpen: false,
+    item: null,
+    status: 'disetujui',
+    note: '',
     loading: false
   });
 
@@ -138,6 +147,7 @@ const Permissions = () => {
           description: item.keterangan || item.description || '',
           attachment: item.lampiran || item.attachment || null,
           status: normStatus,
+          adminNote: item.catatan_admin || item.admin_note || '',
           sortTime: item.created_at || startDate
         };
       });
@@ -358,6 +368,50 @@ const Permissions = () => {
         message: err.response?.data?.message || 'Gagal menghapus pengajuan.'
       });
       setDeleteModal(p => ({ ...p, loading: false }));
+    }
+  };
+
+  const openEditModal = (item) => {
+    setEditModal({
+      isOpen: true,
+      item,
+      status: item.status === 'approved' ? 'disetujui' : (item.status === 'rejected' ? 'ditolak' : (item.status === 'pending' ? 'menunggu' : item.status)),
+      note: item.adminNote || '',
+      loading: false
+    });
+  };
+
+  const closeEditModal = () => {
+    if (editModal.loading) return;
+    setEditModal({
+      isOpen: false,
+      item: null,
+      status: 'disetujui',
+      note: '',
+      loading: false
+    });
+  };
+
+  const handleUpdatePermission = async (e) => {
+    e.preventDefault();
+    if (!editModal.item) return;
+
+    setEditModal(p => ({ ...p, loading: true }));
+    try {
+      await api.put(`/api/admin/permissions/${editModal.item.rawId}`, {
+        status: editModal.status,
+        catatan_admin: editModal.note,
+      });
+
+      await loadData();
+      showSuccess('Status dan catatan perizinan berhasil diperbarui.');
+      closeEditModal();
+    } catch (err) {
+      setNotif({
+        type: 'error',
+        message: err.response?.data?.message || 'Gagal memperbarui data perizinan.'
+      });
+      setEditModal(p => ({ ...p, loading: false }));
     }
   };
 
@@ -714,41 +768,56 @@ const Permissions = () => {
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => openActionModal(item, 'approve')}
-                          disabled={item.status === 'approved'}
-                          className={`p-1.5 rounded-lg border transition ${
-                            item.status === 'approved'
-                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                              : 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 cursor-pointer'
-                          }`}
-                          title="Setujui"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openActionModal(item, 'reject')}
-                          disabled={item.status === 'rejected'}
-                          className={`p-1.5 rounded-lg border transition ${
-                            item.status === 'rejected'
-                              ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                              : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100 cursor-pointer'
-                          }`}
-                          title="Tolak"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        {item.source === 'permission' && (
-                          <button
-                            type="button"
-                            onClick={() => openDeleteModal(item)}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                            title="Hapus Pengajuan"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        {['menunggu', 'pending'].includes(item.status) ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openActionModal(item, 'approve')}
+                              className="p-1.5 rounded-lg border bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 transition cursor-pointer"
+                              title="Setujui"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openActionModal(item, 'reject')}
+                              className="p-1.5 rounded-lg border bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100 transition cursor-pointer"
+                              title="Tolak"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            {item.source === 'permission' && (
+                              <button
+                                type="button"
+                                onClick={() => openDeleteModal(item)}
+                                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                                title="Hapus Pengajuan"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(item)}
+                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition cursor-pointer"
+                              title="Edit Perizinan"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            {item.source === 'permission' && (
+                              <button
+                                type="button"
+                                onClick={() => openDeleteModal(item)}
+                                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                                title="Hapus Pengajuan"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>
@@ -899,6 +968,122 @@ const Permissions = () => {
                 >
                   {actionModal.loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{actionModal.type === 'approve' ? 'Konfirmasi Setujui' : 'Konfirmasi Tolak'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editModal.isOpen && editModal.item && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200">
+                  <Pencil className="w-4 h-4" />
+                </span>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Edit Data Perizinan</h3>
+                  <p className="text-xs text-slate-500">Perbarui status keputusan atau catatan admin</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditModal}
+                disabled={editModal.loading}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePermission} className="p-5 space-y-4">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Karyawan:</span>
+                  <span className="font-semibold text-slate-800">{editModal.item.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Kategori:</span>
+                  <span className="font-semibold text-slate-800">{editModal.item.category.toUpperCase()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Tanggal / Waktu:</span>
+                  <span className="font-semibold text-slate-800">{editModal.item.date}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Ubah Keputusan / Status:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditModal(p => ({ ...p, status: 'disetujui' }))}
+                    className={`py-2 px-1 text-center rounded-xl text-xs font-medium border transition cursor-pointer ${
+                      editModal.status === 'disetujui' || editModal.status === 'approved'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700 font-bold'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Disetujui
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditModal(p => ({ ...p, status: 'ditolak' }))}
+                    className={`py-2 px-1 text-center rounded-xl text-xs font-medium border transition cursor-pointer ${
+                      editModal.status === 'ditolak' || editModal.status === 'rejected'
+                        ? 'border-rose-600 bg-rose-50 text-rose-700 font-bold'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Ditolak
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditModal(p => ({ ...p, status: 'menunggu' }))}
+                    className={`py-2 px-1 text-center rounded-xl text-xs font-medium border transition cursor-pointer ${
+                      editModal.status === 'menunggu' || editModal.status === 'pending'
+                        ? 'border-amber-600 bg-amber-50 text-amber-700 font-bold'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Menunggu
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Catatan Admin / Alasan Perubahan:
+                </label>
+                <textarea
+                  rows="3"
+                  placeholder="Masukkan catatan admin terkait keputusan perizinan ini..."
+                  value={editModal.note}
+                  onChange={(e) => setEditModal(p => ({ ...p, note: e.target.value }))}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  disabled={editModal.loading}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={editModal.loading}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                >
+                  {editModal.loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Simpan Perubahan</span>
                 </button>
               </div>
             </form>

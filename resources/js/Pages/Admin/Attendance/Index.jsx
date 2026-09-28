@@ -70,7 +70,40 @@ const Attendance = () => {
         }
     }, [notif]);
 
-    const handleFetchCloud = async () => {
+    const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+    const [syncStart, setSyncStart] = useState('');
+    const [syncEnd, setSyncEnd] = useState('');
+    const [syncPreset, setSyncPreset] = useState('3days');
+
+    const openSyncModal = () => {
+        const today = new Date().toISOString().split('T')[0];
+        const threeDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        setSyncPreset('3days');
+        setSyncStart(threeDaysAgo);
+        setSyncEnd(today);
+        setIsSyncModalOpen(true);
+    };
+
+    const handlePresetChange = (preset) => {
+        setSyncPreset(preset);
+        const today = new Date().toISOString().split('T')[0];
+        if (preset === 'today') {
+            setSyncStart(today);
+            setSyncEnd(today);
+        } else if (preset === '3days') {
+            const d = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            setSyncStart(d);
+            setSyncEnd(today);
+        } else if (preset === '7days') {
+            const d = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            setSyncStart(d);
+            setSyncEnd(today);
+        }
+    };
+
+    const handleFetchCloud = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        setIsSyncModalOpen(false);
         let pollTimer = null;
         try {
             setFetchingCloud(true);
@@ -78,11 +111,10 @@ const Attendance = () => {
                 loadAttendance(true);
             }, 1000);
 
-            const payload = {};
-            if (filterTanggal) {
-                payload.start_date = filterTanggal;
-                payload.end_date = filterTanggal;
-            }
+            const payload = {
+                start_date: syncStart,
+                end_date: syncEnd,
+            };
 
             const res = await api.post('/api/admin/attendance/fetch', payload);
             if (pollTimer) {
@@ -146,7 +178,7 @@ const Attendance = () => {
                     <button 
                         type="button"
                         disabled={fetchingCloud}
-                        onClick={handleFetchCloud}
+                        onClick={openSyncModal}
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <RefreshCw className={`w-4 h-4 ${fetchingCloud ? 'animate-spin' : ''}`} />
@@ -452,6 +484,118 @@ const Attendance = () => {
                     loadAttendance();
                 }}
             />
+
+            {isSyncModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setIsSyncModalOpen(false)}></div>
+                    <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 p-6 z-10 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900">Sinkron Log Absensi Cloud</h3>
+                                <p className="text-xs text-slate-500 mt-0.5">Tarik data scan sidik jari dari Fingerspot Cloud</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsSyncModalOpen(false)}
+                                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-700 mb-2">Pilihan Cepat Rentang Hari</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handlePresetChange('today')}
+                                        className={`py-2 px-2 rounded-xl text-xs font-medium border text-center transition cursor-pointer ${
+                                            syncPreset === 'today'
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-700 font-bold'
+                                                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        Hari Ini
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handlePresetChange('3days')}
+                                        className={`py-2 px-2 rounded-xl text-xs font-medium border text-center transition cursor-pointer ${
+                                            syncPreset === '3days'
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-700 font-bold'
+                                                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        3 Hari Terakhir
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handlePresetChange('7days')}
+                                        className={`py-2 px-2 rounded-xl text-xs font-medium border text-center transition cursor-pointer ${
+                                            syncPreset === '7days'
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-700 font-bold'
+                                                : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        7 Hari Terakhir
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 pt-1">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Mulai</label>
+                                    <input
+                                        type="date"
+                                        value={syncStart}
+                                        onChange={(e) => {
+                                            setSyncPreset('custom');
+                                            setSyncStart(e.target.value);
+                                        }}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Selesai</label>
+                                    <input
+                                        type="date"
+                                        value={syncEnd}
+                                        onChange={(e) => {
+                                            setSyncPreset('custom');
+                                            setSyncEnd(e.target.value);
+                                        }}
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-[11px] text-slate-600 space-y-1">
+                                <p className="font-semibold text-slate-700">Info Sinkronisasi:</p>
+                                <p>Sistem otomatis membagi penarikan data per 2 hari secara bertahap sehingga jeda libur akhir pekan atau beberapa hari dapat ditarik tanpa error.</p>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSyncModalOpen(false)}
+                                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleFetchCloud}
+                                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition cursor-pointer"
+                                >
+                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    Mulai Sinkronisasi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

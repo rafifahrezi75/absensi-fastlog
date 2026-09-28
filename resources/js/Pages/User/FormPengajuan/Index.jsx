@@ -101,7 +101,13 @@ const FormPengajuan = () => {
                         <label className="block text-sm font-semibold text-gray-700 mb-1.5">Jenis Pengajuan</label>
                         <select 
                             value={formType} 
-                            onChange={(e) => setFormType(e.target.value)} 
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setFormType(val);
+                                if (val === 'Dinas' && !keterangan.trim()) {
+                                    setKeterangan("Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: ");
+                                }
+                            }} 
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition cursor-pointer"
                         >
                             <option value="Izin">Izin (Keperluan Pribadi)</option>
@@ -137,14 +143,23 @@ const FormPengajuan = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Keterangan / Alasan</label>
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-sm font-semibold text-gray-700">Keterangan / Alasan</label>
+                            {formType === 'Dinas' && (
+                                <span className="text-xs text-orange-600 font-medium">Format Dinas Luar Kantor</span>
+                            )}
+                        </div>
                         <textarea 
                             required 
-                            rows="4" 
+                            rows={formType === 'Dinas' ? 5 : 4} 
                             value={keterangan}
                             onChange={(e) => setKeterangan(e.target.value)}
-                            placeholder="Jelaskan secara rinci alasan atau keperluan pengajuan Anda..." 
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition resize-none"
+                            placeholder={
+                                formType === 'Dinas'
+                                    ? "Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: "
+                                    : "Jelaskan secara rinci alasan atau keperluan pengajuan Anda..."
+                            } 
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition resize-none font-mono text-xs"
                         ></textarea>
                     </div>
 

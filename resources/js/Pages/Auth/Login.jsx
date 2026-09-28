@@ -145,7 +145,7 @@ const Login = () => {
                                     <input type="checkbox" className="rounded border-gray-300 text-[#FF7A3D] focus:ring-[#FF7A3D]/20" />
                                     Ingat saya
                                 </label>
-                                <a href="#" className="text-sm text-[#FF7A3D] font-medium hover:underline">Lupa password?</a>
+                                <a href="/forgot-password" className="text-sm text-[#FF7A3D] font-medium hover:underline">Lupa password?</a>
                             </div>
 
                             <button type="submit" className="w-full bg-[#052B35] hover:bg-[#083C4A] text-white font-semibold py-3.5 rounded-xl transition shadow-lg shadow-[#052B35]/20 text-sm">
