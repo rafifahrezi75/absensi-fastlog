@@ -37,7 +37,7 @@ export default function ForgotPassword() {
         <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-orange-50 via-white to-slate-50 font-sans antialiased">
             <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl shadow-[#052B35]/10 border border-white/60 p-8">
                 <div className="flex items-center justify-center mb-6">
-                    <img src="/images/front-end/logo2.png" alt="Fastlog" className="h-12 w-auto object-contain" />
+                    <img src="/images/front-end/logo3.webp" alt="Fastlog" className="h-12 w-auto object-contain" />
                 </div>
 
                 <div className="text-center mb-6">
