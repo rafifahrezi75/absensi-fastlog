@@ -4,7 +4,9 @@ use App\Http\Controllers\Admin\AkunController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\DeviceController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\EmployeeHrActionController;
 use App\Http\Controllers\Admin\MasterPayrollController;
+use App\Http\Controllers\Admin\MasterTindakanController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingController;
@@ -98,6 +100,15 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::post('/master-payroll/komponen', [MasterPayrollController::class, 'storeKomponen'])->name('api.admin.master-payroll.komponen.store');
     Route::put('/master-payroll/komponen/{id}', [MasterPayrollController::class, 'updateKomponen'])->name('api.admin.master-payroll.komponen.update');
     Route::delete('/master-payroll/komponen/{id}', [MasterPayrollController::class, 'destroyKomponen'])->name('api.admin.master-payroll.komponen.destroy');
+
+    Route::get('/master-tindakan', [MasterTindakanController::class, 'index'])->name('api.admin.master-tindakan.index');
+    Route::post('/master-tindakan', [MasterTindakanController::class, 'store'])->name('api.admin.master-tindakan.store');
+    Route::put('/master-tindakan/{id}', [MasterTindakanController::class, 'update'])->name('api.admin.master-tindakan.update');
+    Route::delete('/master-tindakan/{id}', [MasterTindakanController::class, 'destroy'])->name('api.admin.master-tindakan.destroy');
+
+    Route::get('/employee-hr-actions', [EmployeeHrActionController::class, 'index'])->name('api.admin.employee-hr-actions.index');
+    Route::post('/employee-hr-actions', [EmployeeHrActionController::class, 'store'])->name('api.admin.employee-hr-actions.store');
+    Route::post('/employee-hr-actions/batch', [EmployeeHrActionController::class, 'batchStore'])->name('api.admin.employee-hr-actions.batch');
 });
 
 Route::get('/{any}', function () {

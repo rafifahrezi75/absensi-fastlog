@@ -24,40 +24,149 @@ import { dashboardMockRecentLogs, dashboardMockAbsentEmployees, dashboardMockSta
 import ModalKelolaTindakan from './Components/ModalKelolaTindakan';
 import ModalEksekusiTindakan from './Components/ModalEksekusiTindakan';
 
-// Ekstrak angka menit dari teks status seperti "Telat 14 Mnt" -> 14
+const getLocalDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const parseMinutesLate = (inStatus) => {
   if (!inStatus) return 0;
   const match = String(inStatus).match(/(\d+)/);
   return match ? parseInt(match[1], 10) : 0;
 };
 
-// Pemetaan kategori level-3 -> filter pegawai dari data absensi ASLI hari ini.
-// Kategori yang belum punya sumber data nyata (izin/cuti/shift/alpa) sengaja
-// dikembalikan null -> modal akan menampilkan status kosong yang jujur,
-// bukan data karangan.
-const getPegawaiUntukKategori = (kategori, attendanceToday) => {
+const parseTimeMinutes = (timeStr) => {
+  if (!timeStr) return null;
+  const parts = String(timeStr).split(':').map(Number);
+  if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+  return parts[0] * 60 + parts[1];
+};
+
+const getPegawaiUntukKategori = (kategori, attendanceToday = [], permissions = [], allEmployees = []) => {
   let filterFn = null;
 
-  if (kategori === 'Toleransi (<15 Mnt)') {
-    filterFn = (r) => r.status === 'late' && parseMinutesLate(r.inStatus) < 15;
+  if (kategori === 'Sangat Awal (>15 Mnt)') {
+    filterFn = (r) => {
+      const isOntime = r.status === 'hadir' || r.status === 'ontime' || !String(r.inStatus || '').startsWith('Telat');
+      const mins = parseTimeMinutes(r.in);
+      return isOntime && mins !== null && mins < 465;
+    };
+  } else if (kategori === 'Tepat Waktu (0-15 Mnt)') {
+    filterFn = (r) => {
+      const isOntime = r.status === 'hadir' || r.status === 'ontime' || !String(r.inStatus || '').startsWith('Telat');
+      const mins = parseTimeMinutes(r.in);
+      return isOntime && (mins === null || mins >= 465);
+    };
+  } else if (kategori === 'Shift Pagi') {
+    filterFn = (r) => {
+      const mins = parseTimeMinutes(r.in);
+      return mins !== null && mins < 420;
+    };
+  } else if (kategori === 'Shift Middle') {
+    filterFn = (r) => {
+      const mins = parseTimeMinutes(r.in);
+      return mins !== null && mins >= 660 && mins <= 780;
+    };
+  } else if (kategori === 'Toleransi (<15 Mnt)') {
+    filterFn = (r) => (r.status === 'late' || r.status === 'terlambat' || String(r.inStatus || '').startsWith('Telat')) && parseMinutesLate(r.inStatus) < 15;
   } else if (kategori === 'Sedang (15 - 30 Mnt)') {
-    filterFn = (r) => r.status === 'late' && parseMinutesLate(r.inStatus) >= 15 && parseMinutesLate(r.inStatus) < 30;
+    filterFn = (r) => (r.status === 'late' || r.status === 'terlambat' || String(r.inStatus || '').startsWith('Telat')) && parseMinutesLate(r.inStatus) >= 15 && parseMinutesLate(r.inStatus) < 30;
   } else if (kategori === 'Berat (>30 Mnt)') {
-    filterFn = (r) => r.status === 'late' && parseMinutesLate(r.inStatus) >= 30;
+    filterFn = (r) => (r.status === 'late' || r.status === 'terlambat' || String(r.inStatus || '').startsWith('Telat')) && parseMinutesLate(r.inStatus) >= 30;
   } else if (kategori === 'Lupa Tap Out/In') {
-    filterFn = (r) => r.outStatus === 'Belum Tap';
+    filterFn = (r) => r.outStatus === 'Belum Tap' || !r.out || r.out === '-';
   }
 
-  if (!filterFn) return [];
+  if (filterFn) {
+    return attendanceToday.filter(filterFn).map((r) => {
+      let ket = 'Tepat Waktu';
+      if (kategori === 'Sangat Awal (>15 Mnt)') {
+        ket = 'Sangat Awal';
+      } else if (kategori === 'Tepat Waktu (0-15 Mnt)') {
+        ket = 'Tepat Waktu';
+      } else if (kategori === 'Shift Pagi') {
+        ket = 'Shift Pagi';
+      } else if (kategori === 'Shift Middle') {
+        ket = 'Shift Middle';
+      } else if (kategori === 'Lupa Tap Out/In') {
+        ket = 'Belum Tap Pulang';
+      } else if (r.inStatus) {
+        ket = r.inStatus;
+      }
 
-  return attendanceToday.filter(filterFn).map((r) => ({
-    id: r.id,
-    nama: r.nama || `(PIN ${r.finger})`,
-    pin: r.finger,
-    dept: r.deptDisplay || 'Umum',
-    keterangan: r.inStatus || r.outStatus || '-',
-    status: 'Pending',
-  }));
+      return {
+        id: r.id || `${r.finger}_${kategori}`,
+        nama: r.nama || `(PIN ${r.finger})`,
+        pin: String(r.finger),
+        dept: r.deptDisplay || 'Umum',
+        jamMasuk: r.in || '-',
+        jamPulang: r.out || '-',
+        keterangan: ket,
+        status: 'Pending',
+      };
+    });
+  }
+
+  if (['Dinas Luar / Field', 'Sakit (Surat Dokter)', 'Izin Alasan Penting', 'Cuti Tahunan'].includes(kategori)) {
+    const catMap = {
+      'Dinas Luar / Field': 'dinas',
+      'Sakit (Surat Dokter)': 'sakit',
+      'Izin Alasan Penting': 'izin',
+      'Cuti Tahunan': 'cuti',
+    };
+    const targetCat = catMap[kategori];
+    return permissions
+      .filter((p) => p.category === targetCat || p.kategori?.toLowerCase() === targetCat)
+      .map((p) => ({
+        id: p.id,
+        nama: p.employee?.nama || p.nama || 'Karyawan',
+        pin: String(p.employee?.pin || p.pin || '-'),
+        dept: p.employee?.dept || p.dept || 'Umum',
+        jamMasuk: p.jam_mulai || '-',
+        jamPulang: p.jam_selesai || '-',
+        keterangan: p.keterangan || kategori,
+        status: p.status || 'Pending',
+      }));
+  }
+
+  if (kategori === 'Mangkir 1 Hari' || kategori === 'Mangkir >2 Hari Berturut') {
+    const attendedPins = new Set(attendanceToday.map((r) => String(r.finger || r.pin)));
+    const permPins = new Set(permissions.map((p) => String(p.employee?.pin || p.pin)));
+    return allEmployees
+      .filter((e) => !attendedPins.has(String(e.pin)) && !permPins.has(String(e.pin)))
+      .map((e) => ({
+        id: e.id,
+        nama: e.nama,
+        pin: String(e.pin),
+        dept: e.dept || 'Umum',
+        jamMasuk: '-',
+        jamPulang: '-',
+        keterangan: kategori,
+        status: 'Pending',
+      }));
+  }
+
+  return [];
+};
+
+const DEFAULT_CATEGORY_ACTIONS = {
+  'Sangat Awal (>15 Mnt)': ['Apresiasi Kedisiplinan', 'Tambah Poin Reward', 'Catatan Positif HR'],
+  'Tepat Waktu (0-15 Mnt)': ['Apresiasi Kedisiplinan', 'Tambah Poin Reward', 'Catatan Positif HR', 'Rekomendasi Bonus'],
+  'Shift Pagi': ['Verifikasi Jadwal Shift', 'Penyesuaian Jam Kerja', 'Apresiasi Shift Penuh'],
+  'Shift Middle': ['Verifikasi Jadwal Shift', 'Penyesuaian Jam Kerja', 'Apresiasi Shift Penuh'],
+  'Toleransi (<15 Mnt)': ['Teguran Otomatis System', 'Peringatan Lisan', 'Pemutihan System'],
+  'Sedang (15 - 30 Mnt)': ['Potong Uang Makan 50%', 'Form Alasan Keterlambatan', 'Surat Teguran 1', 'Peringatan Tertulis'],
+  'Berat (>30 Mnt)': ['Potong Gaji/Transport 100%', 'Pemanggilan HRD', 'SP 1 (Surat Peringatan)', 'Skorsing 1 Hari'],
+  'Dinas Luar / Field': ['Approved via Portal', 'Pending Verification', 'Rejected', 'Reimbursement Operasional'],
+  'Sakit (Surat Dokter)': ['Approved (Surat Dokter)', 'Verifikasi Faskes / Dokter', 'Izin Pemulihan Lanjutan', 'Rejected (Tanpa Surat)'],
+  'Izin Alasan Penting': ['Approved Admin', 'Potong Jatah Cuti', 'Izin Khusus Perusahaan', 'Potong Gaji Proporsional'],
+  'Cuti Tahunan': ['Potong Jatah Cuti', 'Approved Direksi', 'Reschedule Cuti'],
+  'Mangkir 1 Hari': ['Potong Gaji Harian', 'Surat Panggilan Klarifikasi', 'SP 1 (Surat Peringatan)'],
+  'Mangkir >2 Hari Berturut': ['SP 2 (Surat Peringatan)', 'SP 3 (Peringatan Terakhir)', 'Pemanggilan Keluarga', 'Potong Gaji & Tunjangan'],
+  'Lupa Tap Out/In': ['Konfirmasi via WA/HRD', 'Koreksi Jam Manual', 'Teguran Lupa Tap', 'Pemutihan Presensi'],
 };
 
 const Dashboard = () => {
@@ -73,42 +182,93 @@ const Dashboard = () => {
   });
   const [recentLogs, setRecentLogs] = useState([]);
   const [allAttendance, setAllAttendance] = useState([]);
+  const [permissions, setPermissions] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [savedHrActions, setSavedHrActions] = useState([]);
 
   const [drillLevel, setDrillLevel] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
 
-  // Master Tindakan HR — bisa diedit langsung dari Dashboard (tombol gear di chart)
-  const [tindakanList, setTindakanList] = useState(INITIAL_TINDAKAN);
+  const [tindakanList, setTindakanList] = useState([]);
   const [isKelolaTindakanOpen, setIsKelolaTindakanOpen] = useState(false);
 
-  // Modal eksekusi tindakan HR (level-3 drill-down)
   const [isEksekusiOpen, setIsEksekusiOpen] = useState(false);
   const [selectedTindakanNama, setSelectedTindakanNama] = useState('');
   const [eksekusiRows, setEksekusiRows] = useState([]);
+  const [chartRefreshKey, setChartRefreshKey] = useState(0);
 
-  const handleSaveTindakan = (data) => {
-    if (data.id) {
-      setTindakanList(prev => prev.map(t => (t.id === data.id ? { ...t, ...data } : t)));
-    } else {
-      setTindakanList(prev => [{ ...data, id: Date.now() }, ...prev]);
+  const fetchTindakan = useCallback(async () => {
+    try {
+      const res = await api.get('/api/admin/master-tindakan');
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
+        setTindakanList(res.data.data);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil master tindakan:', err);
+    }
+  }, []);
+
+  const handleSaveTindakan = async (data) => {
+    try {
+      if (data.id) {
+        const res = await api.put(`/api/admin/master-tindakan/${data.id}`, data);
+        if (res.data && res.data.success) {
+          setTindakanList(prev => prev.map(t => (t.id === data.id ? res.data.data : t)));
+        }
+      } else {
+        const res = await api.post('/api/admin/master-tindakan', data);
+        if (res.data && res.data.success) {
+          setTindakanList(prev => [...prev, res.data.data]);
+        }
+      }
+    } catch (err) {
+      console.error('Gagal menyimpan tindakan:', err);
     }
   };
 
-  const handleDeleteTindakan = (id) => {
-    setTindakanList(prev => prev.filter(t => t.id !== id));
+  const handleDeleteTindakan = async (id) => {
+    try {
+      const res = await api.delete(`/api/admin/master-tindakan/${id}`);
+      if (res.data && res.data.success) {
+        setTindakanList(prev => prev.filter(t => t.id !== id));
+      }
+    } catch (err) {
+      console.error('Gagal menghapus tindakan:', err);
+    }
   };
 
   const loadDashboardData = useCallback(async () => {
     try {
-      const res = await api.get('/api/admin/attendance');
-      if (res.data.stats) {
-        setStats(res.data.stats);
+      const todayStr = getLocalDateString();
+      const [attRes, permRes, actionRes, empRes] = await Promise.allSettled([
+        api.get('/api/admin/attendance'),
+        api.get('/api/admin/permissions'),
+        api.get(`/api/admin/employee-hr-actions?tanggal=${todayStr}`),
+        api.get('/api/admin/employees'),
+      ]);
+
+      if (attRes.status === 'fulfilled' && attRes.value.data) {
+        if (attRes.value.data.stats) {
+          setStats(attRes.value.data.stats);
+        }
+        if (attRes.value.data.attendance) {
+          setRecentLogs(attRes.value.data.attendance.slice(0, 5));
+          const todayRecords = attRes.value.data.attendance.filter((r) => r.tgl === todayStr);
+          setAllAttendance(todayRecords.length > 0 ? todayRecords : attRes.value.data.attendance);
+        }
       }
-      if (res.data.attendance) {
-        setRecentLogs(res.data.attendance.slice(0, 5));
-        const todayStr = new Date().toISOString().slice(0, 10);
-        setAllAttendance(res.data.attendance.filter((r) => r.tgl === todayStr));
+
+      if (permRes.status === 'fulfilled' && permRes.value.data?.permissions) {
+        setPermissions(permRes.value.data.permissions);
+      }
+
+      if (actionRes.status === 'fulfilled' && actionRes.value.data?.success) {
+        setSavedHrActions(actionRes.value.data.data || []);
+      }
+
+      if (empRes.status === 'fulfilled' && empRes.value.data?.employees) {
+        setAllEmployees(empRes.value.data.employees || []);
       }
     } catch (err) {
       console.error(err);
@@ -117,11 +277,31 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboardData();
-  }, [loadDashboardData]);
+    fetchTindakan();
+  }, [loadDashboardData, fetchTindakan]);
 
   const ontimeCount = stats.hadir - stats.terlambat > 0 ? stats.hadir - stats.terlambat : 0;
-  const sangatAwalCount = Math.round(ontimeCount * 0.4);
-  const tepatWaktuNormalCount = ontimeCount - sangatAwalCount;
+
+  const tepatWaktuRows = useMemo(() => {
+    return allAttendance.filter((r) => r.status === 'hadir' || r.status === 'ontime' || !String(r.inStatus || '').startsWith('Telat'));
+  }, [allAttendance]);
+
+  const realSangatAwalCount = useMemo(() => {
+    return tepatWaktuRows.filter((r) => {
+      const mins = parseTimeMinutes(r.in);
+      return mins !== null && mins < 465;
+    }).length;
+  }, [tepatWaktuRows]);
+
+  const realTepatWaktuNormalCount = useMemo(() => {
+    return tepatWaktuRows.filter((r) => {
+      const mins = parseTimeMinutes(r.in);
+      return mins === null || mins >= 465;
+    }).length;
+  }, [tepatWaktuRows]);
+
+  const sangatAwalCount = tepatWaktuRows.length > 0 ? realSangatAwalCount : Math.round(ontimeCount * 0.4);
+  const tepatWaktuNormalCount = tepatWaktuRows.length > 0 ? realTepatWaktuNormalCount : (ontimeCount - Math.round(ontimeCount * 0.4));
 
   const level1Data = {
     title: "Evaluasi Kedisiplinan & Kehadiran (Bulan Ini)",
@@ -176,18 +356,56 @@ const Dashboard = () => {
     }
   };
 
-  // Level 3 sekarang dibangun dinamis dari Master Tindakan HR (bisa diedit lewat tombol gear)
+  const getOpsiTindakanForCategory = useCallback((kategori) => {
+    const rawItems = tindakanList
+      .filter((t) => t.kategori === kategori && t.status === 'aktif')
+      .map((t) => t.nama);
+    const defaults = DEFAULT_CATEGORY_ACTIONS[kategori] || [];
+    const options = ['Tidak Ada Tindakan'];
+    [...rawItems, ...defaults].forEach((name) => {
+      if (name && !options.includes(name)) {
+        options.push(name);
+      }
+    });
+    return options;
+  }, [tindakanList]);
+
+  const getEmployeeAction = useCallback((pin, kategori) => {
+    const match = savedHrActions.find(
+      (a) => String(a.finger) === String(pin) && a.kategori === kategori
+    );
+    if (match && match.tindakan) {
+      return {
+        tindakan: match.tindakan,
+        status: match.tindakan === 'Tidak Ada Tindakan' ? 'Belum Diproses' : (match.status || 'Selesai'),
+      };
+    }
+    return {
+      tindakan: 'Tidak Ada Tindakan',
+      status: 'Belum Diproses',
+    };
+  }, [savedHrActions]);
+
   const level3Data = useMemo(() => {
     const result = {};
-    KATEGORI_TINDAKAN.forEach(kategori => {
-      const items = tindakanList.filter(t => t.kategori === kategori && t.status === 'aktif');
+    KATEGORI_TINDAKAN.forEach((kategori) => {
+      const actions = getOpsiTindakanForCategory(kategori);
+      const pegawaiList = getPegawaiUntukKategori(kategori, allAttendance, permissions, allEmployees);
+
+      const counts = actions.map((act) => {
+        return pegawaiList.filter((p) => {
+          const current = getEmployeeAction(p.pin, kategori);
+          return current.tindakan === act;
+        }).length;
+      });
+
       result[kategori] = {
-        categories: items.map(t => t.nama),
-        series: [{ name: 'Jumlah Tindakan', data: items.map(t => t.jumlahKasus) }],
+        categories: actions,
+        series: [{ name: 'Jumlah Pegawai', data: counts }],
       };
     });
     return result;
-  }, [tindakanList]);
+  }, [tindakanList, allAttendance, permissions, allEmployees, savedHrActions, getOpsiTindakanForCategory, getEmployeeAction]);
 
   const getCurrentChartData = () => {
     if (drillLevel === 1) {
@@ -222,6 +440,28 @@ const Dashboard = () => {
 
   const activeChart = getCurrentChartData();
 
+  const openEksekusiModal = (kategori, filterAksi = '') => {
+    const rawList = getPegawaiUntukKategori(kategori, allAttendance, permissions, allEmployees);
+    const withActions = rawList.map((p) => {
+      const current = getEmployeeAction(p.pin, kategori);
+      return {
+        ...p,
+        kategori: kategori,
+        aksi: current.tindakan,
+        status: current.status,
+      };
+    });
+
+    const matchingPegawai = (filterAksi && filterAksi !== 'Semua Tindakan')
+      ? withActions.filter((p) => p.aksi === filterAksi)
+      : withActions;
+
+    setSelectedCategory(kategori);
+    setSelectedTindakanNama(filterAksi || 'Semua Tindakan');
+    setEksekusiRows(matchingPegawai);
+    setIsEksekusiOpen(true);
+  };
+
   const handleChartClick = (event, chartContext, config) => {
     const clickedIndex = config.dataPointIndex;
     if (clickedIndex === undefined || clickedIndex === -1) return;
@@ -238,35 +478,119 @@ const Dashboard = () => {
     } else if (drillLevel === 3) {
       const currentLevel3 = level3Data[selectedCategory] || { categories: [] };
       const tindakanNama = currentLevel3.categories[clickedIndex];
-      if (!tindakanNama) return;
-
-      const pegawai = getPegawaiUntukKategori(selectedCategory, allAttendance).map((p) => ({
-        ...p,
-        aksi: tindakanNama,
-      }));
-
-      setSelectedTindakanNama(tindakanNama);
-      setEksekusiRows(pegawai);
-      setIsEksekusiOpen(true);
+      openEksekusiModal(selectedCategory, tindakanNama || 'Semua Tindakan');
     }
   };
 
-  // Opsi tindakan aktif untuk kategori yang sedang dibuka di modal eksekusi —
-  // diambil dari master tindakanList (dinamis), bukan daftar hardcode.
-  const opsiTindakanUntukModal = tindakanList
-    .filter((t) => t.kategori === selectedCategory && t.status === 'aktif')
-    .map((t) => t.nama);
+  const opsiTindakanUntukModal = useMemo(() => {
+    return getOpsiTindakanForCategory(selectedCategory);
+  }, [getOpsiTindakanForCategory, selectedCategory]);
 
-  const handleExecuteTindakan = (rowId) => {
-    setEksekusiRows((prev) => prev.map((row) => (
-      row.id === rowId ? { ...row, status: 'Selesai' } : row
-    )));
+  const handleChangeTindakanAksi = async (pin, newAksi, itemKategori = null) => {
+    const targetCat = itemKategori || selectedCategory;
+    const employee = eksekusiRows.find(
+      (r) => String(r.pin) === String(pin) && (!itemKategori || r.kategori === itemKategori)
+    );
+    if (!employee) return;
+
+    const todayStr = getLocalDateString();
+    const newStatus = newAksi === 'Tidak Ada Tindakan' ? 'Belum Diproses' : 'Selesai';
+
+    setEksekusiRows((prev) =>
+      prev.map((r) =>
+        String(r.pin) === String(pin) && (!itemKategori || r.kategori === itemKategori)
+          ? { ...r, aksi: newAksi, status: newStatus }
+          : r
+      )
+    );
+
+    setSavedHrActions((prev) => {
+      const existing = prev.filter(
+        (a) => !(String(a.finger) === String(pin) && a.kategori === targetCat)
+      );
+      return [
+        ...existing,
+        {
+          finger: String(pin),
+          nama: employee.nama,
+          tanggal: todayStr,
+          kategori: targetCat,
+          tindakan: newAksi,
+          status: newStatus,
+        },
+      ];
+    });
+
+    try {
+      const res = await api.post('/api/admin/employee-hr-actions', {
+        finger: String(pin),
+        nama: employee.nama,
+        tanggal: todayStr,
+        kategori: targetCat,
+        tindakan: newAksi,
+        status: newStatus,
+      });
+      if (res.data && res.data.all_actions) {
+        setSavedHrActions(res.data.all_actions);
+      }
+      setChartRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      console.error('Gagal menyimpan tindakan pegawai:', err);
+    }
   };
 
-  const handleChangeTindakanAksi = (rowId, newAksi) => {
-    setEksekusiRows((prev) => prev.map((row) => (
-      row.id === rowId ? { ...row, aksi: newAksi } : row
-    )));
+  const handleBatchApply = async (newAksi, targetPins = null, targetCat = null) => {
+    if (!newAksi || eksekusiRows.length === 0) return;
+
+    const todayStr = getLocalDateString();
+    const newStatus = newAksi === 'Tidak Ada Tindakan' ? 'Belum Diproses' : 'Selesai';
+    const targetSet = targetPins && targetPins.length > 0 ? new Set(targetPins.map(String)) : null;
+
+    const itemsToUpdate = eksekusiRows.filter(
+      (r) => (!targetSet || targetSet.has(String(r.pin))) && (!targetCat || r.kategori === targetCat)
+    );
+    if (itemsToUpdate.length === 0) return;
+
+    const items = itemsToUpdate.map((r) => ({
+      finger: String(r.pin),
+      nama: r.nama,
+      tanggal: todayStr,
+      kategori: r.kategori || targetCat || selectedCategory,
+      tindakan: newAksi,
+      status: newStatus,
+    }));
+
+    setEksekusiRows((prev) =>
+      prev.map((r) =>
+        (!targetSet || targetSet.has(String(r.pin))) && (!targetCat || r.kategori === targetCat)
+          ? { ...r, aksi: newAksi, status: newStatus }
+          : r
+      )
+    );
+
+    setSavedHrActions((prev) => {
+      const itemKeys = new Set(items.map((it) => `${it.finger}_${it.kategori}`));
+      const filtered = prev.filter(
+        (a) => !itemKeys.has(`${a.finger}_${a.kategori}`)
+      );
+      return [...filtered, ...items];
+    });
+
+    try {
+      const res = await api.post('/api/admin/employee-hr-actions/batch', { items });
+      if (res.data && res.data.all_actions) {
+        setSavedHrActions(res.data.all_actions);
+      }
+      setChartRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      console.error('Gagal menyimpan batch tindakan pegawai:', err);
+    }
+  };
+
+  const handleCloseEksekusiModal = () => {
+    setIsEksekusiOpen(false);
+    loadDashboardData();
+    setChartRefreshKey((prev) => prev + 1);
   };
 
   const handleResetDrill = () => {
@@ -280,7 +604,7 @@ const Dashboard = () => {
     setSelectedCategory('');
   };
 
-  const barChartOptions = {
+  const barChartOptions = useMemo(() => ({
     chart: {
       type: 'bar',
       toolbar: { show: false },
@@ -331,7 +655,7 @@ const Dashboard = () => {
         formatter: (val) => `${val} Data`
       }
     }
-  };
+  }), [drillLevel, activeChart.categories, handleChartClick, chartRefreshKey]);
 
   const pieChartOptions = {
     chart: { type: 'donut', fontFamily: 'Inter, sans-serif' },
@@ -504,7 +828,7 @@ const Dashboard = () => {
                         onClick={handleBackToLevel2}
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
                       >
-                        <ArrowLeft className="w-3 h-3" /> Kembali
+                        <ArrowLeft className="w-3.5 h-3.5" /> Kembali
                       </button>
                     )}
                     <button
@@ -520,7 +844,13 @@ const Dashboard = () => {
             </div>
 
             <div className="w-full">
-              <Chart options={barChartOptions} series={activeChart.series} type="bar" height={280} />
+              <Chart
+                key={`drill-bar-${drillLevel}-${selectedStatus}-${selectedCategory}-${chartRefreshKey}`}
+                options={barChartOptions}
+                series={activeChart.series}
+                type="bar"
+                height={280}
+              />
             </div>
           </div>
 
@@ -699,13 +1029,17 @@ const Dashboard = () => {
 
       <ModalEksekusiTindakan
         isOpen={isEksekusiOpen}
-        onClose={() => setIsEksekusiOpen(false)}
+        onClose={handleCloseEksekusiModal}
+        statusTitle={selectedStatus || 'Tepat Waktu'}
         kategoriTitle={selectedCategory}
         tindakanTitle={selectedTindakanNama}
         dataKaryawan={eksekusiRows}
-        opsiTindakan={opsiTindakanUntukModal.length > 0 ? opsiTindakanUntukModal : [selectedTindakanNama]}
-        onExecute={handleExecuteTindakan}
+        listKategori={[selectedCategory]}
+        defaultKategori={selectedCategory}
+        getOpsiTindakanForCategory={getOpsiTindakanForCategory}
+        opsiTindakan={opsiTindakanUntukModal}
         onChangeAction={handleChangeTindakanAksi}
+        onBatchApply={handleBatchApply}
       />
     </div>
   );
