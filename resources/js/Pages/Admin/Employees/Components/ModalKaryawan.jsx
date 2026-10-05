@@ -5,7 +5,6 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
     const [formData, setFormData] = useState({
         id: null,
         nama: '',
-        nik: '',
         idFinger: '',
         dept: 'IT & Tech',
         jabatan: ''
@@ -16,7 +15,6 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
             setFormData({
                 id: data.id || null,
                 nama: data.nama || '',
-                nik: data.nik || '',
                 idFinger: data.idFinger || '',
                 dept: data.dept || 'IT & Tech',
                 jabatan: data.jabatan || ''
@@ -25,7 +23,6 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
             setFormData({
                 id: null,
                 nama: '',
-                nik: '',
                 idFinger: '',
                 dept: 'IT & Tech',
                 jabatan: ''
@@ -42,8 +39,8 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.nama || !formData.nik) {
-            alert('Nama Lengkap dan NIK wajib diisi!');
+        if (!formData.nama) {
+            alert('Nama Lengkap wajib diisi!');
             return;
         }
         onSave(formData);
@@ -61,31 +58,17 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
 
                 <form onSubmit={handleSubmit}>
                     <div className="p-6 space-y-4 text-xs">
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block font-medium text-slate-700 mb-1">Nama Lengkap *</label>
-                                <input
-                                    type="text"
-                                    name="nama"
-                                    value={formData.nama}
-                                    onChange={handleChange}
-                                    placeholder="Contoh: Budi Santoso"
-                                    className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block font-medium text-slate-700 mb-1">NIK Karyawan *</label>
-                                <input
-                                    type="text"
-                                    name="nik"
-                                    value={formData.nik}
-                                    onChange={handleChange}
-                                    placeholder="Contoh: 20260101"
-                                    className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                    required
-                                />
-                            </div>
+                        <div>
+                            <label className="block font-medium text-slate-700 mb-1">Nama Lengkap *</label>
+                            <input
+                                type="text"
+                                name="nama"
+                                value={formData.nama}
+                                onChange={handleChange}
+                                placeholder="Contoh: Budi Santoso"
+                                className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                required
+                            />
                         </div>
 
                         <div>

@@ -62,10 +62,19 @@ class AttendanceController extends Controller
         $satOut = $settingsData['saturday_check_out'] ?? '12:00';
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
 
+        // Jumlah karyawan (unik) yang punya pengajuan izin/sakit/cuti/dinas DISETUJUI
+        // dan tanggalnya mencakup hari yang dipilih
+        $izinCount = \App\Models\Permission::where('status', 'disetujui')
+            ->whereIn('category', ['izin', 'sakit', 'cuti', 'dinas'])
+            ->whereDate('tanggal_mulai', '<=', $targetDate)
+            ->whereDate('tanggal_selesai', '>=', $targetDate)
+            ->distinct('employee_id')
+            ->count('employee_id');
+
         $stats = [
             'hadir' => 0,
             'terlambat' => 0,
-            'izin' => 0,
+            'izin' => $izinCount,
             'belum_pulang' => 0,
             'total_karyawan' => Employee::count(),
         ];
