@@ -700,11 +700,7 @@ const Dashboard = () => {
       categories: activeChart.categories,
       labels: {
         style: { fontSize: '11px', fontWeight: 500, colors: '#64748b' },
-        rotate: -30,
-        rotateAlways: false,
-        hideOverlappingLabels: false,
-        trim: false,
-        maxHeight: 140
+        rotate: -15
       },
       axisBorder: { show: false },
       axisTicks: { show: false }
@@ -716,12 +712,7 @@ const Dashboard = () => {
     },
     grid: {
       borderColor: '#f1f5f9',
-      strokeDashArray: 4,
-      padding: {
-        left: 25,
-        right: 10,
-        bottom: 15
-      }
+      strokeDashArray: 4
     },
     legend: { show: false },
     tooltip: {
@@ -918,16 +909,14 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="w-full overflow-x-auto thin-scrollbar pb-2">
-              <div className="min-w-[550px] sm:min-w-full">
-                <Chart
-                  key={`drill-bar-${drillLevel}-${selectedStatus}-${selectedCategory}-${chartRefreshKey}`}
-                  options={barChartOptions}
-                  series={activeChart.series}
-                  type="bar"
-                  height={280}
-                />
-              </div>
+            <div className="w-full">
+              <Chart
+                key={`drill-bar-${drillLevel}-${selectedStatus}-${selectedCategory}-${chartRefreshKey}`}
+                options={barChartOptions}
+                series={activeChart.series}
+                type="bar"
+                height={280}
+              />
             </div>
           </div>
 
