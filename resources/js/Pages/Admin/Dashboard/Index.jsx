@@ -337,6 +337,28 @@ const Dashboard = () => {
     return allAttendance.filter((r) => !r.in || r.in === '-' || r.inStatus === 'Belum Tap' || r.inStatus === 'Lupa Tap' || (Boolean(r.out && r.out !== '-') && (!r.in || r.in === '-'))).length;
   }, [allAttendance]);
 
+  const dinasCount = useMemo(() => {
+    return permissions.filter((p) => p.category === 'dinas' || p.kategori?.toLowerCase() === 'dinas').length;
+  }, [permissions]);
+
+  const sakitCount = useMemo(() => {
+    return permissions.filter((p) => p.category === 'sakit' || p.kategori?.toLowerCase() === 'sakit').length;
+  }, [permissions]);
+
+  const izinCount = useMemo(() => {
+    return permissions.filter((p) => p.category === 'izin' || p.kategori?.toLowerCase() === 'izin').length;
+  }, [permissions]);
+
+  const cutiCount = useMemo(() => {
+    return permissions.filter((p) => p.category === 'cuti' || p.kategori?.toLowerCase() === 'cuti').length;
+  }, [permissions]);
+
+  const mangkir1HariCount = useMemo(() => {
+    const attendedPins = new Set(allAttendance.map((r) => String(r.finger || r.pin)));
+    const permPins = new Set(permissions.map((p) => String(p.employee?.pin || p.pin)));
+    return allEmployees.filter((e) => !attendedPins.has(String(e.pin)) && !permPins.has(String(e.pin))).length;
+  }, [allAttendance, permissions, allEmployees]);
+
   const level2Data = {
     'Tepat Waktu': {
       categories: ['Sangat Awal (>15 Mnt)', 'Tepat Waktu (0-15 Mnt)', 'Shift Pagi', 'Shift Middle'],
@@ -348,11 +370,11 @@ const Dashboard = () => {
     },
     'Izin / Sakit / Dinas': {
       categories: ['Dinas Luar / Field', 'Sakit (Surat Dokter)', 'Izin Alasan Penting', 'Cuti Tahunan'],
-      series: [{ name: 'Jumlah Kasus', data: [stats.izin, 0, 0, 0] }]
+      series: [{ name: 'Jumlah Kasus', data: [dinasCount, sakitCount, izinCount, cutiCount] }]
     },
     'Tanpa Ket. (Alpa)': {
       categories: ['Mangkir 1 Hari', 'Mangkir >2 Hari Berturut', 'Lupa Tap Kehadiran'],
-      series: [{ name: 'Jumlah Kasus', data: [0, 0, lupaTapCount] }]
+      series: [{ name: 'Jumlah Kasus', data: [mangkir1HariCount, 0, lupaTapCount] }]
     }
   };
 
