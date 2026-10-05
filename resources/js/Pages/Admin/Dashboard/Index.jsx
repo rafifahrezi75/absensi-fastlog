@@ -76,8 +76,8 @@ const getPegawaiUntukKategori = (kategori, attendanceToday = [], permissions = [
     filterFn = (r) => (r.status === 'late' || r.status === 'terlambat' || String(r.inStatus || '').startsWith('Telat')) && parseMinutesLate(r.inStatus) >= 15 && parseMinutesLate(r.inStatus) < 30;
   } else if (kategori === 'Berat (>30 Mnt)') {
     filterFn = (r) => (r.status === 'late' || r.status === 'terlambat' || String(r.inStatus || '').startsWith('Telat')) && parseMinutesLate(r.inStatus) >= 30;
-  } else if (kategori === 'Lupa Tap Out/In') {
-    filterFn = (r) => r.outStatus === 'Belum Tap' || !r.out || r.out === '-';
+  } else if (kategori === 'Lupa Tap Kehadiran' || kategori === 'Lupa Tap Out/In') {
+    filterFn = (r) => (!r.in || r.in === '-' || r.inStatus === 'Belum Tap' || r.inStatus === 'Lupa Tap' || (Boolean(r.out && r.out !== '-') && (!r.in || r.in === '-')));
   }
 
   if (filterFn) {
@@ -91,8 +91,8 @@ const getPegawaiUntukKategori = (kategori, attendanceToday = [], permissions = [
         ket = 'Shift Pagi';
       } else if (kategori === 'Shift Middle') {
         ket = 'Shift Middle';
-      } else if (kategori === 'Lupa Tap Out/In') {
-        ket = 'Belum Tap Pulang';
+      } else if (kategori === 'Lupa Tap Kehadiran' || kategori === 'Lupa Tap Out/In') {
+        ket = 'Lupa Tap Kehadiran';
       } else if (r.inStatus) {
         ket = r.inStatus;
       }
@@ -166,6 +166,7 @@ const DEFAULT_CATEGORY_ACTIONS = {
   'Cuti Tahunan': ['Potong Jatah Cuti', 'Approved Direksi', 'Reschedule Cuti'],
   'Mangkir 1 Hari': ['Potong Gaji Harian', 'Surat Panggilan Klarifikasi', 'SP 1 (Surat Peringatan)'],
   'Mangkir >2 Hari Berturut': ['SP 2 (Surat Peringatan)', 'SP 3 (Peringatan Terakhir)', 'Pemanggilan Keluarga', 'Potong Gaji & Tunjangan'],
+  'Lupa Tap Kehadiran': ['Konfirmasi via WA/HRD', 'Koreksi Jam Manual', 'Teguran Lupa Tap', 'Pemutihan Presensi'],
   'Lupa Tap Out/In': ['Konfirmasi via WA/HRD', 'Koreksi Jam Manual', 'Teguran Lupa Tap', 'Pemutihan Presensi'],
 };
 
@@ -333,9 +334,8 @@ const Dashboard = () => {
   }, [allAttendance]);
 
   const lupaTapCount = useMemo(() => {
-    return allAttendance.filter((r) => r.outStatus === 'Belum Tap' || !r.out || r.out === '-').length;
+    return allAttendance.filter((r) => !r.in || r.in === '-' || r.inStatus === 'Belum Tap' || r.inStatus === 'Lupa Tap' || (Boolean(r.out && r.out !== '-') && (!r.in || r.in === '-'))).length;
   }, [allAttendance]);
-
 
   const level2Data = {
     'Tepat Waktu': {
@@ -351,8 +351,8 @@ const Dashboard = () => {
       series: [{ name: 'Jumlah Kasus', data: [stats.izin, 0, 0, 0] }]
     },
     'Tanpa Ket. (Alpa)': {
-      categories: ['Mangkir 1 Hari', 'Mangkir >2 Hari Berturut', 'Lupa Tap Out/In'],
-      series: [{ name: 'Jumlah Kasus', data: [0, 0, lupaTapCount || stats.belum_pulang] }]
+      categories: ['Mangkir 1 Hari', 'Mangkir >2 Hari Berturut', 'Lupa Tap Kehadiran'],
+      series: [{ name: 'Jumlah Kasus', data: [0, 0, lupaTapCount] }]
     }
   };
 

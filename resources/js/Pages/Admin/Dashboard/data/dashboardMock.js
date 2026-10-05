@@ -77,16 +77,15 @@ export const KATEGORI_TINDAKAN = [
     // Cabang: Tanpa Ket. (Alpa)
     'Mangkir 1 Hari',
     'Mangkir >2 Hari Berturut',
+    'Lupa Tap Kehadiran',
     'Lupa Tap Out/In',
 ];
 
 export const INITIAL_TINDAKAN = [
-    // Tepat Waktu
     { id: 1, nama: 'Apresiasi Kedisiplinan', kategori: 'Sangat Awal (>15 Mnt)', jumlahKasus: 6, status: 'aktif' },
     { id: 2, nama: 'Tidak Ada Tindakan', kategori: 'Tepat Waktu (0-15 Mnt)', jumlahKasus: 20, status: 'aktif' },
     { id: 3, nama: 'Verifikasi Jadwal Shift', kategori: 'Shift Pagi', jumlahKasus: 3, status: 'aktif' },
     { id: 4, nama: 'Verifikasi Jadwal Shift', kategori: 'Shift Middle', jumlahKasus: 1, status: 'aktif' },
-    // Terlambat
     { id: 5, nama: 'Teguran Otomatis System', kategori: 'Toleransi (<15 Mnt)', jumlahKasus: 15, status: 'aktif' },
     { id: 6, nama: 'Peringatan Lisan', kategori: 'Toleransi (<15 Mnt)', jumlahKasus: 5, status: 'aktif' },
     { id: 7, nama: 'Pemutihan System', kategori: 'Toleransi (<15 Mnt)', jumlahKasus: 2, status: 'aktif' },
@@ -96,15 +95,17 @@ export const INITIAL_TINDAKAN = [
     { id: 11, nama: 'Potong Gaji/Transport 100%', kategori: 'Berat (>30 Mnt)', jumlahKasus: 3, status: 'aktif' },
     { id: 12, nama: 'Pemanggilan HRD', kategori: 'Berat (>30 Mnt)', jumlahKasus: 2, status: 'aktif' },
     { id: 13, nama: 'SP 1 (Surat Peringatan)', kategori: 'Berat (>30 Mnt)', jumlahKasus: 1, status: 'aktif' },
-    // Izin / Sakit / Dinas
     { id: 14, nama: 'Approved via Portal', kategori: 'Dinas Luar / Field', jumlahKasus: 5, status: 'aktif' },
     { id: 15, nama: 'Pending Verification', kategori: 'Dinas Luar / Field', jumlahKasus: 1, status: 'aktif' },
     { id: 16, nama: 'Rejected', kategori: 'Dinas Luar / Field', jumlahKasus: 0, status: 'aktif' },
     { id: 17, nama: 'Approved (Surat Dokter)', kategori: 'Sakit (Surat Dokter)', jumlahKasus: 0, status: 'aktif' },
     { id: 18, nama: 'Approved Admin', kategori: 'Izin Alasan Penting', jumlahKasus: 0, status: 'aktif' },
     { id: 19, nama: 'Potong Jatah Cuti', kategori: 'Cuti Tahunan', jumlahKasus: 0, status: 'aktif' },
-    // Alpa
     { id: 20, nama: 'Potong Gaji Harian', kategori: 'Mangkir 1 Hari', jumlahKasus: 0, status: 'aktif' },
     { id: 21, nama: 'SP 2 (Surat Peringatan)', kategori: 'Mangkir >2 Hari Berturut', jumlahKasus: 0, status: 'aktif' },
-    { id: 22, nama: 'Konfirmasi via WA/HRD', kategori: 'Lupa Tap Out/In', jumlahKasus: 0, status: 'aktif' },
+    { id: 22, nama: 'Konfirmasi via WA/HRD', kategori: 'Lupa Tap Kehadiran', jumlahKasus: 0, status: 'aktif' },
+    { id: 23, nama: 'Koreksi Jam Manual', kategori: 'Lupa Tap Kehadiran', jumlahKasus: 0, status: 'aktif' },
+    { id: 24, nama: 'Teguran Lupa Tap', kategori: 'Lupa Tap Kehadiran', jumlahKasus: 0, status: 'aktif' },
+    { id: 25, nama: 'Pemutihan Presensi', kategori: 'Lupa Tap Kehadiran', jumlahKasus: 0, status: 'aktif' },
+    { id: 26, nama: 'Konfirmasi via WA/HRD', kategori: 'Lupa Tap Out/In', jumlahKasus: 0, status: 'aktif' },
 ];

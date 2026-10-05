@@ -69,6 +69,11 @@ class MasterTindakanSeeder extends Seeder
             ['nama' => 'Pemanggilan Keluarga', 'kategori' => 'Mangkir >2 Hari Berturut', 'jumlah_kasus' => 0, 'status' => 'aktif'],
             ['nama' => 'Potong Gaji & Tunjangan', 'kategori' => 'Mangkir >2 Hari Berturut', 'jumlah_kasus' => 0, 'status' => 'aktif'],
 
+            ['nama' => 'Konfirmasi via WA/HRD', 'kategori' => 'Lupa Tap Kehadiran', 'jumlah_kasus' => 0, 'status' => 'aktif'],
+            ['nama' => 'Koreksi Jam Manual', 'kategori' => 'Lupa Tap Kehadiran', 'jumlah_kasus' => 0, 'status' => 'aktif'],
+            ['nama' => 'Teguran Lupa Tap', 'kategori' => 'Lupa Tap Kehadiran', 'jumlah_kasus' => 0, 'status' => 'aktif'],
+            ['nama' => 'Pemutihan Presensi', 'kategori' => 'Lupa Tap Kehadiran', 'jumlah_kasus' => 0, 'status' => 'aktif'],
+
             ['nama' => 'Konfirmasi via WA/HRD', 'kategori' => 'Lupa Tap Out/In', 'jumlah_kasus' => 0, 'status' => 'aktif'],
             ['nama' => 'Koreksi Jam Manual', 'kategori' => 'Lupa Tap Out/In', 'jumlah_kasus' => 0, 'status' => 'aktif'],
             ['nama' => 'Teguran Lupa Tap', 'kategori' => 'Lupa Tap Out/In', 'jumlah_kasus' => 0, 'status' => 'aktif'],
