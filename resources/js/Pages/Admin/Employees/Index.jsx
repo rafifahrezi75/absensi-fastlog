@@ -25,7 +25,6 @@ const Employees = () => {
             const list = (res.data.employees || []).map(emp => ({
                 id: emp.id,
                 nama: emp.nama,
-                nik: emp.nik || '',
                 idFinger: emp.pin || '',
                 dept: emp.dept || 'Umum',
                 jabatan: emp.jabatan || '',
@@ -68,7 +67,6 @@ const Employees = () => {
                 const list = res.data.employees.map(emp => ({
                     id: emp.id,
                     nama: emp.nama,
-                    nik: emp.nik || '',
                     idFinger: emp.pin || '',
                     dept: emp.dept || 'Umum',
                     jabatan: emp.jabatan || '',
@@ -101,12 +99,10 @@ const Employees = () => {
     const filteredEmployees = useMemo(() => {
         return employees.filter(emp => {
             const nameStr = emp.nama || '';
-            const nikStr = emp.nik || '';
             const pinStr = emp.idFinger || '';
             const q = searchQuery.toLowerCase();
 
             const matchesSearch = nameStr.toLowerCase().includes(q) ||
-                nikStr.toLowerCase().includes(q) ||
                 pinStr.includes(searchQuery);
             const matchesDept = deptFilter ? emp.dept.toLowerCase() === deptFilter.toLowerCase() : true;
             const matchesSync = syncFilter ? emp.syncStatus === syncFilter : true;
@@ -134,7 +130,6 @@ const Employees = () => {
         try {
             const payload = {
                 nama: formData.nama,
-                nik: formData.nik || null,
                 pin: formData.idFinger || null,
                 dept: formData.dept || null,
                 jabatan: formData.jabatan || null,
@@ -184,11 +179,10 @@ const Employees = () => {
             return;
         }
 
-        const headers = ['NIK', 'Nama Lengkap', 'ID Fingerprint', 'Departemen', 'Jabatan', 'Status Sinkronisasi'];
+        const headers = ['Nama Lengkap', 'ID Fingerprint', 'Departemen', 'Jabatan', 'Status Sinkronisasi'];
         const csvRows = [
             headers.join(','),
             ...filteredEmployees.map(emp => [
-                `"${emp.nik}"`,
                 `"${emp.nama}"`,
                 `"${emp.idFinger || '-'}"`,
                 `"${emp.dept}"`,
@@ -286,7 +280,7 @@ const Employees = () => {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Cari nama, NIK, atau PIN..."
+                        placeholder="Cari nama atau PIN..."
                         className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                     />
                 </div>
@@ -356,7 +350,6 @@ const Employees = () => {
                                                             )
                                                         )}
                                                     </div>
-                                                    <div className="text-xs text-slate-400">NIK: {emp.nik || <span className="italic text-slate-300">-</span>}</div>
                                                 </div>
                                             </div>
                                         </td>
