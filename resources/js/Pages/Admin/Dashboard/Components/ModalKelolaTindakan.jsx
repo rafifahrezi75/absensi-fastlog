@@ -14,6 +14,7 @@ const kategoriBadgeColor = (kategori) => {
 const ModalKelolaTindakan = ({ isOpen, onClose, tindakanList, onSave, onDelete }) => {
     const [form, setForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
+    const [activeGroup, setActiveGroup] = useState('Tepat Waktu');
 
     useEffect(() => {
         if (!isOpen) {
@@ -110,38 +111,65 @@ const ModalKelolaTindakan = ({ isOpen, onClose, tindakanList, onSave, onDelete }
                     </div>
                 </form>
 
-                <div className="overflow-y-auto flex-1 px-6 py-4 space-y-2">
-                    {tindakanList.length > 0 ? tindakanList.map((item) => (
+                <div className="overflow-y-auto flex-1 thin-scrollbar [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+                  {/* Category tabs */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl mb-4 shrink-0">
+                    {['Tepat Waktu', 'Terlambat', 'Izin', 'Alpa'].map((group) => (
+                      <button
+                        key={group}
+                        type="button"
+                        onClick={() => setActiveGroup(group)}
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          activeGroup === group
+                            ? 'bg-white text-indigo-600 shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                        }`}
+                      >
+                        {group}
+                      </button>
+                    ))}
+                  </div>
+                  {tindakanList.length > 0 ? (
+                    tindakanList
+                      .filter((item) => {
+                        const cat = item.kategori || '';
+                        if (activeGroup === 'Tepat Waktu') {
+                          return ['Sangat Awal (>15 Mnt)', 'Tepat Waktu (0-15 Mnt)', 'Shift Pagi', 'Shift Middle'].includes(cat);
+                        }
+                        if (activeGroup === 'Terlambat') {
+                          return ['Toleransi (<15 Mnt)', 'Sedang (15 - 30 Mnt)', 'Berat (>30 Mnt)'].includes(cat);
+                        }
+                        if (activeGroup === 'Izin') {
+                          return ['Dinas Luar / Field', 'Sakit (Surat Dokter)', 'Izin Alasan Penting', 'Cuti Tahunan'].includes(cat);
+                        }
+                        if (activeGroup === 'Alpa') {
+                          return ['Mangkir 1 Hari', 'Mangkir >2 Hari Berturut', 'Lupa Tap Kehadiran'].includes(cat);
+                        }
+                        return true;
+                      })
+                      .map((item) => (
                         <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition">
-                            <div className="min-w-0">
-                                <p className="text-sm font-semibold text-slate-800 truncate">{item.nama}</p>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${kategoriBadgeColor(item.kategori)}`}>
-                                        {item.kategori}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400">{item.jumlahKasus} kasus</span>
-                                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${item.status === 'aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                        }`}>
-                                        {item.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
-                                    </span>
-                                </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{item.nama}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${kategoriBadgeColor(item.kategori)}`}>{item.kategori}</span>
+                              <span className="text-[10px] text-slate-400">{item.jumlahKasus} kasus</span>
+                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${item.status === 'aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{item.status === 'aktif' ? 'Aktif' : 'Nonaktif'}</span>
                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                                <button type="button" onClick={() => handleEditClick(item)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-                                    <Edit3 className="w-4 h-4" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { if (window.confirm(`Hapus tindakan "${item.nama}"?`)) onDelete(item.id); }}
-                                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button type="button" onClick={() => handleEditClick(item)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button type="button" onClick={() => { if (window.confirm(`Hapus tindakan "${item.nama}"?`)) onDelete(item.id); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                    )) : (
-                        <p className="text-center text-xs text-slate-400 py-8">Belum ada tindakan terdaftar.</p>
-                    )}
+                      ))
+                  ) : (
+                    <p className="text-center text-xs text-slate-400 py-8">Belum ada tindakan terdaftar.</p>
+                  )}
                 </div>
 
                 <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
