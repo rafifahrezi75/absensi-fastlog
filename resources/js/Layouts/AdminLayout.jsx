@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
+import api from '../lib/api';
 
 const AdminLayout = () => {
     const navigate = useNavigate();
@@ -32,50 +33,28 @@ const AdminLayout = () => {
     };
 
 
-    // State Notifikasi
-    const [unreadCount, setUnreadCount] = useState(4);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef(null);
+    const [notifications, setNotifications] = useState([]);
 
-    // Data Dummy Notifikasi beserta Rute Halaman Tujuan (link)
-    const [notifications, setNotifications] = useState([
-        {
-            id: 1,
-            title: 'Pengajuan Cuti Baru',
-            desc: 'Budi Santoso mengajukan Cuti Tahunan (2 Hari)',
-            time: '5 menit yang lalu',
-            type: 'permission',
-            link: '/admin/permissions',
-            read: false
-        },
-        {
-            id: 2,
-            title: 'Pengajuan Lembur',
-            desc: 'Ahmad Rizky meminta persetujuan Lembur 3 jam',
-            time: '20 menit yang lalu',
-            type: 'overtime',
-            link: '/admin/permissions',
-            read: false
-        },
-        {
-            id: 3,
-            title: 'Keterlambatan Presensi',
-            desc: 'Siti Aminah check-in terlambat (08:45 WIB)',
-            time: '1 jam yang lalu',
-            type: 'attendance',
-            link: '/admin/attendance',
-            read: false
-        },
-        {
-            id: 4,
-            title: 'Mesin Sidik Jari Terputus',
-            desc: 'Perangkat LT-2 sempat terputus dari jaringan',
-            time: '2 jam yang lalu',
-            type: 'system',
-            link: '/admin/dashboard',
-            read: false
+    const fetchNotifications = async () => {
+        try {
+            const res = await api.get('/api/notifications');
+            if (res.data && res.data.success) {
+                setNotifications(res.data.notifications || []);
+                setUnreadCount(res.data.unread_count || 0);
+            }
+        } catch (err) {
+            console.error('Gagal mengambil notifikasi:', err);
         }
-    ]);
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Check screen size
     useEffect(() => {
@@ -111,32 +90,45 @@ const AdminLayout = () => {
         setShowNotifications(!showNotifications);
     };
 
-    const markAllAsRead = () => {
-        setNotifications(notifications.map(item => ({ ...item, read: true })));
-        setUnreadCount(0);
+    const markAllAsRead = async () => {
+        try {
+            await api.post('/api/notifications/mark-all-read');
+            setNotifications(prev => prev.map(item => ({ ...item, read_at: new Date().toISOString() })));
+            setUnreadCount(0);
+        } catch (err) {
+            console.error('Gagal menandai semua notifikasi dibaca:', err);
+        }
     };
 
-    // Fungsi Hendel Klik Notifikasi: Tandai Dibaca -> Tutup Popover -> Navigasi
-    const handleNotificationClick = (item) => {
-        if (!item.read) {
-            setNotifications(notifications.map(n => n.id === item.id ? { ...n, read: true } : n));
-            setUnreadCount(prev => Math.max(0, prev - 1));
+    const handleNotificationClick = async (item) => {
+        if (!item.read_at) {
+            try {
+                await api.post(`/api/notifications/${item.id}/read`);
+                setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read_at: new Date().toISOString() } : n));
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            } catch (err) {
+                console.error('Gagal menandai notifikasi dibaca:', err);
+            }
         }
         setShowNotifications(false);
-        if (item.link) {
-            navigate(item.link);
-        }
+        const targetUrl = item.data?.action_url || '/admin/permissions';
+        navigate(targetUrl);
     };
 
-    // Helper Icon Notifikasi
     const getNotificationIcon = (type) => {
         switch (type) {
+            case 'izin':
+            case 'cuti':
+            case 'sakit':
+            case 'dinas':
             case 'permission':
                 return <FileText className="w-4 h-4 text-[#FF7A3D]" />;
+            case 'lembur':
             case 'overtime':
                 return <Clock className="w-4 h-4 text-purple-600" />;
             case 'attendance':
                 return <UserCheck className="w-4 h-4 text-amber-600" />;
+            case 'device':
             case 'system':
                 return <ShieldAlert className="w-4 h-4 text-rose-600" />;
             default:
@@ -336,34 +328,41 @@ const AdminLayout = () => {
 
                                     <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100">
                                         {notifications.length > 0 ? (
-                                            notifications.map((item) => (
-                                                <div
-                                                    key={item.id}
-                                                    onClick={() => handleNotificationClick(item)}
-                                                    className={`p-3.5 flex gap-3 hover:bg-slate-50 transition cursor-pointer ${!item.read ? 'bg-orange-50/40' : ''
-                                                        }`}
-                                                >
-                                                    <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-sm h-fit">
-                                                        {getNotificationIcon(item.type)}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center justify-between mb-0.5">
-                                                            <p className={`text-xs font-semibold truncate ${!item.read ? 'text-slate-900' : 'text-slate-600'}`}>
-                                                                {item.title}
-                                                            </p>
-                                                            <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2">
-                                                                {item.time}
-                                                            </span>
+                                            notifications.map((item) => {
+                                                const isUnread = !item.read_at;
+                                                const title = item.data?.title || 'Notifikasi';
+                                                const desc = item.data?.message || '';
+                                                const category = item.data?.category || item.data?.reference_type || 'default';
+                                                const time = item.created_at || '';
+
+                                                return (
+                                                    <div
+                                                        key={item.id}
+                                                        onClick={() => handleNotificationClick(item)}
+                                                        className={`p-3.5 flex gap-3 hover:bg-slate-50 transition cursor-pointer ${isUnread ? 'bg-orange-50/40' : ''}`}
+                                                    >
+                                                        <div className="p-2 rounded-lg bg-white border border-slate-200 shadow-sm h-fit">
+                                                            {getNotificationIcon(category)}
                                                         </div>
-                                                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                                                            {item.desc}
-                                                        </p>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between mb-0.5">
+                                                                <p className={`text-xs truncate ${isUnread ? 'text-slate-900 font-bold' : 'text-slate-600 font-medium'}`}>
+                                                                    {title}
+                                                                </p>
+                                                                <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2">
+                                                                    {time}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                                                                {desc}
+                                                            </p>
+                                                        </div>
+                                                        {isUnread && (
+                                                            <span className="w-2 h-2 rounded-full bg-[#FF7A3D] self-center flex-shrink-0"></span>
+                                                        )}
                                                     </div>
-                                                    {!item.read && (
-                                                        <span className="w-2 h-2 rounded-full bg-[#FF7A3D] self-center flex-shrink-0"></span>
-                                                    )}
-                                                </div>
-                                            ))
+                                                );
+                                            })
                                         ) : (
                                             <div className="p-6 text-center text-slate-400 text-xs">
                                                 Tidak ada notifikasi saat ini.

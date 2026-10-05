@@ -8,6 +8,7 @@ use App\Models\AttendanceAnomaly;
 use App\Models\Employee;
 use App\Models\OvertimeLog;
 use App\Models\Permission;
+use App\Notifications\PermissionStatusUpdatedNotification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -208,6 +209,11 @@ class PermissionController extends Controller
             }
         }
 
+        $targetUser = $permission->user ?? ($permission->employee ? $permission->employee->user : null);
+        if ($targetUser) {
+            $targetUser->notify(new PermissionStatusUpdatedNotification($permission));
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Pengajuan berhasil disetujui.',
@@ -228,6 +234,11 @@ class PermissionController extends Controller
         $permission->status = 'ditolak';
         $permission->catatan_admin = $adminNote;
         $permission->save();
+
+        $targetUser = $permission->user ?? ($permission->employee ? $permission->employee->user : null);
+        if ($targetUser) {
+            $targetUser->notify(new PermissionStatusUpdatedNotification($permission));
+        }
 
         return response()->json([
             'success' => true,
@@ -288,6 +299,13 @@ class PermissionController extends Controller
         }
 
         $permission->save();
+
+        if (isset($validated['status'])) {
+            $targetUser = $permission->user ?? ($permission->employee ? $permission->employee->user : null);
+            if ($targetUser) {
+                $targetUser->notify(new PermissionStatusUpdatedNotification($permission));
+            }
+        }
 
         return response()->json([
             'success' => true,

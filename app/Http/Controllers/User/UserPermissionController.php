@@ -5,10 +5,13 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Permission;
+use App\Models\User;
+use App\Notifications\NewPermissionSubmissionNotification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 class UserPermissionController extends Controller
@@ -223,6 +226,11 @@ class UserPermissionController extends Controller
             'lampiran' => $attachmentName,
             'status' => 'menunggu',
         ]);
+
+        $admins = User::where('role', 'admin')->get();
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new NewPermissionSubmissionNotification($permission->load('employee')));
+        }
 
         return response()->json([
             'success' => true,

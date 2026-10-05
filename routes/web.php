@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\User\UserPermissionController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,13 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/api/user', [AuthController::class, 'me'])->name('api.user');
+
+    Route::prefix('api/notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('api.notifications.index');
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('api.notifications.mark-all-read');
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('api.notifications.read');
+        Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('api.notifications.destroy');
+    });
 
     Route::prefix('api/user')->group(function () {
         Route::get('/dashboard', [UserPermissionController::class, 'dashboard'])->name('api.user.dashboard');
