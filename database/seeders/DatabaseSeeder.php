@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             UserSeeder::class,
             MasterPayrollSeeder::class,
+            MasterTindakanSeeder::class,
         ]);
     }
 }
