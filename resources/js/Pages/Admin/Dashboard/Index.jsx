@@ -32,6 +32,13 @@ const getLocalDateString = () => {
   return `${year}-${month}-${day}`;
 };
 
+const getLocalMonthString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+};
+
 const parseMinutesLate = (inStatus) => {
   if (!inStatus) return 0;
   const match = String(inStatus).match(/(\d+)/);
@@ -45,7 +52,7 @@ const parseTimeMinutes = (timeStr) => {
   return parts[0] * 60 + parts[1];
 };
 
-const getPegawaiUntukKategori = (kategori, attendanceToday = [], permissions = [], allEmployees = []) => {
+const getPegawaiUntukKategori = (kategori, attendanceRecords = [], permissions = [], allEmployees = []) => {
   let filterFn = null;
 
   if (kategori === 'Sangat Awal (>15 Mnt)') {
@@ -81,33 +88,47 @@ const getPegawaiUntukKategori = (kategori, attendanceToday = [], permissions = [
   }
 
   if (filterFn) {
-    return attendanceToday.filter(filterFn).map((r) => {
-      let ket = 'Tepat Waktu';
-      if (kategori === 'Sangat Awal (>15 Mnt)') {
-        ket = 'Sangat Awal';
-      } else if (kategori === 'Tepat Waktu (0-15 Mnt)') {
-        ket = 'Tepat Waktu';
-      } else if (kategori === 'Shift Pagi') {
-        ket = 'Shift Pagi';
-      } else if (kategori === 'Shift Middle') {
-        ket = 'Shift Middle';
-      } else if (kategori === 'Lupa Tap Kehadiran' || kategori === 'Lupa Tap Out/In') {
-        ket = 'Lupa Tap Kehadiran';
-      } else if (r.inStatus) {
-        ket = r.inStatus;
-      }
+    const matched = attendanceRecords.filter(filterFn);
+    const empMap = new Map();
 
-      return {
-        id: r.id || `${r.finger}_${kategori}`,
-        nama: r.nama || `(PIN ${r.finger})`,
-        pin: String(r.finger),
-        dept: r.deptDisplay || 'Umum',
-        jamMasuk: r.in || '-',
-        jamPulang: r.out || '-',
-        keterangan: ket,
-        status: 'Pending',
-      };
+    matched.forEach((r) => {
+      const pin = String(r.finger || r.pin);
+      if (!empMap.has(pin)) {
+        let baseKet = 'Tepat Waktu';
+        if (kategori === 'Sangat Awal (>15 Mnt)') baseKet = 'Sangat Awal';
+        else if (kategori === 'Tepat Waktu (0-15 Mnt)') baseKet = 'Tepat Waktu';
+        else if (kategori === 'Shift Pagi') baseKet = 'Shift Pagi';
+        else if (kategori === 'Shift Middle') baseKet = 'Shift Middle';
+        else if (kategori === 'Lupa Tap Kehadiran' || kategori === 'Lupa Tap Out/In') baseKet = 'Lupa Tap Kehadiran';
+        else if (r.inStatus) baseKet = r.inStatus;
+
+        empMap.set(pin, {
+          id: r.id || `${pin}_${kategori}`,
+          nama: r.nama || `(PIN ${pin})`,
+          pin: pin,
+          dept: r.deptDisplay || 'Umum',
+          jamMasuk: r.in || '-',
+          jamPulang: r.out || '-',
+          tgl: r.tgl || '-',
+          count: 1,
+          baseKet: baseKet,
+          status: 'Pending',
+        });
+      } else {
+        const item = empMap.get(pin);
+        item.count += 1;
+        if (r.tgl && (!item.tgl || r.tgl >= item.tgl)) {
+          item.jamMasuk = r.in || item.jamMasuk;
+          item.jamPulang = r.out || item.jamPulang;
+          item.tgl = r.tgl;
+        }
+      }
     });
+
+    return Array.from(empMap.values()).map((item) => ({
+      ...item,
+      keterangan: item.count > 1 ? `${item.baseKet} (${item.count}x)` : item.baseKet,
+    }));
   }
 
   if (['Dinas Luar / Field', 'Sakit (Surat Dokter)', 'Izin Alasan Penting', 'Cuti Tahunan'].includes(kategori)) {
@@ -118,22 +139,35 @@ const getPegawaiUntukKategori = (kategori, attendanceToday = [], permissions = [
       'Cuti Tahunan': 'cuti',
     };
     const targetCat = catMap[kategori];
-    return permissions
+    const permMap = new Map();
+    permissions
       .filter((p) => p.category === targetCat || p.kategori?.toLowerCase() === targetCat)
-      .map((p) => ({
-        id: p.id,
-        nama: p.employee?.nama || p.nama || 'Karyawan',
-        pin: String(p.employee?.pin || p.pin || '-'),
-        dept: p.employee?.dept || p.dept || 'Umum',
-        jamMasuk: p.jam_mulai || '-',
-        jamPulang: p.jam_selesai || '-',
-        keterangan: p.keterangan || kategori,
-        status: p.status || 'Pending',
-      }));
+      .forEach((p) => {
+        const pin = String(p.employee?.pin || p.pin || '-');
+        if (!permMap.has(pin)) {
+          permMap.set(pin, {
+            id: p.id,
+            nama: p.employee?.nama || p.nama || 'Karyawan',
+            pin: pin,
+            dept: p.employee?.dept || p.dept || 'Umum',
+            jamMasuk: p.jam_mulai || '-',
+            jamPulang: p.jam_selesai || '-',
+            keterangan: p.keterangan || kategori,
+            status: p.status || 'Pending',
+            count: 1,
+          });
+        } else {
+          permMap.get(pin).count += 1;
+        }
+      });
+    return Array.from(permMap.values()).map((item) => ({
+      ...item,
+      keterangan: item.count > 1 ? `${item.keterangan} (${item.count} hari)` : item.keterangan,
+    }));
   }
 
   if (kategori === 'Mangkir 1 Hari' || kategori === 'Mangkir >2 Hari Berturut') {
-    const attendedPins = new Set(attendanceToday.map((r) => String(r.finger || r.pin)));
+    const attendedPins = new Set(attendanceRecords.map((r) => String(r.finger || r.pin)));
     const permPins = new Set(permissions.map((p) => String(p.employee?.pin || p.pin)));
     return allEmployees
       .filter((e) => !attendedPins.has(String(e.pin)) && !permPins.has(String(e.pin)))
@@ -180,6 +214,13 @@ const Dashboard = () => {
     izin: 0,
     belum_pulang: 0,
     total_karyawan: 0
+  });
+  const [monthlyStats, setMonthlyStats] = useState({
+    total_karyawan: 0,
+    hadir: 0,
+    terlambat: 0,
+    izin: 0,
+    total_kasus_terlambat: 0,
   });
   const [recentLogs, setRecentLogs] = useState([]);
   const [allAttendance, setAllAttendance] = useState([]);
@@ -242,10 +283,11 @@ const Dashboard = () => {
   const loadDashboardData = useCallback(async () => {
     try {
       const todayStr = getLocalDateString();
+      const currentMonthStr = getLocalMonthString();
       const [attRes, permRes, actionRes, empRes] = await Promise.allSettled([
-        api.get('/api/admin/attendance'),
+        api.get(`/api/admin/attendance?bulan=${currentMonthStr}`),
         api.get('/api/admin/permissions'),
-        api.get(`/api/admin/employee-hr-actions?tanggal=${todayStr}`),
+        api.get(`/api/admin/employee-hr-actions?bulan=${currentMonthStr}`),
         api.get('/api/admin/employees'),
       ]);
 
@@ -253,10 +295,14 @@ const Dashboard = () => {
         if (attRes.value.data.stats) {
           setStats(attRes.value.data.stats);
         }
+        if (attRes.value.data.monthly_stats) {
+          setMonthlyStats(attRes.value.data.monthly_stats);
+        }
         if (attRes.value.data.attendance) {
-          setRecentLogs(attRes.value.data.attendance.slice(0, 5));
           const todayRecords = attRes.value.data.attendance.filter((r) => r.tgl === todayStr);
-          setAllAttendance(todayRecords.length > 0 ? todayRecords : attRes.value.data.attendance);
+          setRecentLogs(todayRecords.length > 0 ? todayRecords.slice(0, 5) : attRes.value.data.attendance.slice(0, 5));
+          const monthRecords = attRes.value.data.attendance.filter((r) => r.tgl && r.tgl.startsWith(currentMonthStr));
+          setAllAttendance(monthRecords.length > 0 ? monthRecords : attRes.value.data.attendance);
         }
       }
 
@@ -265,7 +311,7 @@ const Dashboard = () => {
       }
 
       if (actionRes.status === 'fulfilled' && actionRes.value.data?.success) {
-        setSavedHrActions(actionRes.value.data.data || []);
+        setSavedHrActions(actionRes.value.data.data || actionRes.value.data.all_actions || []);
       }
 
       if (empRes.status === 'fulfilled' && empRes.value.data?.employees) {
@@ -281,30 +327,36 @@ const Dashboard = () => {
     fetchTindakan();
   }, [loadDashboardData, fetchTindakan]);
 
-  const ontimeCount = stats.hadir - stats.terlambat > 0 ? stats.hadir - stats.terlambat : 0;
+  const monthPermissions = useMemo(() => {
+    const currentMonthStr = getLocalMonthString();
+    return permissions.filter((p) => {
+      const tglMulai = p.tanggal_mulai ? String(p.tanggal_mulai).slice(0, 7) : null;
+      const tglSelesai = p.tanggal_selesai ? String(p.tanggal_selesai).slice(0, 7) : null;
+      return tglMulai === currentMonthStr || tglSelesai === currentMonthStr || (!tglMulai && !tglSelesai);
+    });
+  }, [permissions]);
 
-  const tepatWaktuRows = useMemo(() => {
-    return allAttendance.filter((r) => r.status === 'hadir' || r.status === 'ontime' || !String(r.inStatus || '').startsWith('Telat'));
-  }, [allAttendance]);
+  const countForCategory = useCallback((kategori) => {
+    return getPegawaiUntukKategori(kategori, allAttendance, monthPermissions, allEmployees).length;
+  }, [allAttendance, monthPermissions, allEmployees]);
 
-  const realSangatAwalCount = useMemo(() => {
-    return tepatWaktuRows.filter((r) => {
-      const mins = parseTimeMinutes(r.in);
-      return mins !== null && mins < 465;
-    }).length;
-  }, [tepatWaktuRows]);
+  const ontimePegawaiCount = useMemo(() => {
+    return countForCategory('Sangat Awal (>15 Mnt)') + countForCategory('Tepat Waktu (0-15 Mnt)') + countForCategory('Shift Pagi') + countForCategory('Shift Middle');
+  }, [countForCategory]);
 
-  const realTepatWaktuNormalCount = useMemo(() => {
-    return tepatWaktuRows.filter((r) => {
-      const mins = parseTimeMinutes(r.in);
-      return mins === null || mins >= 465;
-    }).length;
-  }, [tepatWaktuRows]);
+  const latePegawaiCount = useMemo(() => {
+    return countForCategory('Toleransi (<15 Mnt)') + countForCategory('Sedang (15 - 30 Mnt)') + countForCategory('Berat (>30 Mnt)');
+  }, [countForCategory]);
 
-  const sangatAwalCount = tepatWaktuRows.length > 0 ? realSangatAwalCount : Math.round(ontimeCount * 0.4);
-  const tepatWaktuNormalCount = tepatWaktuRows.length > 0 ? realTepatWaktuNormalCount : (ontimeCount - Math.round(ontimeCount * 0.4));
+  const izinPegawaiCount = useMemo(() => {
+    return countForCategory('Dinas Luar / Field') + countForCategory('Sakit (Surat Dokter)') + countForCategory('Izin Alasan Penting') + countForCategory('Cuti Tahunan');
+  }, [countForCategory]);
 
-  const level1Data = {
+  const alpaPegawaiCount = useMemo(() => {
+    return countForCategory('Mangkir 1 Hari') + countForCategory('Mangkir >2 Hari Berturut') + countForCategory('Lupa Tap Kehadiran');
+  }, [countForCategory]);
+
+  const level1Data = useMemo(() => ({
     title: "Evaluasi Kedisiplinan & Kehadiran (Bulan Ini)",
     subtitle: "Klik pada salah satu batang status untuk melihat rincian kriteria keparahannya.",
     categories: ['Tepat Waktu', 'Terlambat', 'Izin / Sakit / Dinas', 'Tanpa Ket. (Alpa)'],
@@ -312,71 +364,63 @@ const Dashboard = () => {
       {
         name: 'Jumlah Kasus/Pegawai',
         data: [
-          ontimeCount,
-          stats.terlambat,
-          stats.izin,
-          Math.max(0, stats.total_karyawan - (stats.hadir + stats.izin))
+          ontimePegawaiCount,
+          latePegawaiCount,
+          izinPegawaiCount,
+          alpaPegawaiCount
         ]
       }
     ]
-  };
+  }), [ontimePegawaiCount, latePegawaiCount, izinPegawaiCount, alpaPegawaiCount]);
 
-  const toleransiCount = useMemo(() => {
-    return allAttendance.filter((r) => (r.status === 'late' || r.status === 'terlambat') && parseMinutesLate(r.inStatus) < 15).length;
-  }, [allAttendance]);
-
-  const sedangCount = useMemo(() => {
-    return allAttendance.filter((r) => (r.status === 'late' || r.status === 'terlambat') && parseMinutesLate(r.inStatus) >= 15 && parseMinutesLate(r.inStatus) < 30).length;
-  }, [allAttendance]);
-
-  const beratCount = useMemo(() => {
-    return allAttendance.filter((r) => (r.status === 'late' || r.status === 'terlambat') && parseMinutesLate(r.inStatus) >= 30).length;
-  }, [allAttendance]);
-
-  const lupaTapCount = useMemo(() => {
-    return allAttendance.filter((r) => !r.in || r.in === '-' || r.inStatus === 'Belum Tap' || r.inStatus === 'Lupa Tap' || (Boolean(r.out && r.out !== '-') && (!r.in || r.in === '-'))).length;
-  }, [allAttendance]);
-
-  const dinasCount = useMemo(() => {
-    return permissions.filter((p) => p.category === 'dinas' || p.kategori?.toLowerCase() === 'dinas').length;
-  }, [permissions]);
-
-  const sakitCount = useMemo(() => {
-    return permissions.filter((p) => p.category === 'sakit' || p.kategori?.toLowerCase() === 'sakit').length;
-  }, [permissions]);
-
-  const izinCount = useMemo(() => {
-    return permissions.filter((p) => p.category === 'izin' || p.kategori?.toLowerCase() === 'izin').length;
-  }, [permissions]);
-
-  const cutiCount = useMemo(() => {
-    return permissions.filter((p) => p.category === 'cuti' || p.kategori?.toLowerCase() === 'cuti').length;
-  }, [permissions]);
-
-  const mangkir1HariCount = useMemo(() => {
-    const attendedPins = new Set(allAttendance.map((r) => String(r.finger || r.pin)));
-    const permPins = new Set(permissions.map((p) => String(p.employee?.pin || p.pin)));
-    return allEmployees.filter((e) => !attendedPins.has(String(e.pin)) && !permPins.has(String(e.pin))).length;
-  }, [allAttendance, permissions, allEmployees]);
-
-  const level2Data = {
+  const level2Data = useMemo(() => ({
     'Tepat Waktu': {
       categories: ['Sangat Awal (>15 Mnt)', 'Tepat Waktu (0-15 Mnt)', 'Shift Pagi', 'Shift Middle'],
-      series: [{ name: 'Jumlah Pegawai', data: [sangatAwalCount, tepatWaktuNormalCount, 0, 0] }]
+      series: [{
+        name: 'Jumlah Pegawai',
+        data: [
+          countForCategory('Sangat Awal (>15 Mnt)'),
+          countForCategory('Tepat Waktu (0-15 Mnt)'),
+          countForCategory('Shift Pagi'),
+          countForCategory('Shift Middle')
+        ]
+      }]
     },
     'Terlambat': {
       categories: ['Toleransi (<15 Mnt)', 'Sedang (15 - 30 Mnt)', 'Berat (>30 Mnt)'],
-      series: [{ name: 'Jumlah Kasus', data: [toleransiCount || Math.round(stats.terlambat * 0.6), sedangCount || Math.round(stats.terlambat * 0.3), beratCount || Math.round(stats.terlambat * 0.1)] }]
+      series: [{
+        name: 'Jumlah Pegawai',
+        data: [
+          countForCategory('Toleransi (<15 Mnt)'),
+          countForCategory('Sedang (15 - 30 Mnt)'),
+          countForCategory('Berat (>30 Mnt)')
+        ]
+      }]
     },
     'Izin / Sakit / Dinas': {
       categories: ['Dinas Luar / Field', 'Sakit (Surat Dokter)', 'Izin Alasan Penting', 'Cuti Tahunan'],
-      series: [{ name: 'Jumlah Kasus', data: [dinasCount, sakitCount, izinCount, cutiCount] }]
+      series: [{
+        name: 'Jumlah Pegawai',
+        data: [
+          countForCategory('Dinas Luar / Field'),
+          countForCategory('Sakit (Surat Dokter)'),
+          countForCategory('Izin Alasan Penting'),
+          countForCategory('Cuti Tahunan')
+        ]
+      }]
     },
     'Tanpa Ket. (Alpa)': {
       categories: ['Mangkir 1 Hari', 'Mangkir >2 Hari Berturut', 'Lupa Tap Kehadiran'],
-      series: [{ name: 'Jumlah Kasus', data: [mangkir1HariCount, 0, lupaTapCount] }]
+      series: [{
+        name: 'Jumlah Pegawai',
+        data: [
+          countForCategory('Mangkir 1 Hari'),
+          countForCategory('Mangkir >2 Hari Berturut'),
+          countForCategory('Lupa Tap Kehadiran')
+        ]
+      }]
     }
-  };
+  }), [countForCategory]);
 
   const getOpsiTindakanForCategory = useCallback((kategori) => {
     const rawItems = tindakanList
@@ -412,7 +456,7 @@ const Dashboard = () => {
     const result = {};
     KATEGORI_TINDAKAN.forEach((kategori) => {
       const actions = getOpsiTindakanForCategory(kategori);
-      const pegawaiList = getPegawaiUntukKategori(kategori, allAttendance, permissions, allEmployees);
+      const pegawaiList = getPegawaiUntukKategori(kategori, allAttendance, monthPermissions, allEmployees);
 
       const counts = actions.map((act) => {
         return pegawaiList.filter((p) => {
@@ -427,7 +471,7 @@ const Dashboard = () => {
       };
     });
     return result;
-  }, [tindakanList, allAttendance, permissions, allEmployees, savedHrActions, getOpsiTindakanForCategory, getEmployeeAction]);
+  }, [tindakanList, allAttendance, monthPermissions, allEmployees, savedHrActions, getOpsiTindakanForCategory, getEmployeeAction]);
 
   const getCurrentChartData = () => {
     if (drillLevel === 1) {
@@ -463,7 +507,7 @@ const Dashboard = () => {
   const activeChart = getCurrentChartData();
 
   const openEksekusiModal = (kategori, filterAksi = '') => {
-    const rawList = getPegawaiUntukKategori(kategori, allAttendance, permissions, allEmployees);
+    const rawList = getPegawaiUntukKategori(kategori, allAttendance, monthPermissions, allEmployees);
     const withActions = rawList.map((p) => {
       const current = getEmployeeAction(p.pin, kategori);
       return {

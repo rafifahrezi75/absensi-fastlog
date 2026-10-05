@@ -17,6 +17,7 @@ class AttendanceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filterTanggal = $request->query('tanggal');
+        $filterBulan = $request->query('bulan');
         $filterDept = $request->query('dept');
         $filterStatus = $request->query('status');
         $search = $request->query('search');
@@ -26,6 +27,8 @@ class AttendanceController extends Controller
 
         if (!empty($filterTanggal)) {
             $query->whereDate('scan_at', $filterTanggal);
+        } elseif (!empty($filterBulan)) {
+            $query->where('scan_at', 'like', $filterBulan . '%');
         }
 
         $logs = $query->get();
@@ -78,6 +81,27 @@ class AttendanceController extends Controller
             'belum_pulang' => 0,
             'total_karyawan' => Employee::count(),
         ];
+
+        $targetMonth = !empty($filterBulan) ? $filterBulan : Carbon::parse($targetDate)->format('Y-m');
+        $startOfMonth = Carbon::parse($targetMonth . '-01')->startOfMonth()->toDateString();
+        $endOfMonth = Carbon::parse($targetMonth . '-01')->endOfMonth()->toDateString();
+
+        $izinBulanCount = \App\Models\Permission::where('status', 'disetujui')
+            ->whereIn('category', ['izin', 'sakit', 'cuti', 'dinas'])
+            ->whereDate('tanggal_mulai', '<=', $endOfMonth)
+            ->whereDate('tanggal_selesai', '>=', $startOfMonth)
+            ->distinct('employee_id')
+            ->count('employee_id');
+
+        $monthlyStats = [
+            'total_karyawan' => Employee::count(),
+            'hadir' => 0,
+            'terlambat' => 0,
+            'izin' => $izinBulanCount,
+            'total_kasus_terlambat' => 0,
+        ];
+        $monthHadirPins = [];
+        $monthLatePins = [];
 
         $counterId = 1;
 
@@ -154,6 +178,14 @@ class AttendanceController extends Controller
                 }
             }
 
+            if (str_starts_with($item['date'], $targetMonth)) {
+                $monthHadirPins[$item['pin']] = true;
+                if ($isLate) {
+                    $monthLatePins[$item['pin']] = true;
+                    $monthlyStats['total_kasus_terlambat']++;
+                }
+            }
+
             $row = [
                 'id' => $counterId++,
                 'nama' => $empName,
@@ -213,9 +245,13 @@ class AttendanceController extends Controller
             return strcmp($b['in'], $a['in']);
         });
 
+        $monthlyStats['hadir'] = count($monthHadirPins);
+        $monthlyStats['terlambat'] = count($monthLatePins);
+
         return response()->json([
             'attendance' => $attendanceList,
             'stats' => $stats,
+            'monthly_stats' => $monthlyStats,
         ]);
     }
 

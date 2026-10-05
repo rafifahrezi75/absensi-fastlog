@@ -12,10 +12,20 @@ class EmployeeHrActionController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $tanggal = $request->query('tanggal') ?? Carbon::today()->toDateString();
+        $bulan = $request->query('bulan');
+        $tanggal = $request->query('tanggal');
         $kategori = $request->query('kategori');
 
-        $query = EmployeeHrAction::whereDate('tanggal', $tanggal);
+        $query = EmployeeHrAction::query();
+
+        if (!empty($bulan)) {
+            $query->where('tanggal', 'like', $bulan . '%');
+        } elseif (!empty($tanggal)) {
+            $query->whereDate('tanggal', $tanggal);
+        } else {
+            $curMonth = Carbon::today()->format('Y-m');
+            $query->where('tanggal', 'like', $curMonth . '%');
+        }
 
         if (!empty($kategori)) {
             $query->where('kategori', $kategori);
@@ -43,30 +53,43 @@ class EmployeeHrActionController extends Controller
 
         $finger = (string)$validated['finger'];
         $tanggal = Carbon::parse($validated['tanggal'])->toDateString();
+        $monthStr = Carbon::parse($tanggal)->format('Y-m');
         $kategori = $validated['kategori'];
         $tindakan = $validated['tindakan'];
 
-        $record = EmployeeHrAction::updateOrCreate(
-            [
+        $existing = EmployeeHrAction::where('finger', $finger)
+            ->where('kategori', $kategori)
+            ->where('tanggal', 'like', $monthStr . '%')
+            ->first();
+
+        if ($existing) {
+            $existing->update([
+                'nama' => $validated['nama'] ?? $existing->nama,
+                'tindakan' => $tindakan,
+                'status' => $tindakan === 'Tidak Ada Tindakan' ? 'Pending' : ($validated['status'] ?? 'Selesai'),
+                'catatan' => $validated['catatan'] ?? $existing->catatan,
+                'tanggal' => $tanggal,
+            ]);
+            $record = $existing;
+        } else {
+            $record = EmployeeHrAction::create([
                 'finger' => $finger,
+                'nama' => $validated['nama'] ?? null,
                 'tanggal' => $tanggal,
                 'kategori' => $kategori,
-            ],
-            [
-                'nama' => $validated['nama'] ?? null,
                 'tindakan' => $tindakan,
                 'status' => $tindakan === 'Tidak Ada Tindakan' ? 'Pending' : ($validated['status'] ?? 'Selesai'),
                 'catatan' => $validated['catatan'] ?? null,
-            ]
-        );
+            ]);
+        }
 
-        $allForDate = EmployeeHrAction::whereDate('tanggal', $tanggal)->get();
+        $allForMonth = EmployeeHrAction::where('tanggal', 'like', $monthStr . '%')->get();
 
         return response()->json([
             'success' => true,
             'message' => 'Tindakan pegawai berhasil disimpan.',
             'data' => $record,
-            'all_actions' => $allForDate,
+            'all_actions' => $allForMonth,
         ]);
     }
 
@@ -83,34 +106,46 @@ class EmployeeHrActionController extends Controller
             'items.*.catatan' => 'nullable|string',
         ]);
 
-        $tanggal = null;
+        $monthStr = Carbon::today()->format('Y-m');
         foreach ($validated['items'] as $item) {
             $tgl = Carbon::parse($item['tanggal'])->toDateString();
-            if (!$tanggal) {
-                $tanggal = $tgl;
-            }
+            $monthStr = Carbon::parse($tgl)->format('Y-m');
             $tindakan = $item['tindakan'];
-            EmployeeHrAction::updateOrCreate(
-                [
-                    'finger' => (string)$item['finger'],
+            $finger = (string)$item['finger'];
+            $kategori = $item['kategori'];
+
+            $existing = EmployeeHrAction::where('finger', $finger)
+                ->where('kategori', $kategori)
+                ->where('tanggal', 'like', $monthStr . '%')
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'nama' => $item['nama'] ?? $existing->nama,
+                    'tindakan' => $tindakan,
+                    'status' => $tindakan === 'Tidak Ada Tindakan' ? 'Pending' : ($item['status'] ?? 'Selesai'),
+                    'catatan' => $item['catatan'] ?? $existing->catatan,
                     'tanggal' => $tgl,
-                    'kategori' => $item['kategori'],
-                ],
-                [
+                ]);
+            } else {
+                EmployeeHrAction::create([
+                    'finger' => $finger,
                     'nama' => $item['nama'] ?? null,
+                    'tanggal' => $tgl,
+                    'kategori' => $kategori,
                     'tindakan' => $tindakan,
                     'status' => $tindakan === 'Tidak Ada Tindakan' ? 'Pending' : ($item['status'] ?? 'Selesai'),
                     'catatan' => $item['catatan'] ?? null,
-                ]
-            );
+                ]);
+            }
         }
 
-        $allForDate = $tanggal ? EmployeeHrAction::whereDate('tanggal', $tanggal)->get() : [];
+        $allForMonth = EmployeeHrAction::where('tanggal', 'like', $monthStr . '%')->get();
 
         return response()->json([
             'success' => true,
             'message' => 'Batch tindakan pegawai berhasil disimpan.',
-            'all_actions' => $allForDate,
+            'all_actions' => $allForMonth,
         ]);
     }
 }
