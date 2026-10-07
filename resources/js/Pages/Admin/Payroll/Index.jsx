@@ -1,69 +1,36 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Download, Calculator, Search, CheckCircle, FileText, Clock, ReceiptText } from 'lucide-react';
 import ModalSlip from './Components/ModalSlip';
+import axios from 'axios';
 
-// Tambahkan field 'periode' (format YYYY-MM) pada mock data
-const INITIAL_PAYROLL_DATA = [
-    {
-        id: 1,
-        nama: 'Budi Santoso',
-        nik: '20260101',
-        dept: 'it',
-        deptLabel: 'IT & Tech',
-        jabatan: 'Software Engineer',
-        gapok: 8000000,
-        bonus: 750000,
-        potongan: 50000,
-        status: 'paid',
-        periode: '2026-08'
-    },
-    {
-        id: 2,
-        nama: 'Ahmad Rizky',
-        nik: '20260104',
-        dept: 'marketing',
-        deptLabel: 'Marketing',
-        jabatan: 'Digital Marketer',
-        gapok: 6500000,
-        bonus: 300000,
-        potongan: 150000,
-        status: 'pending',
-        periode: '2026-08'
-    },
-    {
-        id: 3,
-        nama: 'Siti Aminah',
-        nik: '20260105',
-        dept: 'hrd',
-        deptLabel: 'HRD & GA',
-        jabatan: 'HR Officer',
-        gapok: 7000000,
-        bonus: 450000,
-        potongan: 0,
-        status: 'paid',
-        periode: '2026-08'
-    },
-    {
-        id: 4,
-        nama: 'Dewi Lestari',
-        nik: '20260108',
-        dept: 'it',
-        deptLabel: 'IT & Tech',
-        jabatan: 'UI/UX Designer',
-        gapok: 7500000,
-        bonus: 500000,
-        potongan: 100000,
-        status: 'pending',
-        periode: '2026-07' // Contoh data bulan Juli 2026
-    }
-];
+// Data akan difetch dari backend
 
 const Payroll = () => {
-    const [payrollList, setPayrollList] = useState(INITIAL_PAYROLL_DATA);
-    const [periode, setPeriode] = useState('2026-08');
+    const [payrollList, setPayrollList] = useState([]);
+    const [periode, setPeriode] = useState(() => {
+        const date = new Date();
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    });
     const [selectedDept, setSelectedDept] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    React.useEffect(() => {
+        fetchPayroll();
+    }, [periode]);
+
+    const fetchPayroll = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`/api/admin/payroll?periode=${periode}`);
+            setPayrollList(response.data);
+        } catch (error) {
+            console.error('Failed to fetch payroll data', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const [modalData, setModalData] = useState({
         isOpen: false,
@@ -95,8 +62,8 @@ const Payroll = () => {
     const filteredPayroll = useMemo(() => {
         return payrollList.filter(item => {
             const matchesPeriode = periode ? item.periode === periode : true;
-            const matchesSearch = item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.nik.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = (item.nama || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.nik || '').toLowerCase().includes(searchQuery.toLowerCase());
             const matchesDept = selectedDept ? item.dept === selectedDept : true;
             const matchesStatus = selectedStatus ? item.status === selectedStatus : true;
 
@@ -141,6 +108,7 @@ const Payroll = () => {
 
     // Handle Calculate Payroll (Simulasi)
     const handleRecalculatePayroll = () => {
+        fetchPayroll();
         alert(`Payroll untuk periode ${periode} berhasil dikalkulasi ulang berdasarkan rekap data absensi terbaru!`);
     };
 
@@ -295,7 +263,7 @@ const Payroll = () => {
                             {filteredPayroll.length > 0 ? (
                                 filteredPayroll.map((item) => {
                                     const thp = item.gapok + item.bonus - item.potongan;
-                                    const avatarInitials = item.nama.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                                    const avatarInitials = (item.nama || 'NA').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
                                     return (
                                         <tr key={item.id} className="hover:bg-slate-50 transition">

@@ -91,6 +91,9 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::post('/devices/ping', [DeviceController::class, 'ping'])->name('api.admin.devices.ping');
     Route::post('/devices/sync-logs', [DeviceController::class, 'syncLogs'])->name('api.admin.devices.sync-logs');
     Route::post('/devices/sync-users', [DeviceController::class, 'syncUsers'])->name('api.admin.devices.sync-users');
+
+    Route::get('/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('api.admin.payroll.index');
+
     Route::get('/master-payroll/golongan', [MasterPayrollController::class, 'indexGolongan'])->name('api.admin.master-payroll.golongan.index');
     Route::post('/master-payroll/golongan', [MasterPayrollController::class, 'storeGolongan'])->name('api.admin.master-payroll.golongan.store');
     Route::put('/master-payroll/golongan/{id}', [MasterPayrollController::class, 'updateGolongan'])->name('api.admin.master-payroll.golongan.update');
