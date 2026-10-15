@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Clock, Search, Send, Loader2 } from 'lucide-react';
+import { X, Clock, Calendar, Search, Send, Loader2 } from 'lucide-react';
 
 const ModalEksekusiTindakan = ({
     isOpen,
@@ -288,6 +288,7 @@ const ModalEksekusiTindakan = ({
                                             />
                                         </th>
                                         <th className="py-2 px-3">Pegawai</th>
+                                        <th className="py-2 px-2.5 text-center whitespace-nowrap">Tanggal</th>
                                         <th className="py-2 px-2.5 text-center whitespace-nowrap">Jam Masuk</th>
                                         <th className="py-2 px-2.5 text-center whitespace-nowrap">Kategori</th>
                                         <th className="py-2 px-3 text-right whitespace-nowrap">Tindakan HR</th>
@@ -344,6 +345,13 @@ const ModalEksekusiTindakan = ({
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </td>
+
+                                                <td className="py-2 px-2.5 text-center whitespace-nowrap">
+                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-50 text-slate-600 font-medium text-[11px] border border-slate-200">
+                                                        <Calendar className="w-3 h-3 text-slate-400" />
+                                                        {item.tgl || '-'}
+                                                    </span>
                                                 </td>
 
                                                 <td className="py-2 px-2.5 text-center whitespace-nowrap">

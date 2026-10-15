@@ -17,7 +17,8 @@ import {
   ArrowLeft,
   ChevronRight,
   ShieldAlert,
-  Settings2
+  Settings2,
+  Calendar
 } from 'lucide-react';
 import api from '../../../lib/api';
 import { dashboardMockRecentLogs, dashboardMockAbsentEmployees, dashboardMockStats, KATEGORI_TINDAKAN, INITIAL_TINDAKAN } from './data/dashboardMock';
@@ -144,6 +145,12 @@ const getPegawaiUntukKategori = (kategori, attendanceRecords = [], permissions =
       .filter((p) => p.category === targetCat || p.kategori?.toLowerCase() === targetCat)
       .forEach((p) => {
         const pin = String(p.employee?.pin || p.pin || '-');
+        const tglMulai = p.tanggal_mulai ? String(p.tanggal_mulai).slice(0, 10) : '';
+        const tglSelesai = p.tanggal_selesai ? String(p.tanggal_selesai).slice(0, 10) : '';
+        const tglInfo = tglMulai && tglSelesai && tglMulai !== tglSelesai
+          ? `${tglMulai} s/d ${tglSelesai}`
+          : (tglMulai || tglSelesai || '-');
+
         if (!permMap.has(pin)) {
           permMap.set(pin, {
             id: p.id,
@@ -152,6 +159,7 @@ const getPegawaiUntukKategori = (kategori, attendanceRecords = [], permissions =
             dept: p.employee?.dept || p.dept || 'Umum',
             jamMasuk: p.jam_mulai || '-',
             jamPulang: p.jam_selesai || '-',
+            tgl: tglInfo,
             keterangan: p.keterangan || kategori,
             status: p.status || 'Pending',
             count: 1,
@@ -178,6 +186,7 @@ const getPegawaiUntukKategori = (kategori, attendanceRecords = [], permissions =
         dept: e.dept || 'Umum',
         jamMasuk: '-',
         jamPulang: '-',
+        tgl: 'Bulan Berjalan',
         keterangan: kategori,
         status: 'Pending',
       }));
@@ -231,6 +240,7 @@ const Dashboard = () => {
   const [drillLevel, setDrillLevel] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [filterBulan, setFilterBulan] = useState(getLocalMonthString());
 
   const [tindakanList, setTindakanList] = useState([]);
   const [isKelolaTindakanOpen, setIsKelolaTindakanOpen] = useState(false);
@@ -283,7 +293,7 @@ const Dashboard = () => {
   const loadDashboardData = useCallback(async () => {
     try {
       const todayStr = getLocalDateString();
-      const currentMonthStr = getLocalMonthString();
+      const currentMonthStr = filterBulan || getLocalMonthString();
       const [attRes, permRes, actionRes, empRes] = await Promise.allSettled([
         api.get(`/api/admin/attendance?bulan=${currentMonthStr}`),
         api.get('/api/admin/permissions'),
@@ -320,7 +330,7 @@ const Dashboard = () => {
     } catch (err) {
       console.error(err);
     }
-  }, []);
+  }, [filterBulan]);
 
   useEffect(() => {
     loadDashboardData();
@@ -328,13 +338,13 @@ const Dashboard = () => {
   }, [loadDashboardData, fetchTindakan]);
 
   const monthPermissions = useMemo(() => {
-    const currentMonthStr = getLocalMonthString();
+    const currentMonthStr = filterBulan || getLocalMonthString();
     return permissions.filter((p) => {
       const tglMulai = p.tanggal_mulai ? String(p.tanggal_mulai).slice(0, 7) : null;
       const tglSelesai = p.tanggal_selesai ? String(p.tanggal_selesai).slice(0, 7) : null;
       return tglMulai === currentMonthStr || tglSelesai === currentMonthStr || (!tglMulai && !tglSelesai);
     });
-  }, [permissions]);
+  }, [permissions, filterBulan]);
 
   const countForCategory = useCallback((kategori) => {
     return getPegawaiUntukKategori(kategori, allAttendance, monthPermissions, allEmployees).length;
@@ -357,7 +367,7 @@ const Dashboard = () => {
   }, [countForCategory]);
 
   const level1Data = useMemo(() => ({
-    title: "Evaluasi Kedisiplinan & Kehadiran (Bulan Ini)",
+    title: `Evaluasi Kedisiplinan & Kehadiran (${filterBulan || 'Bulan Ini'})`,
     subtitle: "Klik pada salah satu batang status untuk melihat rincian kriteria keparahannya.",
     categories: ['Tepat Waktu', 'Terlambat', 'Izin / Sakit / Dinas', 'Tanpa Ket. (Alpa)'],
     series: [
@@ -371,7 +381,7 @@ const Dashboard = () => {
         ]
       }
     ]
-  }), [ontimePegawaiCount, latePegawaiCount, izinPegawaiCount, alpaPegawaiCount]);
+  }), [ontimePegawaiCount, latePegawaiCount, izinPegawaiCount, alpaPegawaiCount, filterBulan]);
 
   const level2Data = useMemo(() => ({
     'Tepat Waktu': {
@@ -665,6 +675,12 @@ const Dashboard = () => {
     setSelectedCategory('');
   };
 
+  const handleBackToLevel1 = () => {
+    setDrillLevel(1);
+    setSelectedStatus('');
+    setSelectedCategory('');
+  };
+
   const handleBackToLevel2 = () => {
     setDrillLevel(2);
     setSelectedCategory('');
@@ -710,8 +726,11 @@ const Dashboard = () => {
       axisTicks: { show: false }
     },
     yaxis: {
+      forceNiceScale: true,
+      min: 0,
       labels: {
-        style: { fontSize: '11px', colors: '#64748b' }
+        style: { fontSize: '11px', colors: '#64748b' },
+        formatter: (val) => Math.round(val).toString()
       }
     },
     grid: {
@@ -872,12 +891,12 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] flex flex-col justify-between">
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-              <div>
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-bold text-slate-900 text-base">{activeChart.title}</h2>
                   {drillLevel > 1 && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 whitespace-nowrap">
                       Level {drillLevel} Drill-down
                     </span>
                   )}
@@ -885,7 +904,20 @@ const Dashboard = () => {
                 <p className="text-xs text-slate-500 mt-0.5">{activeChart.subtitle}</p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="relative flex items-center">
+                  <input
+                    type="month"
+                    value={filterBulan}
+                    onChange={(e) => {
+                      setFilterBulan(e.target.value);
+                      handleResetDrill();
+                    }}
+                    className="text-xs bg-slate-50 border border-slate-200 rounded-lg pl-7 pr-2.5 py-1.5 text-slate-700 font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
+                  />
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-2 pointer-events-none" />
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setIsKelolaTindakanOpen(true)}
@@ -896,12 +928,21 @@ const Dashboard = () => {
                 </button>
 
                 {drillLevel > 1 && (
-                  <>
+                  <div className="flex items-center gap-1.5">
+                    {drillLevel === 2 && (
+                      <button
+                        type="button"
+                        onClick={handleBackToLevel1}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition whitespace-nowrap cursor-pointer"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" /> Kembali
+                      </button>
+                    )}
                     {drillLevel === 3 && (
                       <button
                         type="button"
                         onClick={handleBackToLevel2}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition whitespace-nowrap cursor-pointer"
                       >
                         <ArrowLeft className="w-3.5 h-3.5" /> Kembali
                       </button>
@@ -909,11 +950,11 @@ const Dashboard = () => {
                     <button
                       type="button"
                       onClick={handleResetDrill}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition whitespace-nowrap cursor-pointer"
                     >
                       Reset Utama
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
