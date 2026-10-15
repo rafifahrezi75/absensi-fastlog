@@ -28,7 +28,7 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data, salaryGrades = [] }) => 
                 idFinger: '',
                 dept: 'IT & Tech',
                 jabatan: '',
-                salary_grade_id: salaryGrades.length > 0 ? salaryGrades[0].id : ''
+                salary_grade_id: salaryGrades.find(g => g.nama === 'Staff')?.id || (salaryGrades.length > 0 ? salaryGrades[0].id : '')
             });
         }
     }, [data, isOpen, salaryGrades]);

@@ -91,8 +91,17 @@ class PayrollController extends Controller
         $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
-        $lateFinePerMinute = (float)($settingsData['late_fine_per_minute'] ?? 1000);
-        $absentDeduction = (float)($settingsData['absent_deduction'] ?? 50000);
+
+        $activeComponents = SalaryComponent::where('status', 'aktif')->get();
+        $lateFineComp = $activeComponents->first(function ($c) {
+            return str_contains(strtolower($c->nama), 'keterlambatan') || str_contains(strtolower($c->nama), 'telat');
+        });
+        $absentComp = $activeComponents->first(function ($c) {
+            return str_contains(strtolower($c->nama), 'alpha') || str_contains(strtolower($c->nama), 'alpa');
+        });
+
+        $lateFinePerMinute = $lateFineComp ? (float)$lateFineComp->nilai : (float)($settingsData['late_fine_per_minute'] ?? 1000);
+        $absentDeduction = $absentComp ? (float)$absentComp->nilai : (float)($settingsData['absent_deduction'] ?? 50000);
 
         $monthDate = Carbon::createFromFormat('Y-m', $periode)->startOfMonth();
         $startDate = $monthDate->copy()->startOfMonth();
@@ -260,10 +269,35 @@ class PayrollController extends Controller
             return response()->json(['payrolls' => []]);
         }
 
+        $activeComponents = SalaryComponent::where('status', 'aktif')->get();
+
         $payrolls = Payroll::where('employee_id', $employee->id)
             ->orderBy('periode', 'desc')
             ->get()
-            ->map(function ($p) use ($employee) {
+            ->map(function ($p) use ($employee, $activeComponents) {
+                $savedCatatan = $p->catatan ? json_decode($p->catatan, true) : null;
+                $bpjsDetails = $savedCatatan['bpjs_details'] ?? [];
+                if (empty($bpjsDetails)) {
+                    foreach ($activeComponents->where('tipe', 'potongan')->where('metode', 'persen') as $comp) {
+                        $basisVal = (float)$p->gaji_pokok;
+                        if ($comp->batas_dasar && $basisVal > (float)$comp->batas_dasar) {
+                            $basisVal = (float)$comp->batas_dasar;
+                        }
+                        $bpjsDetails[] = [
+                            'nama' => $comp->nama,
+                            'persen' => (float)$comp->nilai,
+                            'nominal' => round($basisVal * ((float)$comp->nilai / 100)),
+                        ];
+                    }
+                }
+                $tunjanganDetails = $savedCatatan['tunjangan_details'] ?? [];
+                if (empty($tunjanganDetails)) {
+                    $tunjanganDetails = $activeComponents->where('tipe', 'tambahan')->where('metode', 'nominal')->map(fn($c) => [
+                        'nama' => $c->nama,
+                        'nominal' => (float)$c->nilai,
+                    ])->values()->all();
+                }
+
                 return [
                     'id' => $p->id,
                     'employee_id' => $employee->id,
@@ -288,6 +322,8 @@ class PayrollController extends Controller
                     'lembur_menit' => $p->lembur_menit,
                     'status' => $p->status,
                     'dibayar_pada' => $p->dibayar_pada?->format('Y-m-d H:i:s'),
+                    'bpjs_details' => $bpjsDetails,
+                    'tunjangan_details' => $tunjanganDetails,
                 ];
             });
 
@@ -297,12 +333,41 @@ class PayrollController extends Controller
     private function calculatePayrollForPeriod(string $periode, bool $forceRecalculate = false): array
     {
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
-        $lateFinePerMinute = (float)($settingsData['late_fine_per_minute'] ?? 1000);
-        $absentDeduction = (float)($settingsData['absent_deduction'] ?? 50000);
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
         $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
+
+        $activeComponents = SalaryComponent::where('status', 'aktif')->get();
+        $lateFineComp = $activeComponents->first(function ($c) {
+            return str_contains(strtolower($c->nama), 'keterlambatan') || str_contains(strtolower($c->nama), 'telat');
+        });
+        $absentComp = $activeComponents->first(function ($c) {
+            return str_contains(strtolower($c->nama), 'alpha') || str_contains(strtolower($c->nama), 'alpa');
+        });
+
+        $lateFinePerMinute = $lateFineComp ? (float)$lateFineComp->nilai : (float)($settingsData['late_fine_per_minute'] ?? 1000);
+        $absentDeduction = $absentComp ? (float)$absentComp->nilai : (float)($settingsData['absent_deduction'] ?? 50000);
+
+        $allowancesBreakdown = $activeComponents->where('tipe', 'tambahan')
+            ->where('metode', 'nominal')
+            ->map(function ($c) {
+                return [
+                    'nama' => $c->nama,
+                    'nominal' => (float)$c->nilai,
+                ];
+            })->values()->all();
+        $allowancesFixed = array_sum(array_column($allowancesBreakdown, 'nominal'));
+
+        $potonganNominalComps = $activeComponents->where('tipe', 'potongan')
+            ->where('metode', 'nominal')
+            ->map(function ($c) {
+                return [
+                    'nama' => $c->nama,
+                    'nominal' => (float)$c->nilai,
+                ];
+            })->values()->all();
+        $potonganNominalFixed = array_sum(array_column($potonganNominalComps, 'nominal'));
 
         $monthDate = Carbon::createFromFormat('Y-m', $periode)->startOfMonth();
         $startDate = $monthDate->copy()->startOfMonth();
@@ -313,11 +378,6 @@ class PayrollController extends Controller
         $holidays = Holiday::whereBetween('tanggal', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->pluck('tanggal')
             ->toArray();
-
-        $activeComponents = SalaryComponent::where('status', 'aktif')->get();
-        $allowancesFixed = $activeComponents->where('tipe', 'tambahan')
-            ->where('metode', 'nominal')
-            ->sum('nilai');
 
         $employees = Employee::with('salaryGrade')
             ->orderByRaw('nama IS NULL, nama ASC')
@@ -339,6 +399,23 @@ class PayrollController extends Controller
 
             if ($existingPayroll && $existingPayroll->status === 'paid' && !$forceRecalculate) {
                 $deptLabel = $deptLabels[$employee->dept] ?? $employee->dept;
+                $savedCatatan = $existingPayroll->catatan ? json_decode($existingPayroll->catatan, true) : null;
+                $bpjsDetails = $savedCatatan['bpjs_details'] ?? [];
+                if (empty($bpjsDetails)) {
+                    foreach ($activeComponents->where('tipe', 'potongan')->where('metode', 'persen') as $comp) {
+                        $basisVal = (float)$existingPayroll->gaji_pokok;
+                        if ($comp->batas_dasar && $basisVal > (float)$comp->batas_dasar) {
+                            $basisVal = (float)$comp->batas_dasar;
+                        }
+                        $bpjsDetails[] = [
+                            'nama' => $comp->nama,
+                            'persen' => (float)$comp->nilai,
+                            'nominal' => round($basisVal * ((float)$comp->nilai / 100)),
+                        ];
+                    }
+                }
+                $tunjanganDetails = $savedCatatan['tunjangan_details'] ?? $allowancesBreakdown;
+
                 $resultList[] = [
                     'id' => $employee->id,
                     'payroll_id' => $existingPayroll->id,
@@ -364,6 +441,8 @@ class PayrollController extends Controller
                     'alpa' => $existingPayroll->alpa_hari,
                     'lembur_menit' => $existingPayroll->lembur_menit,
                     'dibayar_pada' => $existingPayroll->dibayar_pada?->format('Y-m-d H:i:s'),
+                    'bpjs_details' => $bpjsDetails,
+                    'tunjangan_details' => $tunjanganDetails,
                 ];
                 continue;
             }
@@ -441,22 +520,42 @@ class PayrollController extends Controller
             $potonganTerlambat = $totalLateMinutes * $lateFinePerMinute;
             $potonganAlpa = $alpaCount * $absentDeduction;
 
+            $potonganBPJSBreakdown = [];
             $potonganPersen = 0;
             foreach ($activeComponents->where('tipe', 'potongan')->where('metode', 'persen') as $comp) {
                 $basisVal = $gajiPokok;
                 if ($comp->batas_dasar && $basisVal > (float)$comp->batas_dasar) {
                     $basisVal = (float)$comp->batas_dasar;
                 }
-                $potonganPersen += ($basisVal * ((float)$comp->nilai / 100));
+                $nilaiPot = round($basisVal * ((float)$comp->nilai / 100));
+                $potonganPersen += $nilaiPot;
+                $potonganBPJSBreakdown[] = [
+                    'nama' => $comp->nama,
+                    'persen' => (float)$comp->nilai,
+                    'nominal' => $nilaiPot,
+                ];
             }
 
-            $potonganLainnya = $potonganPersen;
+            foreach ($potonganNominalComps as $pnc) {
+                $potonganBPJSBreakdown[] = [
+                    'nama' => $pnc['nama'],
+                    'persen' => null,
+                    'nominal' => $pnc['nominal'],
+                ];
+            }
+
+            $potonganLainnya = $potonganPersen + $potonganNominalFixed;
             $totalPotongan = $potonganTerlambat + $potonganAlpa + $potonganLainnya;
             $totalBonus = $allowancesFixed + $lemburPay;
             $thp = max(0, $gajiPokok + $totalBonus - $totalPotongan);
 
             $currentStatus = $existingPayroll ? $existingPayroll->status : 'draft';
             $paidAt = $existingPayroll ? $existingPayroll->dibayar_pada : null;
+
+            $catatanJson = json_encode([
+                'bpjs_details' => $potonganBPJSBreakdown,
+                'tunjangan_details' => $allowancesBreakdown,
+            ]);
 
             $savedPayroll = Payroll::updateOrCreate([
                 'employee_id' => $employee->id,
@@ -477,6 +576,7 @@ class PayrollController extends Controller
                 'lembur_menit' => $overtimeMinutes,
                 'status' => $currentStatus,
                 'dibayar_pada' => $paidAt,
+                'catatan' => $catatanJson,
             ]);
 
             $deptLabel = $deptLabels[$employee->dept] ?? $employee->dept;
@@ -506,6 +606,8 @@ class PayrollController extends Controller
                 'alpa' => $alpaCount,
                 'lembur_menit' => $overtimeMinutes,
                 'dibayar_pada' => $savedPayroll->dibayar_pada?->format('Y-m-d H:i:s'),
+                'bpjs_details' => $potonganBPJSBreakdown,
+                'tunjangan_details' => $allowancesBreakdown,
             ];
         }
 

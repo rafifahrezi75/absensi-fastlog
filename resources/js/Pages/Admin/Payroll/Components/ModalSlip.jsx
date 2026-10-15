@@ -121,10 +121,19 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                                 <span>Gaji Pokok:</span>
                                 <span className="font-mono font-medium">{formatIDR(data?.gapok)}</span>
                             </div>
-                            <div className="flex justify-between items-center text-emerald-700">
-                                <span>Tunjangan:</span>
-                                <span className="font-mono font-medium">+ {formatIDR(data?.tunjangan)}</span>
-                            </div>
+                            {data?.tunjangan_details?.length > 0 ? (
+                                data.tunjangan_details.map((t, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-emerald-700">
+                                        <span>{t.nama}:</span>
+                                        <span className="font-mono font-medium">+ {formatIDR(t.nominal)}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex justify-between items-center text-emerald-700">
+                                    <span>Tunjangan:</span>
+                                    <span className="font-mono font-medium">+ {formatIDR(data?.tunjangan)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center text-emerald-700">
                                 <span>Upah Lembur ({data?.lembur_menit || 0} Menit):</span>
                                 <span className="font-mono font-medium">+ {formatIDR(data?.lembur)}</span>
@@ -150,12 +159,19 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                                 <span>Potongan Alpa:</span>
                                 <span className="font-mono font-medium">- {formatIDR(data?.potongan_alpa)}</span>
                             </div>
-                            {data?.potongan_lainnya > 0 && (
+                            {data?.bpjs_details?.length > 0 ? (
+                                data.bpjs_details.map((bpjs, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-rose-600">
+                                        <span>{bpjs.nama}{bpjs.persen ? ` (${bpjs.persen}%)` : ''}:</span>
+                                        <span className="font-mono font-medium">- {formatIDR(bpjs.nominal)}</span>
+                                    </div>
+                                ))
+                            ) : data?.potongan_lainnya > 0 ? (
                                 <div className="flex justify-between items-center text-rose-600">
                                     <span>Potongan BPJS & Komponen:</span>
                                     <span className="font-mono font-medium">- {formatIDR(data?.potongan_lainnya)}</span>
                                 </div>
-                            )}
+                            ) : null}
                             <div className="flex justify-between items-center font-semibold text-rose-700 border-t border-slate-100 pt-1.5">
                                 <span>Total Potongan:</span>
                                 <span className="font-mono">- {formatIDR(data?.potongan)}</span>

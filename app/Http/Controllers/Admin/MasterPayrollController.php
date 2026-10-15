@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SalaryComponent;
 use App\Models\SalaryGrade;
+use App\Models\SystemSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -155,6 +156,13 @@ class MasterPayrollController extends Controller
             'status' => $validated['status'],
         ]);
 
+        $lowerName = strtolower($component->nama);
+        if (str_contains($lowerName, 'keterlambatan') || str_contains($lowerName, 'telat')) {
+            SystemSetting::updateOrCreate(['kunci' => 'late_fine_per_minute'], ['nilai' => (string)$component->nilai]);
+        } elseif (str_contains($lowerName, 'alpha') || str_contains($lowerName, 'alpa')) {
+            SystemSetting::updateOrCreate(['kunci' => 'absent_deduction'], ['nilai' => (string)$component->nilai]);
+        }
+
         return response()->json([
             'message' => 'Komponen gaji berhasil ditambahkan.',
             'komponen' => [
@@ -196,6 +204,13 @@ class MasterPayrollController extends Controller
             'kena_pajak' => $validated['kenaPajak'] ?? false,
             'status' => $validated['status'],
         ]);
+
+        $lowerName = strtolower($component->nama);
+        if (str_contains($lowerName, 'keterlambatan') || str_contains($lowerName, 'telat')) {
+            SystemSetting::updateOrCreate(['kunci' => 'late_fine_per_minute'], ['nilai' => (string)$component->nilai]);
+        } elseif (str_contains($lowerName, 'alpha') || str_contains($lowerName, 'alpa')) {
+            SystemSetting::updateOrCreate(['kunci' => 'absent_deduction'], ['nilai' => (string)$component->nilai]);
+        }
 
         return response()->json([
             'message' => 'Komponen gaji berhasil diperbarui.',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Holiday;
+use App\Models\SalaryComponent;
 use App\Models\SystemSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,6 +62,24 @@ class SettingController extends Controller
                         ['nilai' => (string)$value]
                     );
                 }
+            }
+            if (isset($data['late_fine_per_minute']) && $data['late_fine_per_minute'] !== null) {
+                SalaryComponent::where('nama', 'like', '%keterlambatan%')
+                    ->orWhere('nama', 'like', '%telat%')
+                    ->update([
+                        'nilai' => $data['late_fine_per_minute'],
+                        'basis' => 'menit_telat',
+                        'metode' => 'per_satuan',
+                    ]);
+            }
+            if (isset($data['absent_deduction']) && $data['absent_deduction'] !== null) {
+                SalaryComponent::where('nama', 'like', '%alpha%')
+                    ->orWhere('nama', 'like', '%alpa%')
+                    ->update([
+                        'nilai' => $data['absent_deduction'],
+                        'basis' => 'hari_alpha',
+                        'metode' => 'per_satuan',
+                    ]);
             }
             DB::commit();
             return response()->json(['message' => 'Pengaturan berhasil diperbarui.']);

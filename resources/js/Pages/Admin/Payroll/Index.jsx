@@ -344,7 +344,7 @@ const Payroll = () => {
                                                     <div>
                                                         <div className="font-semibold text-sm">{item.nama || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
                                                         <div className="text-xs text-slate-400">
-                                                            {item.deptLabel || item.dept || '-'} &bull; {item.jabatan || 'Staff'} <span className="text-indigo-600 font-semibold">({item.golongan || 'Staff'})</span>
+                                                            {item.deptLabel || item.dept || '-'}{item.jabatan ? ` • ${item.jabatan}` : ''}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -358,7 +358,8 @@ const Payroll = () => {
                                                 <div>- {formatIDR(item.potongan || 0)}</div>
                                                 <div className="text-[10px] text-slate-400 font-sans">
                                                     {item.terlambat > 0 ? `Telat: ${item.terlambat}m ` : ''}
-                                                    {item.alpa > 0 ? `Alpa: ${item.alpa}h` : ''}
+                                                    {item.alpa > 0 ? `Alpa: ${item.alpa}h ` : ''}
+                                                    {item.potongan_lainnya > 0 ? `BPJS: ${formatIDR(item.potongan_lainnya)}` : ''}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">{formatIDR(thp)}</td>

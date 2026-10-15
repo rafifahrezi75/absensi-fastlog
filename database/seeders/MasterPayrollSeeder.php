@@ -44,7 +44,7 @@ class MasterPayrollSeeder extends Seeder
                 'gaji_pokok' => 3000000,
                 'tarif_lembur' => 25000,
                 'keterangan' => 'Magang',
-                'status' => 'nonaktif',
+                'status' => 'aktif',
             ],
         ];
 
@@ -107,8 +107,8 @@ class MasterPayrollSeeder extends Seeder
                 'nama' => 'Denda Keterlambatan',
                 'tipe' => 'potongan',
                 'metode' => 'per_satuan',
-                'nilai' => 25000,
-                'basis' => 'kejadian_telat',
+                'nilai' => 1000,
+                'basis' => 'menit_telat',
                 'batas_dasar' => null,
                 'kena_pajak' => false,
                 'status' => 'aktif',
@@ -116,8 +116,8 @@ class MasterPayrollSeeder extends Seeder
             [
                 'nama' => 'Potongan Alpha',
                 'tipe' => 'potongan',
-                'metode' => 'harian',
-                'nilai' => 0,
+                'metode' => 'per_satuan',
+                'nilai' => 50000,
                 'basis' => 'hari_alpha',
                 'batas_dasar' => null,
                 'kena_pajak' => false,
