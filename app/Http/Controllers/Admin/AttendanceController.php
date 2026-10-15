@@ -60,10 +60,10 @@ class AttendanceController extends Controller
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
         $normalOut = $settingsData['normal_check_out'] ?? '16:30';
-        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
+        $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
         $satOut = $settingsData['saturday_check_out'] ?? '12:00';
-        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
+        $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
 
         // Jumlah karyawan (unik) yang punya pengajuan izin/sakit/cuti/dinas DISETUJUI
         // dan tanggalnya mencakup hari yang dipilih

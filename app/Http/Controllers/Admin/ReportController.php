@@ -82,9 +82,9 @@ class ReportController extends Controller
 
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
-        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
+        $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
-        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
+        $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
 
         $nowYear = Carbon::now()->format('Y');
         $apiHolidays = Cache::remember('holidays_api_' . $nowYear, 86400, function () use ($nowYear) {
