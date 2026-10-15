@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
-const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
+const ModalKaryawan = ({ isOpen, onClose, onSave, data, salaryGrades = [] }) => {
     const [formData, setFormData] = useState({
         id: null,
         nama: '',
         idFinger: '',
         dept: 'IT & Tech',
-        jabatan: ''
+        jabatan: '',
+        salary_grade_id: ''
     });
 
     useEffect(() => {
@@ -17,7 +18,8 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
                 nama: data.nama || '',
                 idFinger: data.idFinger || '',
                 dept: data.dept || 'IT & Tech',
-                jabatan: data.jabatan || ''
+                jabatan: data.jabatan || '',
+                salary_grade_id: data.salary_grade_id || ''
             });
         } else {
             setFormData({
@@ -25,10 +27,11 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
                 nama: '',
                 idFinger: '',
                 dept: 'IT & Tech',
-                jabatan: ''
+                jabatan: '',
+                salary_grade_id: salaryGrades.length > 0 ? salaryGrades[0].id : ''
             });
         }
-    }, [data, isOpen]);
+    }, [data, isOpen, salaryGrades]);
 
     if (!isOpen) return null;
 
@@ -96,6 +99,8 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
                                     <option value="IT & Tech">IT & Tech</option>
                                     <option value="Marketing">Marketing</option>
                                     <option value="HRD & GA">HRD & GA</option>
+                                    <option value="Finance & Accounting">Finance & Accounting</option>
+                                    <option value="Operasional">Operasional</option>
                                 </select>
                             </div>
                             <div>
@@ -109,6 +114,24 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data }) => {
                                     className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block font-medium text-slate-700 mb-1">Golongan Gaji & Payroll</label>
+                            <select
+                                name="salary_grade_id"
+                                value={formData.salary_grade_id}
+                                onChange={handleChange}
+                                className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                            >
+                                <option value="">Pilih Golongan Gaji...</option>
+                                {salaryGrades.map(sg => (
+                                    <option key={sg.id} value={sg.id}>
+                                        {sg.kode} - {sg.nama} (Gapok: Rp {Number(sg.gajiPokok || sg.gaji_pokok || 0).toLocaleString('id-ID')})
+                                    </option>
+                                ))}
+                            </select>
+                            <span className="text-[10px] text-slate-400">Menentukan gaji pokok dan tarif lembur karyawan</span>
                         </div>
                     </div>
 

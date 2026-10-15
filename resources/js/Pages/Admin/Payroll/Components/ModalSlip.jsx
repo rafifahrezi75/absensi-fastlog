@@ -14,7 +14,6 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
 
     return (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center print:bg-white print:fixed print:inset-0 print:z-[9999]">
-            {/* CSS khusus cetak PDF */}
             <style>
                 {`
                     @media print {
@@ -40,7 +39,7 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                             top: 20px !important;
                             margin: 0 auto !important;
                             width: 100% !important;
-                            max-width: 450px !important;
+                            max-width: 480px !important;
                             box-shadow: none !important;
                             border: 1px solid #cbd5e1 !important;
                             border-radius: 12px !important;
@@ -54,19 +53,15 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                 `}
             </style>
 
-            <div id="printable-slip" className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full mx-4 overflow-hidden">
-                {/* Header Modal */}
+            <div id="printable-slip" className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full mx-4 overflow-hidden">
                 <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between no-print">
                     <h3 className="font-bold text-sm">Preview Slip Gaji</h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition">
+                    <button onClick={onClose} className="text-slate-400 hover:text-white">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Content Slip */}
                 <div className="p-6 space-y-4 text-xs text-slate-800">
-                    
-                    {/* Header Perusahaan & Logo FastLog */}
                     <div className="text-center border-b border-slate-200 pb-4">
                         <div className="flex items-center justify-center gap-2 mb-1.5">
                             <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-sm flex items-center justify-center">
@@ -78,57 +73,106 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                             PT. FASTLOG ERA MANDIRI
                         </h4>
                         <p className="text-slate-500 font-medium text-[11px] mt-0.5">
-                            Slip Gaji Periode: {data?.periode || 'Agustus 2026'}
+                            Slip Gaji Periode: {data?.periode || '-'}
                         </p>
                     </div>
 
-                    {/* Informasi Karyawan */}
-                    <div className="space-y-2 py-1">
-                        <div className="flex justify-between items-center">
-                            <span className="text-slate-500">Nama Karyawan:</span>
+                    <div className="grid grid-cols-2 gap-2 py-1 text-[11px]">
+                        <div>
+                            <span className="text-slate-400 block">Nama Karyawan:</span>
                             <strong className="text-slate-900 font-semibold">{data?.nama || '-'}</strong>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-slate-500">NIK:</span>
+                        <div>
+                            <span className="text-slate-400 block">NIK:</span>
                             <strong className="text-slate-900 font-mono">{data?.nik || '-'}</strong>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-slate-500">Jabatan:</span>
-                            <strong className="text-slate-900 font-semibold">{data?.jabatan || '-'}</strong>
+                        <div>
+                            <span className="text-slate-400 block">Jabatan / Golongan:</span>
+                            <strong className="text-slate-900 font-semibold">{data?.jabatan || '-'} ({data?.golongan || 'Staff'})</strong>
+                        </div>
+                        <div>
+                            <span className="text-slate-400 block">Departemen:</span>
+                            <strong className="text-slate-900 font-semibold">{data?.deptLabel || data?.dept || '-'}</strong>
                         </div>
                     </div>
 
-                    <hr className="border-slate-200" />
-
-                    {/* Rincian Komponen Gaji */}
-                    <div className="space-y-2.5">
-                        <div className="flex justify-between items-center text-slate-600">
-                            <span>Gaji Pokok:</span>
-                            <span className="font-mono font-medium text-slate-800">{formatIDR(data?.gapok)}</span>
+                    <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 grid grid-cols-3 text-center text-[10px]">
+                        <div>
+                            <span className="text-slate-400 block">Hadir</span>
+                            <span className="font-bold text-slate-800 text-xs">{data?.hadir || 0} Hari</span>
                         </div>
-                        <div className="flex justify-between items-center text-emerald-600">
-                            <span>Lembur & Tunjangan:</span>
-                            <span className="font-mono font-medium">+ {formatIDR(data?.bonus)}</span>
+                        <div>
+                            <span className="text-slate-400 block">Terlambat</span>
+                            <span className="font-bold text-rose-600 text-xs">{data?.terlambat || 0} Menit</span>
                         </div>
-                        <div className="flex justify-between items-center text-rose-600">
-                            <span>Potongan Absensi:</span>
-                            <span className="font-mono font-medium">- {formatIDR(data?.potongan)}</span>
+                        <div>
+                            <span className="text-slate-400 block">Alpa</span>
+                            <span className="font-bold text-rose-600 text-xs">{data?.alpa || 0} Hari</span>
                         </div>
                     </div>
 
-                    {/* Total Take Home Pay */}
-                    <div className="p-3.5 bg-indigo-50/50 rounded-lg flex justify-between items-center font-bold text-slate-900 text-sm border border-indigo-100">
-                        <span>Total Netto (THP):</span>
-                        <span className="font-mono text-indigo-600 text-base">{formatIDR(data?.thp)}</span>
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                        <div className="bg-slate-50 px-3 py-2 font-semibold text-slate-700 text-[11px] border-b border-slate-200 flex justify-between">
+                            <span>Komponen Penerimaan</span>
+                            <span>Nominal</span>
+                        </div>
+                        <div className="p-3 space-y-2">
+                            <div className="flex justify-between items-center text-slate-700">
+                                <span>Gaji Pokok:</span>
+                                <span className="font-mono font-medium">{formatIDR(data?.gapok)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-emerald-700">
+                                <span>Tunjangan:</span>
+                                <span className="font-mono font-medium">+ {formatIDR(data?.tunjangan)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-emerald-700">
+                                <span>Upah Lembur ({data?.lembur_menit || 0} Menit):</span>
+                                <span className="font-mono font-medium">+ {formatIDR(data?.lembur)}</span>
+                            </div>
+                            {data?.bonus > (data?.tunjangan + data?.lembur) && (
+                                <div className="flex justify-between items-center text-emerald-700">
+                                    <span>Insentif Tambahan:</span>
+                                    <span className="font-mono font-medium">+ {formatIDR(data?.bonus - (data?.tunjangan + data?.lembur))}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="bg-slate-50 px-3 py-2 font-semibold text-slate-700 text-[11px] border-t border-b border-slate-200 flex justify-between">
+                            <span>Komponen Potongan</span>
+                            <span>Nominal</span>
+                        </div>
+                        <div className="p-3 space-y-2">
+                            <div className="flex justify-between items-center text-rose-600">
+                                <span>Denda Keterlambatan:</span>
+                                <span className="font-mono font-medium">- {formatIDR(data?.potongan_terlambat)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-rose-600">
+                                <span>Potongan Alpa:</span>
+                                <span className="font-mono font-medium">- {formatIDR(data?.potongan_alpa)}</span>
+                            </div>
+                            {data?.potongan_lainnya > 0 && (
+                                <div className="flex justify-between items-center text-rose-600">
+                                    <span>Potongan BPJS & Komponen:</span>
+                                    <span className="font-mono font-medium">- {formatIDR(data?.potongan_lainnya)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center font-semibold text-rose-700 border-t border-slate-100 pt-1.5">
+                                <span>Total Potongan:</span>
+                                <span className="font-mono">- {formatIDR(data?.potongan)}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Catatan Footer Slip */}
+                    <div className="p-3.5 bg-indigo-50/70 rounded-lg flex justify-between items-center font-bold text-slate-900 text-sm border border-indigo-200">
+                        <span>Total Bersih Diterima (THP):</span>
+                        <span className="font-mono text-indigo-700 text-base">{formatIDR(data?.thp)}</span>
+                    </div>
+
                     <div className="pt-2 text-[10px] text-slate-400 text-center italic leading-relaxed">
                         *Dokumen ini diterbitkan otomatis oleh sistem payroll PT. FastLog Era Mandiri dan sah tanpa tanda tangan basah.
                     </div>
                 </div>
 
-                {/* Footer Modal Action Buttons */}
                 <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2 no-print">
                     <button
                         onClick={onClose}

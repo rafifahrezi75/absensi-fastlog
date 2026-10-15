@@ -13,10 +13,21 @@ const Employees = () => {
     const [deptFilter, setDeptFilter] = useState('');
     const [syncFilter, setSyncFilter] = useState('');
 
+    const [salaryGrades, setSalaryGrades] = useState([]);
+
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
         data: null
     });
+
+    const loadSalaryGrades = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/master-payroll/golongan');
+            setSalaryGrades(res.data.golongan || []);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
 
     const loadEmployees = useCallback(async (silent = false) => {
         try {
@@ -28,6 +39,8 @@ const Employees = () => {
                 idFinger: emp.pin || '',
                 dept: emp.dept || 'Umum',
                 jabatan: emp.jabatan || '',
+                salary_grade_id: emp.salary_grade_id || '',
+                salaryGradeName: emp.salary_grade ? emp.salary_grade.nama : (emp.salaryGrade ? emp.salaryGrade.nama : '-'),
                 syncStatus: emp.pin ? 'synced' : 'unsynced'
             }));
             setEmployees(list);
@@ -40,7 +53,8 @@ const Employees = () => {
 
     useEffect(() => {
         loadEmployees();
-    }, [loadEmployees]);
+        loadSalaryGrades();
+    }, [loadEmployees, loadSalaryGrades]);
 
     useEffect(() => {
         if (notif) {
@@ -133,6 +147,7 @@ const Employees = () => {
                 pin: formData.idFinger || null,
                 dept: formData.dept || null,
                 jabatan: formData.jabatan || null,
+                salary_grade_id: formData.salary_grade_id || null,
             };
 
             if (formData.id) {
@@ -316,6 +331,7 @@ const Employees = () => {
                                 <th scope="col" className="px-6 py-3.5 font-semibold">ID Fingerprint</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Departemen</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Jabatan</th>
+                                <th scope="col" className="px-6 py-3.5 font-semibold">Golongan Gaji</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Status Sinkronisasi</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
                             </tr>
@@ -367,6 +383,11 @@ const Employees = () => {
                                         </td>
                                         <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
                                             {emp.jabatan || <span className="text-slate-300 italic">Belum diisi</span>}
+                                        </td>
+                                        <td className="px-6 py-4 text-xs font-semibold text-indigo-700 whitespace-nowrap">
+                                            <span className="bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded">
+                                                {emp.salaryGradeName || 'Staff'}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {emp.syncStatus === 'synced' ? (
@@ -430,6 +451,7 @@ const Employees = () => {
                 onClose={handleCloseModal}
                 onSave={handleSaveEmployee}
                 data={modalConfig.data}
+                salaryGrades={salaryGrades}
             />
         </div>
     );

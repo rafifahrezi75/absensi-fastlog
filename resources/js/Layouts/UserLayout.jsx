@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Clock, LogOut, Menu, User, Bell, Check, FileText, AlertCircle, ShieldAlert } from 'lucide-react';
+import { LayoutGrid, Clock, LogOut, Menu, User, Bell, Check, FileText, AlertCircle, ShieldAlert, Wallet } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
 import api from '../lib/api';
@@ -182,6 +182,21 @@ const UserLayout = () => {
                     >
                         <Clock className="w-[18px] h-[18px]" />
                         <span>Riwayat Pengajuan</span>
+                    </NavLink>
+
+                    <NavLink 
+                        to="/user/slip-gaji" 
+                        onClick={closeSidebar}
+                        className={({ isActive }) => 
+                            `w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl transition text-sm font-medium ${
+                                isActive 
+                                ? 'bg-orange-500 text-white font-semibold shadow-lg shadow-orange-500/20' 
+                                : 'text-white/60 hover:text-white hover:bg-white/5'
+                            }`
+                        }
+                    >
+                        <Wallet className="w-[18px] h-[18px]" />
+                        <span>Slip Gaji Saya</span>
                     </NavLink>
                 </nav>
 

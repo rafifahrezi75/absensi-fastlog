@@ -12,7 +12,7 @@ class EmployeeController extends Controller
 {
     public function index(): JsonResponse
     {
-        $employees = Employee::orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
+        $employees = Employee::with('salaryGrade')->orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
 
         return response()->json([
             'employees' => $employees,
@@ -27,6 +27,7 @@ class EmployeeController extends Controller
             'pin' => 'nullable|string|max:50|unique:employees,pin',
             'dept' => 'nullable|string|max:100',
             'jabatan' => 'nullable|string|max:100',
+            'salary_grade_id' => 'nullable|exists:salary_grades,id',
             'status' => ['nullable', Rule::in(['active', 'inactive', 'aktif', 'nonaktif'])],
         ]);
 
@@ -39,6 +40,7 @@ class EmployeeController extends Controller
         }
 
         $employee = Employee::create($validated);
+        $employee->load('salaryGrade');
 
         return response()->json([
             'message' => 'Data karyawan berhasil ditambahkan.',
@@ -56,6 +58,7 @@ class EmployeeController extends Controller
             'pin' => ['nullable', 'string', 'max:50', Rule::unique('employees')->ignore($employee->id)],
             'dept' => 'nullable|string|max:100',
             'jabatan' => 'nullable|string|max:100',
+            'salary_grade_id' => 'nullable|exists:salary_grades,id',
             'status' => ['nullable', Rule::in(['active', 'inactive', 'aktif', 'nonaktif'])],
         ]);
 
@@ -68,6 +71,7 @@ class EmployeeController extends Controller
         }
 
         $employee->update($validated);
+        $employee->load('salaryGrade');
 
         return response()->json([
             'message' => 'Data karyawan berhasil diperbarui.',

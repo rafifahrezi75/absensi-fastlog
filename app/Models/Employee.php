@@ -28,6 +28,7 @@ class Employee extends Model
         'raw_data',
         'dept',
         'jabatan',
+        'salary_grade_id',
         'status',
     ];
 
@@ -38,6 +39,11 @@ class Employee extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function salaryGrade(): BelongsTo
+    {
+        return $this->belongsTo(SalaryGrade::class, 'salary_grade_id');
     }
 
     public function attendanceLogs(): HasMany

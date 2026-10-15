@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EmployeeHrActionController;
 use App\Http\Controllers\Admin\MasterPayrollController;
 use App\Http\Controllers\Admin\MasterTindakanController;
+use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingController;
@@ -50,6 +51,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/permissions', [UserPermissionController::class, 'index'])->name('api.user.permissions.index');
         Route::post('/permissions', [UserPermissionController::class, 'store'])->name('api.user.permissions.store');
         Route::delete('/permissions/{id}', [UserPermissionController::class, 'destroy'])->name('api.user.permissions.destroy');
+        Route::get('/payroll', [PayrollController::class, 'userSlip'])->name('api.user.payroll');
     });
 });
 
@@ -92,7 +94,11 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::post('/devices/sync-logs', [DeviceController::class, 'syncLogs'])->name('api.admin.devices.sync-logs');
     Route::post('/devices/sync-users', [DeviceController::class, 'syncUsers'])->name('api.admin.devices.sync-users');
 
-    Route::get('/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('api.admin.payroll.index');
+    Route::get('/payroll', [PayrollController::class, 'index'])->name('api.admin.payroll.index');
+    Route::get('/payroll/details', [PayrollController::class, 'details'])->name('api.admin.payroll.details');
+    Route::post('/payroll/pay', [PayrollController::class, 'markPaid'])->name('api.admin.payroll.pay');
+    Route::post('/payroll/recalculate', [PayrollController::class, 'recalculate'])->name('api.admin.payroll.recalculate');
+    Route::post('/payroll/dispense', [PayrollController::class, 'dispense'])->name('api.admin.payroll.dispense');
 
     Route::get('/master-payroll/golongan', [MasterPayrollController::class, 'indexGolongan'])->name('api.admin.master-payroll.golongan.index');
     Route::post('/master-payroll/golongan', [MasterPayrollController::class, 'storeGolongan'])->name('api.admin.master-payroll.golongan.store');

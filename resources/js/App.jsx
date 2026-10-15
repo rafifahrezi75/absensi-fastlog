@@ -21,6 +21,7 @@ import UserLayout from './Layouts/UserLayout';
 import Home from './Pages/User/Home/Index';
 import FormPengajuan from './Pages/User/FormPengajuan/Index';
 import Riwayat from './Pages/User/Riwayat/Index';
+import SlipGaji from './Pages/User/SlipGaji/Index';
 import Login from './Pages/User/Auth/Login';
 
 // Auth
@@ -135,6 +136,7 @@ function App() {
                         <Route path="home" element={<Home />} />
                         <Route path="pengajuan" element={<FormPengajuan />} />
                         <Route path="riwayat" element={<Riwayat />} />
+                        <Route path="slip-gaji" element={<SlipGaji />} />
                     </Route>
 
                     {/* Catch-all route jika URL tidak ditemukan */}
