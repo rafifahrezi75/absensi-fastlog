@@ -12,6 +12,7 @@ use App\Models\Permission;
 use App\Models\SalaryComponent;
 use App\Models\SystemSetting;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -333,6 +334,151 @@ class PayrollController extends Controller
             });
 
         return response()->json(['payrolls' => $payrolls]);
+    }
+
+    private function prepareSlipViewData(Payroll $payroll): array
+    {
+        $payroll->loadMissing('employee.salaryGrade');
+        $employee = $payroll->employee;
+
+        $deptLabels = [
+            'PRODUKSI' => 'Produksi',
+            'GUDANG' => 'Gudang',
+            'HRD' => 'HRD & GA',
+            'IT' => 'IT & Sistem',
+            'MARKETING' => 'Marketing',
+            'FINANCE' => 'Finance & Accounting',
+            'OPERASIONAL' => 'Operasional',
+        ];
+
+        $monthNames = [
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+        ];
+        $parts = explode('-', $payroll->periode);
+        $periodeLabel = isset($parts[1], $monthNames[$parts[1]]) ? ($monthNames[$parts[1]] . ' ' . $parts[0]) : $payroll->periode;
+
+        $catatan = $payroll->catatan ? json_decode($payroll->catatan, true) : [];
+        $bpjsDetails = $catatan['bpjs_details'] ?? [];
+        $tunjanganDetails = $catatan['tunjangan_details'] ?? [];
+
+        if (empty($bpjsDetails) || empty($tunjanganDetails)) {
+            $activeComponents = SalaryComponent::where('status', 'aktif')->get();
+            if (empty($bpjsDetails)) {
+                foreach ($activeComponents->where('tipe', 'potongan')->where('metode', 'persen') as $comp) {
+                    $basisVal = (float)$payroll->gaji_pokok;
+                    if ($comp->batas_dasar && $basisVal > (float)$comp->batas_dasar) {
+                        $basisVal = (float)$comp->batas_dasar;
+                    }
+                    $bpjsDetails[] = [
+                        'nama' => $comp->nama,
+                        'persen' => (float)$comp->nilai,
+                        'nominal' => round($basisVal * ((float)$comp->nilai / 100)),
+                    ];
+                }
+            }
+            if (empty($tunjanganDetails)) {
+                $tunjanganDetails = $activeComponents->where('tipe', 'tambahan')->where('metode', 'nominal')->map(fn($c) => [
+                    'nama' => $c->nama,
+                    'nominal' => (float)$c->nilai,
+                ])->values()->all();
+            }
+        }
+
+        return [
+            'payroll' => $payroll,
+            'employee' => $employee,
+            'periodeLabel' => $periodeLabel,
+            'deptLabel' => $deptLabels[$employee->dept] ?? ($employee->dept ?: 'Umum'),
+            'bpjsDetails' => $bpjsDetails,
+            'tunjanganDetails' => $tunjanganDetails,
+        ];
+    }
+
+    private function generatePdf(Payroll $payroll)
+    {
+        $data = $this->prepareSlipViewData($payroll);
+        return Pdf::loadView('pdf.slip-gaji', $data)->setPaper('a4', 'portrait');
+    }
+
+    public function adminSlipDetail($id): JsonResponse
+    {
+        $payroll = Payroll::with('employee.salaryGrade')->findOrFail($id);
+        $data = $this->prepareSlipViewData($payroll);
+        return response()->json([
+            'payroll' => $payroll,
+            'employee' => $data['employee'],
+            'periodeLabel' => $data['periodeLabel'],
+            'deptLabel' => $data['deptLabel'],
+            'bpjsDetails' => $data['bpjsDetails'],
+            'tunjanganDetails' => $data['tunjanganDetails'],
+        ]);
+    }
+
+    public function adminPdfStream($id)
+    {
+        $payroll = Payroll::with('employee')->findOrFail($id);
+        $pdf = $this->generatePdf($payroll);
+        $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
+        $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
+        return $pdf->stream($filename);
+    }
+
+    public function adminPdfDownload($id)
+    {
+        $payroll = Payroll::with('employee')->findOrFail($id);
+        $pdf = $this->generatePdf($payroll);
+        $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
+        $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
+        return $pdf->download($filename);
+    }
+
+    public function userSlipDetail(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        $payroll = Payroll::with('employee.salaryGrade')->findOrFail($id);
+        if ($payroll->employee->user_id !== $user->id && $payroll->employee->nama !== $user->name) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $data = $this->prepareSlipViewData($payroll);
+        return response()->json([
+            'payroll' => $payroll,
+            'employee' => $data['employee'],
+            'periodeLabel' => $data['periodeLabel'],
+            'deptLabel' => $data['deptLabel'],
+            'bpjsDetails' => $data['bpjsDetails'],
+            'tunjanganDetails' => $data['tunjanganDetails'],
+        ]);
+    }
+
+    public function userPdfStream(Request $request, $id)
+    {
+        $user = $request->user();
+        $payroll = Payroll::with('employee')->findOrFail($id);
+        if ($payroll->employee->user_id !== $user->id && $payroll->employee->nama !== $user->name) {
+            abort(403, 'Unauthorized');
+        }
+
+        $pdf = $this->generatePdf($payroll);
+        $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
+        $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
+        return $pdf->stream($filename);
+    }
+
+    public function userPdfDownload(Request $request, $id)
+    {
+        $user = $request->user();
+        $payroll = Payroll::with('employee')->findOrFail($id);
+        if ($payroll->employee->user_id !== $user->id && $payroll->employee->nama !== $user->name) {
+            abort(403, 'Unauthorized');
+        }
+
+        $pdf = $this->generatePdf($payroll);
+        $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
+        $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
+        return $pdf->download($filename);
     }
 
     private function calculatePayrollForPeriod(string $periode, bool $forceRecalculate = false): array

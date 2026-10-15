@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, Calculator, Search, CheckCircle, FileText, Clock, ReceiptText, CalendarCheck2, Loader2 } from 'lucide-react';
 import ModalSlip from './Components/ModalSlip';
 import ModalDetails from './Components/ModalDetails';
@@ -6,6 +7,7 @@ import api from '../../../lib/api';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Payroll = () => {
+    const navigate = useNavigate();
     const [payrollList, setPayrollList] = useState([]);
     const [periode, setPeriode] = useState(() => {
         const date = new Date();
@@ -388,10 +390,11 @@ const Payroll = () => {
                                                         <CalendarCheck2 className="w-3.5 h-3.5 text-indigo-600" /> Rincian
                                                     </button>
                                                     <button
-                                                        onClick={() => openModalSlip(item)}
+                                                        onClick={() => navigate(`/admin/payroll/${item.payroll_id || item.id}`)}
                                                         className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1"
+                                                        title="Buka Halaman Detail & Preview PDF"
                                                     >
-                                                        <FileText className="w-3.5 h-3.5" /> Slip
+                                                        <FileText className="w-3.5 h-3.5" /> Detail Slip
                                                     </button>
                                                     {item.status !== 'paid' && (
                                                         <button

@@ -22,6 +22,8 @@ import Home from './Pages/User/Home/Index';
 import FormPengajuan from './Pages/User/FormPengajuan/Index';
 import Riwayat from './Pages/User/Riwayat/Index';
 import SlipGaji from './Pages/User/SlipGaji/Index';
+import PayrollDetail from './Pages/Admin/Payroll/Detail';
+import UserSlipDetail from './Pages/User/SlipGaji/Detail';
 import Login from './Pages/User/Auth/Login';
 
 // Auth
@@ -121,6 +123,7 @@ function App() {
                         <Route path="permissions" element={<Permissions />} />
                         <Route path="employees" element={<Employees />} />
                         <Route path="payroll" element={<Payroll />} />
+                        <Route path="payroll/:id" element={<PayrollDetail />} />
                         <Route path="master-payroll" element={<MasterPayroll />} />
                         <Route path="reports" element={<Reports />} />
                         <Route path="master-akun" element={<MasterAkun />} />
@@ -137,6 +140,7 @@ function App() {
                         <Route path="pengajuan" element={<FormPengajuan />} />
                         <Route path="riwayat" element={<Riwayat />} />
                         <Route path="slip-gaji" element={<SlipGaji />} />
+                        <Route path="slip-gaji/:id" element={<UserSlipDetail />} />
                     </Route>
 
                     {/* Catch-all route jika URL tidak ditemukan */}

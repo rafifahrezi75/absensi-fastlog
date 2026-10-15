@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Wallet, Printer, FileText, CheckCircle, Clock, Calendar, Download, Loader2, ReceiptText } from 'lucide-react';
 import ModalSlip from '../../Admin/Payroll/Components/ModalSlip';
 import api from '../../../lib/api';
 
 const SlipGaji = () => {
+    const navigate = useNavigate();
     const [payrolls, setPayrolls] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalData, setModalData] = useState({
@@ -166,8 +168,9 @@ const SlipGaji = () => {
                                             </td>
                                             <td className="px-6 py-4 text-center whitespace-nowrap">
                                                 <button
-                                                    onClick={() => openSlip(item)}
+                                                    onClick={() => navigate(`/user/slip-gaji/${item.id}`)}
                                                     className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm"
+                                                    title="Buka Halaman Detail & Preview PDF"
                                                 >
                                                     <FileText className="w-3.5 h-3.5" /> Lihat & Cetak Slip
                                                 </button>

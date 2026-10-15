@@ -52,6 +52,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/permissions', [UserPermissionController::class, 'store'])->name('api.user.permissions.store');
         Route::delete('/permissions/{id}', [UserPermissionController::class, 'destroy'])->name('api.user.permissions.destroy');
         Route::get('/payroll', [PayrollController::class, 'userSlip'])->name('api.user.payroll');
+        Route::get('/payroll/{id}/detail', [PayrollController::class, 'userSlipDetail'])->name('api.user.payroll.detail');
+        Route::get('/payroll/{id}/pdf', [PayrollController::class, 'userPdfStream'])->name('api.user.payroll.pdf');
+        Route::get('/payroll/{id}/download', [PayrollController::class, 'userPdfDownload'])->name('api.user.payroll.download');
     });
 });
 
@@ -96,6 +99,9 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
 
     Route::get('/payroll', [PayrollController::class, 'index'])->name('api.admin.payroll.index');
     Route::get('/payroll/details', [PayrollController::class, 'details'])->name('api.admin.payroll.details');
+    Route::get('/payroll/{id}/detail', [PayrollController::class, 'adminSlipDetail'])->name('api.admin.payroll.detail');
+    Route::get('/payroll/{id}/pdf', [PayrollController::class, 'adminPdfStream'])->name('api.admin.payroll.pdf');
+    Route::get('/payroll/{id}/download', [PayrollController::class, 'adminPdfDownload'])->name('api.admin.payroll.download');
     Route::post('/payroll/pay', [PayrollController::class, 'markPaid'])->name('api.admin.payroll.pay');
     Route::post('/payroll/recalculate', [PayrollController::class, 'recalculate'])->name('api.admin.payroll.recalculate');
     Route::post('/payroll/dispense', [PayrollController::class, 'dispense'])->name('api.admin.payroll.dispense');
