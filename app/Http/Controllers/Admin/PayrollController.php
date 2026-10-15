@@ -100,8 +100,8 @@ class PayrollController extends Controller
             return str_contains(strtolower($c->nama), 'alpha') || str_contains(strtolower($c->nama), 'alpa');
         });
 
-        $lateFinePerMinute = $lateFineComp ? (float)$lateFineComp->nilai : (float)($settingsData['late_fine_per_minute'] ?? 1000);
-        $absentDeduction = $absentComp ? (float)$absentComp->nilai : (float)($settingsData['absent_deduction'] ?? 50000);
+        $lateFinePerMinute = ($lateFineComp && (float)$lateFineComp->nilai > 0) ? (float)$lateFineComp->nilai : (float)($settingsData['late_fine_per_minute'] ?? 1000);
+        $absentDeduction = ($absentComp && (float)$absentComp->nilai > 0) ? (float)$absentComp->nilai : (float)($settingsData['absent_deduction'] ?? 50000);
 
         $monthDate = Carbon::createFromFormat('Y-m', $periode)->startOfMonth();
         $startDate = $monthDate->copy()->startOfMonth();
@@ -202,7 +202,12 @@ class PayrollController extends Controller
                     ];
                 }
             } else {
-                $deduction = $isDispensed ? 0 : $absentDeduction;
+                if ($absentComp && $absentComp->metode === 'harian') {
+                    $dailyRate = round(($employee->salaryGrade ? (float)$employee->salaryGrade->gaji_pokok : 3000000) / 22);
+                } else {
+                    $dailyRate = $absentDeduction;
+                }
+                $deduction = $isDispensed ? 0 : $dailyRate;
                 $details[] = [
                     'date' => $dateStr,
                     'day_name' => $curr->translatedFormat('l'),
@@ -346,8 +351,8 @@ class PayrollController extends Controller
             return str_contains(strtolower($c->nama), 'alpha') || str_contains(strtolower($c->nama), 'alpa');
         });
 
-        $lateFinePerMinute = $lateFineComp ? (float)$lateFineComp->nilai : (float)($settingsData['late_fine_per_minute'] ?? 1000);
-        $absentDeduction = $absentComp ? (float)$absentComp->nilai : (float)($settingsData['absent_deduction'] ?? 50000);
+        $lateFinePerMinute = ($lateFineComp && (float)$lateFineComp->nilai > 0) ? (float)$lateFineComp->nilai : (float)($settingsData['late_fine_per_minute'] ?? 1000);
+        $absentDeduction = ($absentComp && (float)$absentComp->nilai > 0) ? (float)$absentComp->nilai : (float)($settingsData['absent_deduction'] ?? 50000);
 
         $allowancesBreakdown = $activeComponents->where('tipe', 'tambahan')
             ->where('metode', 'nominal')
@@ -518,7 +523,11 @@ class PayrollController extends Controller
             $lemburPay = round(($overtimeMinutes / 60) * $tarifLembur);
 
             $potonganTerlambat = $totalLateMinutes * $lateFinePerMinute;
-            $potonganAlpa = $alpaCount * $absentDeduction;
+            if ($absentComp && $absentComp->metode === 'harian') {
+                $potonganAlpa = round(($gajiPokok / 22) * $alpaCount);
+            } else {
+                $potonganAlpa = $alpaCount * $absentDeduction;
+            }
 
             $potonganBPJSBreakdown = [];
             $potonganPersen = 0;

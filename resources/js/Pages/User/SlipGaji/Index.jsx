@@ -76,7 +76,9 @@ const SlipGaji = () => {
             terlambat: item.terlambat,
             alpa: item.alpa,
             lembur_menit: item.lembur_menit,
-            periode: formattedPeriode
+            periode: formattedPeriode,
+            bpjs_details: item.bpjs_details,
+            tunjangan_details: item.tunjangan_details
         });
     };
 
@@ -139,7 +141,14 @@ const SlipGaji = () => {
                                                 + {formatIDR(item.bonus)}
                                             </td>
                                             <td className="px-6 py-4 font-mono text-xs text-rose-600 whitespace-nowrap">
-                                                - {formatIDR(item.potongan)}
+                                                <div className="font-semibold">- {formatIDR(item.potongan)}</div>
+                                                {(item.potongan_alpa > 0 || item.potongan_terlambat > 0 || item.potongan_lainnya > 0) && (
+                                                    <div className="text-[10px] text-slate-500 font-sans flex flex-col gap-0.5 mt-1">
+                                                        {item.potongan_alpa > 0 && <div>Alpa ({item.alpa}h): -{formatIDR(item.potongan_alpa)}</div>}
+                                                        {item.potongan_terlambat > 0 && <div>Telat ({item.terlambat}m): -{formatIDR(item.potongan_terlambat)}</div>}
+                                                        {item.potongan_lainnya > 0 && <div>BPJS: -{formatIDR(item.potongan_lainnya)}</div>}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
                                                 {formatIDR(item.thp)}

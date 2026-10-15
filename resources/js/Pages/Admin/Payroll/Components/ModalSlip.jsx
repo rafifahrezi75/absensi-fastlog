@@ -152,11 +152,11 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                         </div>
                         <div className="p-3 space-y-2">
                             <div className="flex justify-between items-center text-rose-600">
-                                <span>Denda Keterlambatan:</span>
+                                <span>Denda Keterlambatan{data?.terlambat > 0 ? ` (${data.terlambat} Menit)` : ''}:</span>
                                 <span className="font-mono font-medium">- {formatIDR(data?.potongan_terlambat)}</span>
                             </div>
                             <div className="flex justify-between items-center text-rose-600">
-                                <span>Potongan Alpa:</span>
+                                <span>Potongan Alpa{data?.alpa > 0 ? ` (${data.alpa} Hari)` : ''}:</span>
                                 <span className="font-mono font-medium">- {formatIDR(data?.potongan_alpa)}</span>
                             </div>
                             {data?.bpjs_details?.length > 0 ? (

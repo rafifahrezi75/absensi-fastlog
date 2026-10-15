@@ -147,7 +147,9 @@ const Payroll = () => {
             terlambat: item.terlambat,
             alpa: item.alpa,
             lembur_menit: item.lembur_menit,
-            periode: formattedPeriode
+            periode: formattedPeriode,
+            bpjs_details: item.bpjs_details,
+            tunjangan_details: item.tunjangan_details
         });
     }, [periode]);
 
@@ -355,12 +357,14 @@ const Payroll = () => {
                                                 {item.lembur > 0 && <div className="text-[10px] text-slate-400 font-sans">Lembur: {formatIDR(item.lembur)}</div>}
                                             </td>
                                             <td className="px-6 py-4 text-xs font-mono text-rose-600 whitespace-nowrap">
-                                                <div>- {formatIDR(item.potongan || 0)}</div>
-                                                <div className="text-[10px] text-slate-400 font-sans">
-                                                    {item.terlambat > 0 ? `Telat: ${item.terlambat}m ` : ''}
-                                                    {item.alpa > 0 ? `Alpa: ${item.alpa}h ` : ''}
-                                                    {item.potongan_lainnya > 0 ? `BPJS: ${formatIDR(item.potongan_lainnya)}` : ''}
-                                                </div>
+                                                <div className="font-semibold">- {formatIDR(item.potongan || 0)}</div>
+                                                {(item.potongan_alpa > 0 || item.potongan_terlambat > 0 || item.potongan_lainnya > 0) && (
+                                                    <div className="text-[10px] text-slate-500 font-sans flex flex-col gap-0.5 mt-1">
+                                                        {item.potongan_alpa > 0 && <div>Alpa ({item.alpa}h): -{formatIDR(item.potongan_alpa)}</div>}
+                                                        {item.potongan_terlambat > 0 && <div>Telat ({item.terlambat}m): -{formatIDR(item.potongan_terlambat)}</div>}
+                                                        {item.potongan_lainnya > 0 && <div>BPJS: -{formatIDR(item.potongan_lainnya)}</div>}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">{formatIDR(thp)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
