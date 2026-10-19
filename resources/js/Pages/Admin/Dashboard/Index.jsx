@@ -204,7 +204,7 @@ const DEFAULT_CATEGORY_ACTIONS = {
   'Shift Pagi': ['Verifikasi Jadwal Shift', 'Penyesuaian Jam Kerja', 'Apresiasi Shift Penuh'],
   'Shift Middle': ['Verifikasi Jadwal Shift', 'Penyesuaian Jam Kerja', 'Apresiasi Shift Penuh'],
   'Toleransi (<15 Mnt)': ['Teguran Otomatis System', 'Peringatan Lisan', 'Pemutihan System'],
-  'Sedang (15 - 30 Mnt)': ['Potong Uang Makan 50%', 'Form Alasan Keterlambatan', 'Surat Teguran 1', 'Peringatan Tertulis'],
+  'Sedang (15 - 30 Mnt)': ['Form Alasan Keterlambatan', 'Surat Teguran 1', 'Peringatan Tertulis'],
   'Berat (>30 Mnt)': ['Potong Gaji/Transport 100%', 'Pemanggilan HRD', 'SP 1 (Surat Peringatan)', 'Skorsing 1 Hari'],
   'Dinas Luar / Field': ['Approved via Portal', 'Pending Verification', 'Rejected', 'Reimbursement Operasional'],
   'Sakit (Surat Dokter)': ['Approved (Surat Dokter)', 'Verifikasi Faskes / Dokter', 'Izin Pemulihan Lanjutan', 'Rejected (Tanpa Surat)'],

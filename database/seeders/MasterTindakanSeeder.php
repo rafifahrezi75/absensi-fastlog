@@ -37,7 +37,6 @@ class MasterTindakanSeeder extends Seeder
             ['nama' => 'Pemutihan System', 'kategori' => 'Toleransi (<15 Mnt)', 'jumlah_kasus' => 0, 'status' => 'aktif'],
 
             ['nama' => 'Tidak Ada Tindakan', 'kategori' => 'Sedang (15 - 30 Mnt)', 'jumlah_kasus' => 0, 'status' => 'aktif'],
-            ['nama' => 'Potong Uang Makan 50%', 'kategori' => 'Sedang (15 - 30 Mnt)', 'jumlah_kasus' => 0, 'status' => 'aktif'],
             ['nama' => 'Form Alasan Keterlambatan', 'kategori' => 'Sedang (15 - 30 Mnt)', 'jumlah_kasus' => 0, 'status' => 'aktif'],
             ['nama' => 'Surat Teguran 1', 'kategori' => 'Sedang (15 - 30 Mnt)', 'jumlah_kasus' => 0, 'status' => 'aktif'],
             ['nama' => 'Peringatan Tertulis', 'kategori' => 'Sedang (15 - 30 Mnt)', 'jumlah_kasus' => 0, 'status' => 'aktif'],

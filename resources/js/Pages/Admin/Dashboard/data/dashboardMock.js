@@ -89,7 +89,6 @@ export const INITIAL_TINDAKAN = [
     { id: 5, nama: 'Teguran Otomatis System', kategori: 'Toleransi (<15 Mnt)', jumlahKasus: 15, status: 'aktif' },
     { id: 6, nama: 'Peringatan Lisan', kategori: 'Toleransi (<15 Mnt)', jumlahKasus: 5, status: 'aktif' },
     { id: 7, nama: 'Pemutihan System', kategori: 'Toleransi (<15 Mnt)', jumlahKasus: 2, status: 'aktif' },
-    { id: 8, nama: 'Potong Uang Makan 50%', kategori: 'Sedang (15 - 30 Mnt)', jumlahKasus: 8, status: 'aktif' },
     { id: 9, nama: 'Form Alasan Keterlambatan', kategori: 'Sedang (15 - 30 Mnt)', jumlahKasus: 4, status: 'aktif' },
     { id: 10, nama: 'Surat Teguran 1', kategori: 'Sedang (15 - 30 Mnt)', jumlahKasus: 1, status: 'aktif' },
     { id: 11, nama: 'Potong Gaji/Transport 100%', kategori: 'Berat (>30 Mnt)', jumlahKasus: 3, status: 'aktif' },
