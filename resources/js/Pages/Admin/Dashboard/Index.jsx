@@ -211,7 +211,7 @@ const DEFAULT_CATEGORY_ACTIONS = {
   'Izin Alasan Penting': ['Approved Admin', 'Potong Jatah Cuti', 'Izin Khusus Perusahaan', 'Potong Gaji Proporsional'],
   'Cuti Tahunan': ['Potong Jatah Cuti', 'Approved Direksi', 'Reschedule Cuti'],
   'Mangkir 1 Hari': ['Potong Gaji Harian', 'Surat Panggilan Klarifikasi', 'SP 1 (Surat Peringatan)'],
-  'Mangkir >2 Hari Berturut': ['SP 2 (Surat Peringatan)', 'SP 3 (Peringatan Terakhir)', 'Pemanggilan Keluarga', 'Potong Gaji & Tunjangan'],
+  'Mangkir >2 Hari Berturut': ['Potong Gaji & Tunjangan', 'SP 2 (Surat Peringatan)', 'SP 3 (Peringatan Terakhir)', 'Pemanggilan Keluarga'],
   'Lupa Tap Kehadiran': ['Konfirmasi via WA/HRD', 'Koreksi Jam Manual', 'Teguran Lupa Tap', 'Pemutihan Presensi'],
   'Lupa Tap Out/In': ['Konfirmasi via WA/HRD', 'Koreksi Jam Manual', 'Teguran Lupa Tap', 'Pemutihan Presensi'],
 };
@@ -449,7 +449,25 @@ const Dashboard = () => {
     const defaults = (DEFAULT_CATEGORY_ACTIONS[kategori] || [])
       .filter((name) => !inactiveNames.has(name));
 
-    const options = ['Tidak Ada Tindakan'];
+    const isAlpha =
+      kategori === 'Mangkir 1 Hari' ||
+      kategori === 'Mangkir >2 Hari Berturut' ||
+      String(kategori || '').toLowerCase().includes('mangkir') ||
+      String(kategori || '').toLowerCase().includes('alpa') ||
+      String(kategori || '').toLowerCase().includes('alpha');
+
+    const defaultAction = isAlpha
+      ? (kategori === 'Mangkir >2 Hari Berturut' ? 'Potong Gaji & Tunjangan' : 'Potong Gaji Harian')
+      : 'Tidak Ada Tindakan';
+
+    const options = [];
+    if (!inactiveNames.has(defaultAction)) {
+      options.push(defaultAction);
+    }
+    if (defaultAction !== 'Tidak Ada Tindakan' && !inactiveNames.has('Tidak Ada Tindakan')) {
+      options.push('Tidak Ada Tindakan');
+    }
+
     [...activeCustom, ...defaults].forEach((name) => {
       if (name && !options.includes(name) && !inactiveNames.has(name)) {
         options.push(name);
@@ -468,8 +486,20 @@ const Dashboard = () => {
         status: match.tindakan === 'Tidak Ada Tindakan' ? 'Belum Diproses' : (match.status || 'Selesai'),
       };
     }
+
+    const isAlpha =
+      kategori === 'Mangkir 1 Hari' ||
+      kategori === 'Mangkir >2 Hari Berturut' ||
+      String(kategori || '').toLowerCase().includes('mangkir') ||
+      String(kategori || '').toLowerCase().includes('alpa') ||
+      String(kategori || '').toLowerCase().includes('alpha');
+
+    const defaultTindakan = isAlpha
+      ? (kategori === 'Mangkir >2 Hari Berturut' ? 'Potong Gaji & Tunjangan' : 'Potong Gaji Harian')
+      : 'Tidak Ada Tindakan';
+
     return {
-      tindakan: 'Tidak Ada Tindakan',
+      tindakan: defaultTindakan,
       status: 'Belum Diproses',
     };
   }, [savedHrActions]);
