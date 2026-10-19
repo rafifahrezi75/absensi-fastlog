@@ -9,9 +9,15 @@ use Illuminate\Http\Request;
 
 class MasterTindakanController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $items = MasterTindakan::orderBy('id', 'asc')->get();
+        $query = MasterTindakan::orderBy('id', 'asc');
+
+        if ($request->has('status') && in_array($request->query('status'), ['aktif', 'nonaktif'])) {
+            $query->where('status', $request->query('status'));
+        }
+
+        $items = $query->get();
 
         return response()->json([
             'success' => true,

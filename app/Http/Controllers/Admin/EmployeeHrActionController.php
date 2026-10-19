@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\EmployeeHrAction;
+use App\Models\MasterTindakan;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -56,6 +57,20 @@ class EmployeeHrActionController extends Controller
         $monthStr = Carbon::parse($tanggal)->format('Y-m');
         $kategori = $validated['kategori'];
         $tindakan = $validated['tindakan'];
+
+        if ($tindakan !== 'Tidak Ada Tindakan') {
+            $isInactive = MasterTindakan::where('kategori', $kategori)
+                ->where('nama', $tindakan)
+                ->where('status', 'nonaktif')
+                ->exists();
+
+            if ($isInactive) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Tindakan '{$tindakan}' sedang nonaktif dan tidak dapat dieksekusi.",
+                ], 422);
+            }
+        }
 
         $existing = EmployeeHrAction::where('finger', $finger)
             ->where('kategori', $kategori)
@@ -113,6 +128,20 @@ class EmployeeHrActionController extends Controller
             $tindakan = $item['tindakan'];
             $finger = (string)$item['finger'];
             $kategori = $item['kategori'];
+
+            if ($tindakan !== 'Tidak Ada Tindakan') {
+                $isInactive = MasterTindakan::where('kategori', $kategori)
+                    ->where('nama', $tindakan)
+                    ->where('status', 'nonaktif')
+                    ->exists();
+
+                if ($isInactive) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Tindakan '{$tindakan}' pada kategori '{$kategori}' sedang nonaktif dan tidak dapat dieksekusi.",
+                    ], 422);
+                }
+            }
 
             $existing = EmployeeHrAction::where('finger', $finger)
                 ->where('kategori', $kategori)

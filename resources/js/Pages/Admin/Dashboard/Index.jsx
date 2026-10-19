@@ -178,7 +178,10 @@ const getPegawaiUntukKategori = (kategori, attendanceRecords = [], permissions =
     const attendedPins = new Set(attendanceRecords.map((r) => String(r.finger || r.pin)));
     const permPins = new Set(permissions.map((p) => String(p.employee?.pin || p.pin)));
     return allEmployees
-      .filter((e) => !attendedPins.has(String(e.pin)) && !permPins.has(String(e.pin)))
+      .filter((e) => {
+        const isEmpActive = !e.status || e.status === 'active' || e.status === 'aktif';
+        return isEmpActive && !attendedPins.has(String(e.pin)) && !permPins.has(String(e.pin));
+      })
       .map((e) => ({
         id: e.id,
         nama: e.nama,
@@ -433,13 +436,22 @@ const Dashboard = () => {
   }), [countForCategory]);
 
   const getOpsiTindakanForCategory = useCallback((kategori) => {
-    const rawItems = tindakanList
+    const inactiveNames = new Set(
+      tindakanList
+        .filter((t) => t.kategori === kategori && t.status === 'nonaktif')
+        .map((t) => t.nama)
+    );
+
+    const activeCustom = tindakanList
       .filter((t) => t.kategori === kategori && t.status === 'aktif')
       .map((t) => t.nama);
-    const defaults = DEFAULT_CATEGORY_ACTIONS[kategori] || [];
+
+    const defaults = (DEFAULT_CATEGORY_ACTIONS[kategori] || [])
+      .filter((name) => !inactiveNames.has(name));
+
     const options = ['Tidak Ada Tindakan'];
-    [...rawItems, ...defaults].forEach((name) => {
-      if (name && !options.includes(name)) {
+    [...activeCustom, ...defaults].forEach((name) => {
+      if (name && !options.includes(name) && !inactiveNames.has(name)) {
         options.push(name);
       }
     });

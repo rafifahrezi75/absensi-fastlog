@@ -390,6 +390,11 @@ const ModalEksekusiTindakan = ({
                                                                 {opt}
                                                             </option>
                                                         ))}
+                                                        {currentAksi && !itemOptions.includes(currentAksi) && currentAksi !== 'Tidak Ada Tindakan' && (
+                                                            <option value={currentAksi} disabled>
+                                                                {currentAksi} (Nonaktif)
+                                                            </option>
+                                                        )}
                                                     </select>
                                                 </td>
                                             </tr>
