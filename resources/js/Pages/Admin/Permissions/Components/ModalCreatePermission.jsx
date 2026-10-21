@@ -1,25 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, FileText, Upload, Loader2, CheckCircle2, UserCheck } from 'lucide-react';
 import api from '../../../../lib/api';
 
 const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) => {
-  const today = new Date().toISOString().split('T')[0];
-
   const [formData, setFormData] = useState({
     employee_id: '',
-    category: 'izin',
-    start_date: today,
-    end_date: today,
-    start_time: '17:30',
-    end_time: '20:30',
+    category: '',
+    start_date: '',
+    end_date: '',
+    start_time: '',
+    end_time: '',
     duration: '',
     description: '',
-    status: 'pending',
+    status: '',
   });
 
   const [attachment, setAttachment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        employee_id: '',
+        category: '',
+        start_date: '',
+        end_date: '',
+        start_time: '',
+        end_time: '',
+        duration: '',
+        description: '',
+        status: '',
+      });
+      setAttachment(null);
+      setError(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -43,6 +59,18 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
       setError('Silakan pilih karyawan terlebih dahulu.');
       return;
     }
+    if (!formData.category) {
+      setError('Silakan pilih kategori pengajuan terlebih dahulu.');
+      return;
+    }
+    if (!formData.status) {
+      setError('Silakan pilih status pengajuan terlebih dahulu.');
+      return;
+    }
+    if (!formData.start_date) {
+      setError('Tanggal mulai wajib diisi.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -55,8 +83,8 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
       payload.append('tanggal_selesai', formData.end_date || formData.start_date);
 
       if (formData.category === 'lembur' || formData.start_time) {
-        payload.append('jam_mulai', formData.start_time);
-        payload.append('jam_selesai', formData.end_time);
+        payload.append('jam_mulai', formData.start_time || '17:30');
+        payload.append('jam_selesai', formData.end_time || '20:30');
       }
 
       if (formData.duration) {
@@ -67,7 +95,7 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
         payload.append('keterangan', formData.description);
       }
 
-      const statusIndo = formData.status === 'pending' ? 'menunggu' : (formData.status === 'approved' ? 'disetujui' : formData.status);
+      const statusIndo = formData.status === 'pending' ? 'menunggu' : (formData.status === 'approved' ? 'disetujui' : (formData.status || 'menunggu'));
       payload.append('status', statusIndo);
 
       if (attachment) {
@@ -82,6 +110,18 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
 
       if (res.data.success) {
         onSuccess(res.data.message || 'Pengajuan berhasil disimpan ke database.');
+        setFormData({
+          employee_id: '',
+          category: '',
+          start_date: '',
+          end_date: '',
+          start_time: '',
+          end_time: '',
+          duration: '',
+          description: '',
+          status: '',
+        });
+        setAttachment(null);
         onClose();
       }
     } catch (err) {
@@ -132,7 +172,7 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
               required
               className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
             >
-              <option value="">-- Pilih Karyawan --</option>
+              <option value="" disabled hidden>-- Pilih Karyawan --</option>
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.nama} ({emp.nik || `PIN: ${emp.pin}`}) - {emp.dept || 'Umum'}
@@ -150,8 +190,10 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
+                required
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
+                <option value="" disabled hidden>-- Pilih Kategori --</option>
                 <option value="izin">Izin</option>
                 <option value="sakit">Sakit</option>
                 <option value="cuti">Cuti</option>
@@ -162,14 +204,16 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Status Pengajuan
+                Status Pengajuan <span className="text-rose-500">*</span>
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
+                required
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
+                <option value="" disabled hidden>-- Pilih Status --</option>
                 <option value="pending">Menunggu Persetujuan</option>
                 <option value="approved">Disetujui Langsung</option>
                 <option value="rejected">Ditolak</option>

@@ -138,7 +138,7 @@ const ModalTambahManual = ({ isOpen, onClose, onSuccess }) => {
                                 disabled={loading}
                                 className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none appearance-none cursor-pointer"
                             >
-                                <option value="">-- Pilih Karyawan --</option>
+                                <option value="" disabled hidden>-- Pilih Karyawan --</option>
                                 {employees.map(emp => (
                                     <option key={emp.id} value={emp.id}>
                                         {emp.nama} ({emp.nik || `PIN: ${emp.pin}`}) - {emp.dept || 'Umum'}
