@@ -12,6 +12,7 @@ use App\Notifications\PermissionStatusUpdatedNotification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PermissionController extends Controller
 {
@@ -84,17 +85,18 @@ class PermissionController extends Controller
         $anomalies = $anomaliesQuery->get();
         $overtimes = $overtimeQuery->get();
 
-        $pendingPermissionsCount = Permission::where('status', 'menunggu')->count();
-        $pendingAnomaliesCount = AttendanceAnomaly::where('status', 'MENUNGGU')->count();
-        $pendingOvertimeCount = OvertimeLog::where('status', 'MENUNGGU')->count();
+        $pendingPermissionsCount = Permission::whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending'])->count();
+        $pendingAnomaliesCount = AttendanceAnomaly::whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending'])->count();
+        $pendingOvertimeCount = OvertimeLog::whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending'])->count();
 
         $stats = [
             'pending' => $pendingPermissionsCount + $pendingAnomaliesCount + $pendingOvertimeCount,
             'menunggu' => $pendingPermissionsCount + $pendingAnomaliesCount + $pendingOvertimeCount,
             'di_luar_jadwal' => AttendanceAnomaly::count(),
-            'izin_cuti' => Permission::whereIn('category', ['izin', 'cuti'])->count(),
-            'sakit' => Permission::where('category', 'sakit')->count(),
-            'lembur_dinas' => Permission::whereIn('category', ['lembur', 'dinas'])->count() + OvertimeLog::count(),
+            'izin_sakit' => Permission::whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti'])->count(),
+            'izin_cuti' => Permission::whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti'])->count(),
+            'sakit' => Permission::where(DB::raw('LOWER(category)'), 'sakit')->count(),
+            'lembur_dinas' => Permission::whereIn(DB::raw('LOWER(category)'), ['lembur', 'dinas'])->count() + OvertimeLog::count(),
         ];
 
         return response()->json([
@@ -135,6 +137,33 @@ class PermissionController extends Controller
         }
 
         $employee = Employee::findOrFail($validated['employee_id']);
+
+        $existing = Permission::where('employee_id', $employee->id)
+            ->whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending', 'disetujui', 'approved'])
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereDate('tanggal_mulai', '<=', $endDate)
+                  ->where(function ($sub) use ($startDate) {
+                      $sub->where(function ($s1) use ($startDate) {
+                          $s1->whereNotNull('tanggal_selesai')
+                             ->where('tanggal_selesai', '!=', '')
+                             ->whereDate('tanggal_selesai', '>=', $startDate);
+                      })->orWhere(function ($s2) use ($startDate) {
+                          $s2->where(function ($s3) {
+                              $s3->whereNull('tanggal_selesai')
+                                 ->orWhere('tanggal_selesai', '');
+                          })->whereDate('tanggal_mulai', '>=', $startDate);
+                      });
+                  });
+            })
+            ->first();
+
+        if ($existing) {
+            $existingCat = ucfirst($existing->category);
+            return response()->json([
+                'success' => false,
+                'message' => 'Karyawan sudah memiliki pengajuan ' . $existingCat . ' pada rentang tanggal tersebut yang berstatus menunggu atau disetujui.',
+            ], 422);
+        }
 
         $attachmentPath = null;
         $file = $request->file('attachment') ?? $request->file('lampiran');

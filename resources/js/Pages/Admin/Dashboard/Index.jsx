@@ -142,7 +142,11 @@ const getPegawaiUntukKategori = (kategori, attendanceRecords = [], permissions =
     const targetCat = catMap[kategori];
     const permMap = new Map();
     permissions
-      .filter((p) => p.category === targetCat || p.kategori?.toLowerCase() === targetCat)
+      .filter((p) => {
+        const cat = (p.category || p.kategori || '').toLowerCase();
+        const st = (p.status || '').toLowerCase();
+        return cat === targetCat && !['ditolak', 'rejected'].includes(st);
+      })
       .forEach((p) => {
         const pin = String(p.employee?.pin || p.pin || '-');
         const tglMulai = p.tanggal_mulai ? String(p.tanggal_mulai).slice(0, 10) : '';
@@ -176,7 +180,11 @@ const getPegawaiUntukKategori = (kategori, attendanceRecords = [], permissions =
 
   if (kategori === 'Mangkir 1 Hari' || kategori === 'Mangkir >2 Hari Berturut') {
     const attendedPins = new Set(attendanceRecords.map((r) => String(r.finger || r.pin)));
-    const permPins = new Set(permissions.map((p) => String(p.employee?.pin || p.pin)));
+    const permPins = new Set(
+      permissions
+        .filter((p) => !['ditolak', 'rejected'].includes((p.status || '').toLowerCase()))
+        .map((p) => String(p.employee?.pin || p.pin))
+    );
     return allEmployees
       .filter((e) => {
         const isEmpActive = !e.status || e.status === 'active' || e.status === 'aktif';
@@ -344,8 +352,9 @@ const Dashboard = () => {
     const currentMonthStr = filterBulan || getLocalMonthString();
     return permissions.filter((p) => {
       const tglMulai = p.tanggal_mulai ? String(p.tanggal_mulai).slice(0, 7) : null;
-      const tglSelesai = p.tanggal_selesai ? String(p.tanggal_selesai).slice(0, 7) : null;
-      return tglMulai === currentMonthStr || tglSelesai === currentMonthStr || (!tglMulai && !tglSelesai);
+      const tglSelesai = p.tanggal_selesai ? String(p.tanggal_selesai).slice(0, 7) : tglMulai;
+      if (!tglMulai && !tglSelesai) return true;
+      return (!tglMulai || tglMulai <= currentMonthStr) && (!tglSelesai || tglSelesai >= currentMonthStr);
     });
   }, [permissions, filterBulan]);
 

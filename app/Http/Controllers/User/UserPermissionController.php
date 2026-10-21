@@ -10,6 +10,7 @@ use App\Notifications\NewPermissionSubmissionNotification;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -53,12 +54,12 @@ class UserPermissionController extends Controller
               ->orWhere('user_id', $user->id);
         });
 
-        $countIzin = (clone $baseQuery)->where('category', 'izin')->count();
-        $countSakit = (clone $baseQuery)->where('category', 'sakit')->count();
-        $countDinas = (clone $baseQuery)->where('category', 'dinas')->count();
-        $countMenunggu = (clone $baseQuery)->where('status', 'menunggu')->count();
-        $countDisetujui = (clone $baseQuery)->where('status', 'disetujui')->count();
-        $countDitolak = (clone $baseQuery)->where('status', 'ditolak')->count();
+        $countIzin = (clone $baseQuery)->whereIn(DB::raw('LOWER(category)'), ['izin', 'cuti'])->count();
+        $countSakit = (clone $baseQuery)->where(DB::raw('LOWER(category)'), 'sakit')->count();
+        $countDinas = (clone $baseQuery)->where(DB::raw('LOWER(category)'), 'dinas')->count();
+        $countMenunggu = (clone $baseQuery)->whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending'])->count();
+        $countDisetujui = (clone $baseQuery)->whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])->count();
+        $countDitolak = (clone $baseQuery)->whereIn(DB::raw('LOWER(status)'), ['ditolak', 'rejected'])->count();
 
         $recentPermissions = (clone $baseQuery)
             ->latest('id')
@@ -214,6 +215,36 @@ class UserPermissionController extends Controller
         }
 
         $category = strtolower($validated['category']);
+
+        $existing = Permission::where(function ($q) use ($employee, $user) {
+                $q->where('employee_id', $employee->id)
+                  ->orWhere('user_id', $user->id);
+            })
+            ->whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending', 'disetujui', 'approved'])
+            ->where(function ($q) use ($validated) {
+                $q->whereDate('tanggal_mulai', '<=', $validated['tanggal_selesai'])
+                  ->where(function ($sub) use ($validated) {
+                      $sub->where(function ($s1) use ($validated) {
+                          $s1->whereNotNull('tanggal_selesai')
+                             ->where('tanggal_selesai', '!=', '')
+                             ->whereDate('tanggal_selesai', '>=', $validated['tanggal_mulai']);
+                      })->orWhere(function ($s2) use ($validated) {
+                          $s2->where(function ($s3) {
+                              $s3->whereNull('tanggal_selesai')
+                                 ->orWhere('tanggal_selesai', '');
+                          })->whereDate('tanggal_mulai', '>=', $validated['tanggal_mulai']);
+                      });
+                  });
+            })
+            ->first();
+
+        if ($existing) {
+            $existingCat = ucfirst($existing->category);
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda sudah memiliki pengajuan ' . $existingCat . ' pada rentang tanggal tersebut yang berstatus menunggu atau disetujui.',
+            ], 422);
+        }
 
         $permission = Permission::create([
             'employee_id' => $employee->id,

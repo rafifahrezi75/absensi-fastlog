@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
+use App\Models\Permission;
 use App\Models\SystemSetting;
 use App\Services\AttendanceTimeWindowService;
 use App\Services\FingerspotService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
@@ -65,36 +67,60 @@ class AttendanceController extends Controller
         $satOut = $settingsData['saturday_check_out'] ?? '12:00';
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
 
-        // Jumlah karyawan (unik) yang punya pengajuan izin/sakit/cuti/dinas DISETUJUI
-        // dan tanggalnya mencakup hari yang dipilih
-        $izinCount = \App\Models\Permission::where('status', 'disetujui')
-            ->whereIn('category', ['izin', 'sakit', 'cuti', 'dinas'])
-            ->whereDate('tanggal_mulai', '<=', $targetDate)
-            ->whereDate('tanggal_selesai', '>=', $targetDate)
-            ->distinct('employee_id')
-            ->count('employee_id');
+        $izinQuery = Permission::whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
+            ->whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dinas'])
+            ->where(function ($q) use ($targetDate) {
+                $q->whereDate('tanggal_mulai', '<=', $targetDate)
+                  ->where(function ($sub) use ($targetDate) {
+                      $sub->where(function ($s1) use ($targetDate) {
+                          $s1->whereNotNull('tanggal_selesai')
+                             ->where('tanggal_selesai', '!=', '')
+                             ->whereDate('tanggal_selesai', '>=', $targetDate);
+                      })->orWhere(function ($s2) use ($targetDate) {
+                          $s2->where(function ($s3) {
+                              $s3->whereNull('tanggal_selesai')
+                                 ->orWhere('tanggal_selesai', '');
+                          })->whereDate('tanggal_mulai', '>=', $targetDate);
+                      });
+                  });
+            });
+        $izinCount = (clone $izinQuery)->distinct('employee_id')->count('employee_id');
+
+        $activeEmployeesCount = Employee::whereIn('status', ['active', 'aktif'])->count();
 
         $stats = [
             'hadir' => 0,
             'terlambat' => 0,
             'izin' => $izinCount,
             'belum_pulang' => 0,
-            'total_karyawan' => Employee::count(),
+            'total_karyawan' => $activeEmployeesCount > 0 ? $activeEmployeesCount : Employee::count(),
         ];
 
         $targetMonth = !empty($filterBulan) ? $filterBulan : Carbon::parse($targetDate)->format('Y-m');
         $startOfMonth = Carbon::parse($targetMonth . '-01')->startOfMonth()->toDateString();
         $endOfMonth = Carbon::parse($targetMonth . '-01')->endOfMonth()->toDateString();
 
-        $izinBulanCount = \App\Models\Permission::where('status', 'disetujui')
-            ->whereIn('category', ['izin', 'sakit', 'cuti', 'dinas'])
-            ->whereDate('tanggal_mulai', '<=', $endOfMonth)
-            ->whereDate('tanggal_selesai', '>=', $startOfMonth)
-            ->distinct('employee_id')
-            ->count('employee_id');
+        $izinBulanQuery = Permission::whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
+            ->whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dinas'])
+            ->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                $q->whereDate('tanggal_mulai', '<=', $endOfMonth)
+                  ->where(function ($sub) use ($startOfMonth) {
+                      $sub->where(function ($s1) use ($startOfMonth) {
+                          $s1->whereNotNull('tanggal_selesai')
+                             ->where('tanggal_selesai', '!=', '')
+                             ->whereDate('tanggal_selesai', '>=', $startOfMonth);
+                      })->orWhere(function ($s2) use ($startOfMonth) {
+                          $s2->where(function ($s3) {
+                              $s3->whereNull('tanggal_selesai')
+                                 ->orWhere('tanggal_selesai', '');
+                          })->whereDate('tanggal_mulai', '>=', $startOfMonth);
+                      });
+                  });
+            });
+        $izinBulanCount = (clone $izinBulanQuery)->distinct('employee_id')->count('employee_id');
 
         $monthlyStats = [
-            'total_karyawan' => Employee::count(),
+            'total_karyawan' => $activeEmployeesCount > 0 ? $activeEmployeesCount : Employee::count(),
             'hadir' => 0,
             'terlambat' => 0,
             'izin' => $izinBulanCount,

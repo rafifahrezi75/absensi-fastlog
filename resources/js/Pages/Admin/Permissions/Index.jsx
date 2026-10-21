@@ -29,6 +29,7 @@ const Permissions = () => {
   const [stats, setStats] = useState({
     pending: 0,
     di_luar_jadwal: 0,
+    izin_sakit: 0,
     izin_cuti: 0,
     lembur_dinas: 0
   });
@@ -209,8 +210,9 @@ const Permissions = () => {
         setStats({
           pending: unified.filter(p => p.status === 'menunggu' || p.status === 'pending').length,
           di_luar_jadwal: dbDiLuarJadwal.length,
-          izin_cuti: dbPermissions.filter(p => ['izin', 'cuti'].includes(p.category)).length,
-          lembur_dinas: dbLembur.length + dbPermissions.filter(p => ['lembur', 'dinas'].includes(p.category)).length
+          izin_sakit: dbPermissions.filter(p => ['izin', 'sakit', 'cuti'].includes((p.category || '').toLowerCase())).length,
+          izin_cuti: dbPermissions.filter(p => ['izin', 'sakit', 'cuti'].includes((p.category || '').toLowerCase())).length,
+          lembur_dinas: dbLembur.length + dbPermissions.filter(p => ['lembur', 'dinas'].includes((p.category || '').toLowerCase())).length
         });
       }
     } catch (err) {
@@ -637,11 +639,11 @@ const Permissions = () => {
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Total Izin &amp; Cuti</span>
+            <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Izin &amp; Sakit</span>
             <div className="p-1.5 bg-emerald-50 rounded-lg"><FileCheck2 className="w-4 h-4 text-emerald-600" /></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">
-            {stats.izin_cuti}
+            {stats.izin_sakit ?? stats.izin_cuti ?? 0}
           </div>
           <span className="text-[11px] text-slate-400">Total data tercatat</span>
         </div>
@@ -651,7 +653,7 @@ const Permissions = () => {
             <div className="p-1.5 bg-indigo-50 rounded-lg"><Briefcase className="w-4 h-4 text-indigo-600" /></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">
-            {stats.lembur_dinas}
+            {stats.lembur_dinas ?? 0}
           </div>
           <span className="text-[11px] text-slate-400">Total data tercatat</span>
         </div>
