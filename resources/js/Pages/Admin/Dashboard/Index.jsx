@@ -397,17 +397,22 @@ const Dashboard = () => {
   }, [countForCategory]);
 
   const approvedDinasIzinSakitCount = useMemo(() => {
+    const todayStr = getLocalDateString();
     if (permissions && permissions.length > 0) {
       return permissions.filter((p) => {
         const cat = (p.category || p.kategori || '').toLowerCase();
         const st = (p.status || '').toLowerCase();
         const isApproved = ['disetujui', 'approved'].includes(st);
         const isCategory = ['dinas', 'izin', 'sakit', 'cuti', 'dispensasi_payroll'].includes(cat) || (!['lembur', 'di_luar_jadwal'].includes(cat) && p.source !== 'overtime' && p.source !== 'anomaly');
-        return isApproved && isCategory;
+        if (!isApproved || !isCategory) return false;
+
+        const tglMulai = p.tanggal_mulai ? String(p.tanggal_mulai).slice(0, 10) : '';
+        const tglSelesai = p.tanggal_selesai ? String(p.tanggal_selesai).slice(0, 10) : tglMulai;
+        return tglMulai && tglMulai <= todayStr && tglSelesai >= todayStr;
       }).length;
     }
-    return stats.total_izin_disetujui ?? stats.izin ?? 0;
-  }, [permissions, stats]);
+    return stats.izin ?? 0;
+  }, [permissions, stats.izin]);
 
   const alpaPegawaiCount = useMemo(() => {
     return countForCategory('Mangkir 1 Hari') + countForCategory('Mangkir >2 Hari Berturut') + countForCategory('Lupa Tap Kehadiran');
@@ -1000,7 +1005,7 @@ const Dashboard = () => {
           <div>
             <p className="text-xs font-semibold uppercase text-blue-600 tracking-wider">Dinas / Izin / Sakit</p>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">{approvedDinasIzinSakitCount}</h3>
-            <p className="text-xs text-blue-600 font-medium mt-1">Disetujui Admin</p>
+            <p className="text-xs text-blue-600 font-medium mt-1">Disetujui Hari Ini</p>
           </div>
           <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
             <FileText className="w-6 h-6" />

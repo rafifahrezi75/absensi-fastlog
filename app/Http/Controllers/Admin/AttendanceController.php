@@ -96,7 +96,7 @@ class AttendanceController extends Controller
         $stats = [
             'hadir' => 0,
             'terlambat' => 0,
-            'izin' => !empty($filterTanggal) ? $izinCount : $totalApprovedIzin,
+            'izin' => $izinCount,
             'total_izin_disetujui' => $totalApprovedIzin,
             'belum_pulang' => 0,
             'total_karyawan' => $activeEmployeesCount > 0 ? $activeEmployeesCount : Employee::count(),
