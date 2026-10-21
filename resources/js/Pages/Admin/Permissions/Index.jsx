@@ -1181,6 +1181,7 @@ const Permissions = () => {
                   className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   required
                 >
+                  <option value="" disabled hidden>-- Pilih Karyawan --</option>
                   {employees.map(emp => (
                     <option key={emp.id} value={emp.id}>
                       {emp.nama} ({emp.nik || `PIN: ${emp.pin}`}) - {emp.dept || 'Umum'}
