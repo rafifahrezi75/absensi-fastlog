@@ -360,14 +360,23 @@ const Permissions = () => {
     if (!deleteModal.item) return;
     try {
       setDeleteModal(p => ({ ...p, loading: true }));
-      await api.delete(`/api/admin/permissions/${deleteModal.item.rawId}`);
+      const { rawId, source } = deleteModal.item;
+      if (source === 'overtime' || source === 'anomaly') {
+        await api.delete(`/api/admin/anomalies/${rawId}`, {
+          params: { type: source, source: source }
+        });
+      } else {
+        await api.delete(`/api/admin/permissions/${rawId}`, {
+          params: { source: source }
+        });
+      }
       await loadData();
-      showSuccess('Data pengajuan berhasil dihapus.');
+      showSuccess('Data berhasil dihapus.');
       closeDeleteModal();
     } catch (err) {
       setNotif({
         type: 'error',
-        message: err.response?.data?.message || 'Gagal menghapus pengajuan.'
+        message: err.response?.data?.message || 'Gagal menghapus data.'
       });
       setDeleteModal(p => ({ ...p, loading: false }));
     }
@@ -400,18 +409,29 @@ const Permissions = () => {
 
     setEditModal(p => ({ ...p, loading: true }));
     try {
-      await api.put(`/api/admin/permissions/${editModal.item.rawId}`, {
-        status: editModal.status,
-        catatan_admin: editModal.note,
-      });
+      const { rawId, source } = editModal.item;
+      if (source === 'overtime' || source === 'anomaly') {
+        await api.put(`/api/admin/anomalies/${rawId}`, {
+          type: source,
+          source: source,
+          status: editModal.status,
+          catatan_admin: editModal.note,
+        });
+      } else {
+        await api.put(`/api/admin/permissions/${rawId}`, {
+          source: source,
+          status: editModal.status,
+          catatan_admin: editModal.note,
+        });
+      }
 
       await loadData();
-      showSuccess('Status dan catatan perizinan berhasil diperbarui.');
+      showSuccess('Status dan catatan berhasil diperbarui.');
       closeEditModal();
     } catch (err) {
       setNotif({
         type: 'error',
-        message: err.response?.data?.message || 'Gagal memperbarui data perizinan.'
+        message: err.response?.data?.message || 'Gagal memperbarui data.'
       });
       setEditModal(p => ({ ...p, loading: false }));
     }
@@ -788,16 +808,14 @@ const Permissions = () => {
                             >
                               <X className="w-4 h-4" />
                             </button>
-                            {item.source === 'permission' && (
-                              <button
-                                type="button"
-                                onClick={() => openDeleteModal(item)}
-                                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                                title="Hapus Pengajuan"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => openDeleteModal(item)}
+                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                              title="Hapus Data"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </>
                         ) : (
                           <>
@@ -809,16 +827,14 @@ const Permissions = () => {
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
-                            {item.source === 'permission' && (
-                              <button
-                                type="button"
-                                onClick={() => openDeleteModal(item)}
-                                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                                title="Hapus Pengajuan"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => openDeleteModal(item)}
+                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                              title="Hapus Data"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </>
                         )}
                       </div>
@@ -1102,7 +1118,7 @@ const Permissions = () => {
               </div>
               <h3 className="font-bold text-slate-900 text-base mb-1">Hapus Pengajuan?</h3>
               <p className="text-xs text-slate-500">
-                Pengajuan untuk <span className="font-semibold text-slate-800">{deleteModal.item.name}</span> ({deleteModal.item.category.toUpperCase()}) akan dihapus permanen dari database.
+                Pengajuan untuk <span className="font-semibold text-slate-800">{deleteModal.item.name}</span> ({(deleteModal.item.category || '').toUpperCase()}) akan dihapus permanen dari database.
               </p>
             </div>
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">

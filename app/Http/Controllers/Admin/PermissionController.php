@@ -278,9 +278,105 @@ class PermissionController extends Controller
 
     public function update(Request $request, string|int $id): JsonResponse
     {
+        $type = $request->input('source') ?? $request->input('type');
+
+        if ($type === 'overtime' || $type === 'lembur') {
+            $overtime = OvertimeLog::find($id);
+            if (!$overtime) {
+                return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
+            }
+            $statusUpper = match (strtoupper($request->input('status') ?? '')) {
+                'DISETUJUI', 'APPROVED' => 'DISETUJUI',
+                'DITOLAK', 'REJECTED' => 'DITOLAK',
+                'MENUNGGU', 'PENDING' => 'MENUNGGU',
+                default => null,
+            };
+            if ($statusUpper) {
+                $overtime->status = $statusUpper;
+            }
+            if ($request->has('catatan_admin')) {
+                $overtime->catatan_admin = $request->input('catatan_admin');
+            }
+            $overtime->save();
+            return response()->json([
+                'success' => true,
+                'message' => 'Data lembur berhasil diperbarui.',
+                'overtime' => $overtime->load('employee'),
+            ]);
+        }
+
+        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
+            $anomaly = AttendanceAnomaly::find($id);
+            if (!$anomaly) {
+                return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
+            }
+            $statusUpper = match (strtoupper($request->input('status') ?? '')) {
+                'DISETUJUI', 'APPROVED' => 'DISETUJUI',
+                'DITOLAK', 'REJECTED' => 'DITOLAK',
+                'MENUNGGU', 'PENDING' => 'MENUNGGU',
+                default => null,
+            };
+            if ($statusUpper) {
+                $anomaly->status = $statusUpper;
+            }
+            if ($request->has('catatan_admin')) {
+                $anomaly->catatan_admin = $request->input('catatan_admin');
+            }
+            $anomaly->save();
+            return response()->json([
+                'success' => true,
+                'message' => 'Data di luar jadwal berhasil diperbarui.',
+                'anomaly' => $anomaly->load('employee'),
+            ]);
+        }
+
         $permission = Permission::find($id);
 
         if (!$permission) {
+            $overtime = OvertimeLog::find($id);
+            if ($overtime) {
+                $statusUpper = match (strtoupper($request->input('status') ?? '')) {
+                    'DISETUJUI', 'APPROVED' => 'DISETUJUI',
+                    'DITOLAK', 'REJECTED' => 'DITOLAK',
+                    'MENUNGGU', 'PENDING' => 'MENUNGGU',
+                    default => null,
+                };
+                if ($statusUpper) {
+                    $overtime->status = $statusUpper;
+                }
+                if ($request->has('catatan_admin')) {
+                    $overtime->catatan_admin = $request->input('catatan_admin');
+                }
+                $overtime->save();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data lembur berhasil diperbarui.',
+                    'overtime' => $overtime->load('employee'),
+                ]);
+            }
+
+            $anomaly = AttendanceAnomaly::find($id);
+            if ($anomaly) {
+                $statusUpper = match (strtoupper($request->input('status') ?? '')) {
+                    'DISETUJUI', 'APPROVED' => 'DISETUJUI',
+                    'DITOLAK', 'REJECTED' => 'DITOLAK',
+                    'MENUNGGU', 'PENDING' => 'MENUNGGU',
+                    default => null,
+                };
+                if ($statusUpper) {
+                    $anomaly->status = $statusUpper;
+                }
+                if ($request->has('catatan_admin')) {
+                    $anomaly->catatan_admin = $request->input('catatan_admin');
+                }
+                $anomaly->save();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data di luar jadwal berhasil diperbarui.',
+                    'anomaly' => $anomaly->load('employee'),
+                ]);
+            }
+
             return response()->json(['success' => false, 'message' => 'Data pengajuan tidak ditemukan.'], 404);
         }
 
@@ -343,11 +439,43 @@ class PermissionController extends Controller
         ]);
     }
 
-    public function destroy(string|int $id): JsonResponse
+    public function destroy(Request $request, string|int $id): JsonResponse
     {
+        $type = $request->input('source') ?? $request->query('source') ?? $request->input('type') ?? $request->query('type');
+
+        if ($type === 'overtime' || $type === 'lembur') {
+            $overtime = OvertimeLog::find($id);
+            if ($overtime) {
+                $overtime->delete();
+                return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus.']);
+            }
+            return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
+        }
+
+        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
+            $anomaly = AttendanceAnomaly::find($id);
+            if ($anomaly) {
+                $anomaly->delete();
+                return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
+            }
+            return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
+        }
+
         $permission = Permission::find($id);
 
         if (!$permission) {
+            $overtime = OvertimeLog::find($id);
+            if ($overtime) {
+                $overtime->delete();
+                return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus.']);
+            }
+
+            $anomaly = AttendanceAnomaly::find($id);
+            if ($anomaly) {
+                $anomaly->delete();
+                return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
+            }
+
             return response()->json(['success' => false, 'message' => 'Data pengajuan tidak ditemukan.'], 404);
         }
 

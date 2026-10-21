@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\Permission;
@@ -221,6 +222,7 @@ class AttendanceController extends Controller
 
             $row = [
                 'id' => $counterId++,
+                'employee_id' => $emp ? $emp->id : null,
                 'nama' => $empName,
                 'nik' => $empNik,
                 'finger' => $item['pin'],
@@ -360,5 +362,225 @@ class AttendanceController extends Controller
             'message' => 'Data absensi manual berhasil disimpan.',
             'results' => $results,
         ]);
+    }
+
+    public function updateKoreksi(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'employee_id' => 'nullable',
+            'pin' => 'nullable',
+            'tanggal' => 'required|date',
+            'jam_masuk' => 'nullable|string',
+            'jam_keluar' => 'nullable|string',
+            'alasan' => 'nullable|string|max:500',
+        ]);
+
+        $employeeId = $validated['employee_id'] ?? null;
+        $pin = $validated['pin'] ?? null;
+        $tanggal = Carbon::parse($validated['tanggal'])->format('Y-m-d');
+        $jamMasuk = !empty($validated['jam_masuk']) ? trim($validated['jam_masuk']) : null;
+        $jamKeluar = !empty($validated['jam_keluar']) ? trim($validated['jam_keluar']) : null;
+        $alasan = $validated['alasan'] ?? 'Koreksi log absensi oleh Admin';
+
+        if (!$jamMasuk && !$jamKeluar) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Minimal salah satu jam (Jam Masuk atau Jam Keluar) harus diisi.',
+            ], 422);
+        }
+
+        if ($jamMasuk && strlen($jamMasuk) === 5) {
+            $jamMasuk .= ':00';
+        }
+
+        if ($jamKeluar && strlen($jamKeluar) === 5) {
+            $jamKeluar .= ':00';
+        }
+
+        if ($jamMasuk && $jamKeluar && $jamKeluar < $jamMasuk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jam keluar tidak boleh lebih awal dari jam masuk.',
+            ], 422);
+        }
+
+        $employee = null;
+        if ($employeeId) {
+            $employee = Employee::find($employeeId);
+        }
+        if (!$employee && $pin) {
+            $employee = Employee::where('pin', (string)$pin)->first();
+        }
+        if (!$employee && $employeeId) {
+            $employee = Employee::where('nik', (string)$employeeId)->first();
+        }
+
+        $finalPin = $employee ? ($employee->pin ?? (string)$employee->id) : (string)$pin;
+
+        if (!$employee && !$finalPin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Karyawan atau PIN tidak ditemukan.',
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            AttendanceLog::whereDate('scan_at', $tanggal)
+                ->where(function ($q) use ($employee, $finalPin) {
+                    if ($employee && $finalPin) {
+                        $q->where('employee_id', $employee->id)
+                          ->orWhere('pin', (string)$finalPin);
+                    } elseif ($employee) {
+                        $q->where('employee_id', $employee->id);
+                    } else {
+                        $q->where('pin', (string)$finalPin);
+                    }
+                })
+                ->delete();
+
+            if ($jamMasuk) {
+                $inDateTime = Carbon::parse($tanggal . ' ' . $jamMasuk);
+                AttendanceLog::create([
+                    'cloud_id' => $employee?->cloud_id ?? 'MANUAL',
+                    'pin' => $finalPin,
+                    'employee_id' => $employee?->id,
+                    'scan_at' => $inDateTime->format('Y-m-d H:i:s'),
+                    'verify_method' => 'koreksi_admin',
+                    'status_scan' => '0',
+                    'raw_data' => [
+                        'source' => 'koreksi_admin',
+                        'reason' => $alasan,
+                        'updated_at' => Carbon::now()->toIso8601String(),
+                    ],
+                ]);
+            }
+
+            if ($jamKeluar) {
+                $outDateTime = Carbon::parse($tanggal . ' ' . $jamKeluar);
+                AttendanceLog::create([
+                    'cloud_id' => $employee?->cloud_id ?? 'MANUAL',
+                    'pin' => $finalPin,
+                    'employee_id' => $employee?->id,
+                    'scan_at' => $outDateTime->format('Y-m-d H:i:s'),
+                    'verify_method' => 'koreksi_admin',
+                    'status_scan' => '1',
+                    'raw_data' => [
+                        'source' => 'koreksi_admin',
+                        'reason' => $alasan,
+                        'updated_at' => Carbon::now()->toIso8601String(),
+                    ],
+                ]);
+            }
+
+            if ($employee) {
+                $attendance = Attendance::firstOrNew([
+                    'employee_id' => $employee->id,
+                    'tanggal' => $tanggal,
+                ]);
+
+                if (!$attendance->exists) {
+                    $attendance->user_id = $employee->user_id;
+                }
+
+                $attendance->jam_masuk = $jamMasuk ? Carbon::parse($tanggal . ' ' . $jamMasuk) : null;
+                $attendance->jam_pulang = $jamKeluar ? Carbon::parse($tanggal . ' ' . $jamKeluar) : null;
+
+                if ($jamMasuk) {
+                    $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
+                    $isSat = Carbon::parse($tanggal)->isSaturday();
+                    $schedInTime = $isSat ? ($settingsData['saturday_check_in'] ?? '08:00') : ($settingsData['normal_check_in'] ?? '08:00');
+                    $tol = (int)($isSat ? ($settingsData['saturday_tolerance'] ?? 15) : ($settingsData['normal_tolerance'] ?? 15));
+                    $lateThreshold = Carbon::parse($tanggal . ' ' . $schedInTime . ':00')->addMinutes($tol);
+                    $isLate = Carbon::parse($tanggal . ' ' . $jamMasuk)->gt($lateThreshold);
+                    $attendance->status = $isLate ? 'terlambat' : 'hadir';
+                } else {
+                    $attendance->status = 'alpa';
+                }
+
+                $attendance->save();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Log absensi berhasil diperbarui.',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui log absensi: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function destroyKoreksi(Request $request): JsonResponse
+    {
+        $employeeId = $request->input('employee_id') ?? $request->query('employee_id');
+        $pin = $request->input('pin') ?? $request->query('pin');
+        $tanggalRaw = $request->input('tanggal') ?? $request->query('tanggal');
+
+        if (!$tanggalRaw) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tanggal absensi wajib diisi.',
+            ], 422);
+        }
+
+        $tanggal = Carbon::parse($tanggalRaw)->format('Y-m-d');
+
+        $employee = null;
+        if ($employeeId) {
+            $employee = Employee::find($employeeId);
+        }
+        if (!$employee && $pin) {
+            $employee = Employee::where('pin', (string)$pin)->first();
+        }
+
+        $finalPin = $employee ? ($employee->pin ?? (string)$employee->id) : (string)$pin;
+
+        if (!$employee && !$finalPin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Karyawan atau PIN tidak ditemukan.',
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            AttendanceLog::whereDate('scan_at', $tanggal)
+                ->where(function ($q) use ($employee, $finalPin) {
+                    if ($employee && $finalPin) {
+                        $q->where('employee_id', $employee->id)
+                          ->orWhere('pin', (string)$finalPin);
+                    } elseif ($employee) {
+                        $q->where('employee_id', $employee->id);
+                    } else {
+                        $q->where('pin', (string)$finalPin);
+                    }
+                })
+                ->delete();
+
+            if ($employee) {
+                Attendance::where('employee_id', $employee->id)
+                    ->where('tanggal', $tanggal)
+                    ->delete();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Log absensi berhasil dihapus.',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus log absensi: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
