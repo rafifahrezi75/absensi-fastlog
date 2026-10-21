@@ -43,16 +43,20 @@ class EmployeeUserSeeder extends Seeder
                 $counter++;
             }
 
+            $userName = !empty($rawName)
+                ? $rawName
+                : ($user?->name ?: ('Karyawan ' . ($employee->pin ?: $employee->id)));
+
             if ($user) {
                 $user->update([
-                    'name' => $employee->nama,
+                    'name' => $userName,
                     'email' => $email,
                     'password' => Hash::make('password'),
                     'role' => 'user',
                 ]);
             } else {
                 $user = User::create([
-                    'name' => $employee->nama,
+                    'name' => $userName,
                     'email' => $email,
                     'password' => Hash::make('password'),
                     'role' => 'user',
