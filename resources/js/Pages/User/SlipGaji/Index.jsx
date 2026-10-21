@@ -60,6 +60,8 @@ const SlipGaji = () => {
         setModalData({
             isOpen: true,
             nama: item.nama,
+            idFinger: item.idFinger || item.pin,
+            employee_id: item.employee_id,
             nik: item.nik,
             dept: item.dept,
             deptLabel: item.dept,
