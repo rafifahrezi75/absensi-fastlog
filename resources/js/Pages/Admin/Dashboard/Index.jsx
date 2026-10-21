@@ -224,6 +224,28 @@ const DEFAULT_CATEGORY_ACTIONS = {
   'Lupa Tap Out/In': ['Konfirmasi via WA/HRD', 'Koreksi Jam Manual', 'Teguran Lupa Tap', 'Pemutihan Presensi'],
 };
 
+const formatCategoryLabel = (val) => {
+  if (!val) return '';
+  if (Array.isArray(val)) return val;
+  const str = String(val).trim();
+  if (str.length <= 13) return str;
+
+  if (str.includes('(') && str.includes(')')) {
+    const parts = str.split(/(?=\()/);
+    if (parts.length === 2 && parts[0].trim() && parts[1].trim()) {
+      return [parts[0].trim(), parts[1].trim()];
+    }
+  }
+
+  const words = str.split(/\s+/);
+  if (words.length <= 1) return str;
+
+  const mid = Math.ceil(words.length / 2);
+  const line1 = words.slice(0, mid).join(' ');
+  const line2 = words.slice(mid).join(' ');
+  return [line1, line2];
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
 
@@ -750,7 +772,7 @@ const Dashboard = () => {
     plotOptions: {
       bar: {
         borderRadius: 8,
-        columnWidth: '45%',
+        columnWidth: activeChart.categories.length <= 3 ? '38%' : (activeChart.categories.length <= 4 ? '44%' : '50%'),
         distributed: true,
         dataLabels: { position: 'top' }
       }
@@ -762,16 +784,19 @@ const Dashboard = () => {
     },
     colors: drillLevel === 1
       ? ['#10b981', '#f59e0b', '#3b82f6', '#ef4444']
-      : (drillLevel === 2 ? ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'] : ['#f43f5e', '#fb7185', '#fda4af']),
+      : (drillLevel === 2 ? ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'] : ['#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6']),
     xaxis: {
       categories: activeChart.categories,
       labels: {
         style: { fontSize: '11px', fontWeight: 500, colors: '#64748b' },
-        rotate: -30,
+        rotate: 0,
         rotateAlways: false,
         hideOverlappingLabels: false,
         trim: false,
-        maxHeight: 140
+        minHeight: 28,
+        maxHeight: 44,
+        offsetY: -4,
+        formatter: (val) => formatCategoryLabel(val)
       },
       axisBorder: { show: false },
       axisTicks: { show: false }
@@ -788,18 +813,49 @@ const Dashboard = () => {
       borderColor: '#f1f5f9',
       strokeDashArray: 4,
       padding: {
-        left: 25,
-        right: 10,
-        bottom: 15
+        left: 20,
+        right: 20,
+        bottom: 0
       }
     },
     legend: { show: false },
     tooltip: {
       theme: 'light',
+      x: {
+        formatter: (val, opts) => {
+          if (opts && typeof opts.dataPointIndex === 'number' && activeChart.categories[opts.dataPointIndex]) {
+            return activeChart.categories[opts.dataPointIndex];
+          }
+          return Array.isArray(val) ? val.join(' ') : val;
+        }
+      },
       y: {
         formatter: (val) => `${val} Data`
       }
-    }
+    },
+    responsive: [
+      {
+        breakpoint: 640,
+        options: {
+          chart: {
+            height: 290
+          },
+          plotOptions: {
+            bar: {
+              columnWidth: '55%'
+            }
+          },
+          xaxis: {
+            labels: {
+              style: { fontSize: '10px' },
+              minHeight: 28,
+              maxHeight: 44,
+              offsetY: -4
+            }
+          }
+        }
+      }
+    ]
   }), [drillLevel, activeChart.categories, handleChartClick, chartRefreshKey]);
 
   const pieChartOptions = {
@@ -1010,20 +1066,20 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="w-full overflow-x-auto thin-scrollbar pb-2">
-              <div className="min-w-[550px] sm:min-w-full">
+            <div className="w-full overflow-x-auto thin-scrollbar">
+              <div className={activeChart.categories.length >= 5 ? 'min-w-[620px] sm:min-w-full' : 'min-w-[540px] sm:min-w-full'}>
                 <Chart
                   key={`drill-bar-${drillLevel}-${selectedStatus}-${selectedCategory}-${chartRefreshKey}`}
                   options={barChartOptions}
                   series={activeChart.series}
                   type="bar"
-                  height={280}
+                  height={330}
                 />
               </div>
             </div>
           </div>
 
-          <div className="pt-4 mt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <div className="pt-3 mt-1 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <div className="flex items-center gap-1.5 font-medium">
               <span className="text-slate-400">Navigasi:</span>
               <span className={drillLevel === 1 ? 'text-indigo-600 font-bold' : ''}>Status Utama</span>
