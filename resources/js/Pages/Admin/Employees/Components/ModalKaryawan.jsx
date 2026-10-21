@@ -6,7 +6,7 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data, salaryGrades = [] }) => 
         id: null,
         nama: '',
         idFinger: '',
-        dept: 'IT & Tech',
+        dept: '',
         jabatan: '',
         salary_grade_id: ''
     });
@@ -17,7 +17,7 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data, salaryGrades = [] }) => 
                 id: data.id || null,
                 nama: data.nama || '',
                 idFinger: data.idFinger || '',
-                dept: data.dept || 'IT & Tech',
+                dept: data.dept || '',
                 jabatan: data.jabatan || '',
                 salary_grade_id: data.salary_grade_id || ''
             });
@@ -26,9 +26,9 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data, salaryGrades = [] }) => 
                 id: null,
                 nama: '',
                 idFinger: '',
-                dept: 'IT & Tech',
+                dept: '',
                 jabatan: '',
-                salary_grade_id: salaryGrades.find(g => g.nama === 'Staff')?.id || (salaryGrades.length > 0 ? salaryGrades[0].id : '')
+                salary_grade_id: ''
             });
         }
     }, [data, isOpen, salaryGrades]);
@@ -44,6 +44,10 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data, salaryGrades = [] }) => 
         e.preventDefault();
         if (!formData.nama) {
             alert('Nama Lengkap wajib diisi!');
+            return;
+        }
+        if (!formData.dept) {
+            alert('Departemen wajib dipilih!');
             return;
         }
         onSave(formData);
@@ -89,13 +93,15 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data, salaryGrades = [] }) => 
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block font-medium text-slate-700 mb-1">Departemen</label>
+                                <label className="block font-medium text-slate-700 mb-1">Departemen *</label>
                                 <select
                                     name="dept"
                                     value={formData.dept}
                                     onChange={handleChange}
+                                    required
                                     className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                 >
+                                    <option value="" disabled hidden>-- Pilih Departemen --</option>
                                     <option value="IT & Tech">IT & Tech</option>
                                     <option value="Marketing">Marketing</option>
                                     <option value="HRD & GA">HRD & GA</option>
@@ -124,7 +130,7 @@ const ModalKaryawan = ({ isOpen, onClose, onSave, data, salaryGrades = [] }) => 
                                 onChange={handleChange}
                                 className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                             >
-                                <option value="">Pilih Golongan Gaji...</option>
+                                <option value="" disabled hidden>-- Pilih Golongan Gaji --</option>
                                 {salaryGrades.map(sg => (
                                     <option key={sg.id} value={sg.id}>
                                         {sg.kode} - {sg.nama} (Gapok: Rp {Number(sg.gajiPokok || sg.gaji_pokok || 0).toLocaleString('id-ID')})

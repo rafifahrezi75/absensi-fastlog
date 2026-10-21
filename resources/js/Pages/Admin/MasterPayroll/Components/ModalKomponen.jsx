@@ -128,7 +128,7 @@ const ModalKomponen = ({ isOpen, onClose, onSave, data }) => {
                                     Basis Hitung <span className="text-rose-500">*</span>
                                 </label>
                                 <select name="basis" value={formData.basis} onChange={handleChange} required className="w-full text-sm bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-shadow">
-                                    <option value="">Pilih basis hitung...</option>
+                                    <option value="" disabled hidden>-- Pilih Basis Hitung --</option>
                                     <option value="kejadian_telat">Per Kejadian Telat</option>
                                     <option value="menit_telat">Per Menit Telat</option>
                                     <option value="hari_hadir">Per Hari Hadir</option>
