@@ -18,6 +18,13 @@ const ModalTambahManual = ({ isOpen, onClose, onSuccess }) => {
 
     useEffect(() => {
         if (isOpen) {
+            setFormData({
+                karyawanId: '',
+                tanggal: new Date().toISOString().split('T')[0],
+                jamMasuk: '',
+                jamKeluar: '',
+                alasan: ''
+            });
             loadEmployees();
             setErrorMsg(null);
         }
@@ -29,9 +36,6 @@ const ModalTambahManual = ({ isOpen, onClose, onSuccess }) => {
             const res = await api.get('/api/admin/employees');
             const emps = res.data.employees || [];
             setEmployees(emps);
-            if (emps.length > 0 && !formData.karyawanId) {
-                setFormData(prev => ({ ...prev, karyawanId: String(emps[0].id) }));
-            }
         } catch (err) {
             setEmployees([]);
         } finally {
@@ -51,6 +55,11 @@ const ModalTambahManual = ({ isOpen, onClose, onSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!formData.karyawanId) {
+            setErrorMsg('Silakan pilih karyawan terlebih dahulu.');
+            return;
+        }
 
         if (!formData.jamMasuk && !formData.jamKeluar) {
             setErrorMsg('Minimal salah satu jam (Jam Masuk atau Jam Keluar) harus diisi.');
@@ -76,7 +85,7 @@ const ModalTambahManual = ({ isOpen, onClose, onSuccess }) => {
             }
 
             setFormData({
-                karyawanId: employees.length > 0 ? String(employees[0].id) : '',
+                karyawanId: '',
                 tanggal: new Date().toISOString().split('T')[0],
                 jamMasuk: '',
                 jamKeluar: '',
@@ -92,15 +101,15 @@ const ModalTambahManual = ({ isOpen, onClose, onSuccess }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all border border-slate-100 animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] flex flex-col my-auto">
+                <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
                     <div>
                         <h3 className="font-bold text-slate-900 text-base">Tambah Absensi Manual</h3>
                         <p className="text-xs text-slate-500">Input catatan kehadiran pegawai secara manual</p>
                     </div>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         type="button"
                         disabled={submitting}
                         className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
@@ -109,7 +118,7 @@ const ModalTambahManual = ({ isOpen, onClose, onSuccess }) => {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
                     {errorMsg && (
                         <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
                             {errorMsg}
@@ -208,7 +217,7 @@ const ModalTambahManual = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 shrink-0">
                         <button
                             type="button"
                             onClick={onClose}

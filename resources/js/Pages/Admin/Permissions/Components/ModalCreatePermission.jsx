@@ -92,9 +92,9 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200">
               <UserCheck className="w-5 h-5" />
@@ -114,7 +114,7 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {error && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl font-medium">
               {error}
@@ -307,7 +307,7 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
             </div>
           </div>
 
-          <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
+          <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100 shrink-0">
             <button
               type="button"
               onClick={onClose}
