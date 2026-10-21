@@ -90,7 +90,7 @@ class AttendanceController extends Controller
                       });
                   });
             });
-        $izinCount = (clone $izinQuery)->distinct('employee_id')->count('employee_id');
+        $izinCount = (clone $izinQuery)->count();
 
         $activeEmployeesCount = Employee::whereIn('status', ['active', 'aktif'])->count();
 

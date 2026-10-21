@@ -876,9 +876,11 @@ const Dashboard = () => {
     ]
   }), [drillLevel, activeChart.categories, handleChartClick, chartRefreshKey]);
 
+  const onTimeCount = Math.max(0, (stats.hadir || 0) - (stats.terlambat || 0));
+
   const pieChartOptions = {
     chart: { type: 'donut', fontFamily: 'Inter, sans-serif' },
-    labels: ['Tepat Waktu', 'Terlambat', 'Izin/Sakit'],
+    labels: ['Tepat Waktu', 'Terlambat', 'Dinas / Izin / Sakit'],
     colors: ['#10b981', '#f59e0b', '#3b82f6'],
     dataLabels: { enabled: false },
     legend: { show: false },
@@ -903,9 +905,9 @@ const Dashboard = () => {
   };
 
   const pieChartSeries = [
-    stats.hadir,
-    stats.terlambat,
-    stats.izin || 0
+    onTimeCount,
+    stats.terlambat || 0,
+    approvedDinasIzinSakitCount || 0
   ];
 
   const handleSyncFingerprint = async () => {
@@ -1127,7 +1129,7 @@ const Dashboard = () => {
                 <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Tepat Waktu
                 </span>
-                <span className="text-sm font-bold text-slate-900">{stats.hadir - stats.terlambat > 0 ? stats.hadir - stats.terlambat : 0}</span>
+                <span className="text-sm font-bold text-slate-900">{onTimeCount}</span>
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
@@ -1137,9 +1139,9 @@ const Dashboard = () => {
               </div>
               <div className="flex flex-col items-center gap-1">
                 <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span> Izin/Sakit
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span> Dinas / Izin / Sakit
                 </span>
-                <span className="text-sm font-bold text-slate-900">{stats.izin}</span>
+                <span className="text-sm font-bold text-slate-900">{approvedDinasIzinSakitCount}</span>
               </div>
             </div>
           </div>
