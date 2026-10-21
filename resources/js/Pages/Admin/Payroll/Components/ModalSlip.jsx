@@ -1,5 +1,5 @@
 import React from 'react';
-import { Printer, X, Fingerprint } from 'lucide-react';
+import { Printer, X } from 'lucide-react';
 
 const ModalSlip = ({ isOpen, onClose, data }) => {
     if (!isOpen) return null;
@@ -63,11 +63,8 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
 
                 <div className="p-6 space-y-4 text-xs text-slate-800">
                     <div className="text-center border-b border-slate-200 pb-4">
-                        <div className="flex items-center justify-center gap-2 mb-1.5">
-                            <div className="bg-indigo-600 p-1.5 rounded-lg text-white shadow-sm flex items-center justify-center">
-                                <Fingerprint className="w-5 h-5" />
-                            </div>
-                            <span className="font-bold text-lg text-indigo-900 tracking-tight">Fast<span className="text-indigo-600">Log</span></span>
+                        <div className="flex items-center justify-center mb-1.5">
+                            <img src="/images/front-end/logo2.png" alt="FastLog" className="h-10 w-auto object-contain" />
                         </div>
                         <h4 className="font-bold text-sm text-slate-900 tracking-wide uppercase">
                             PT. FASTLOG ERA MANDIRI
@@ -83,8 +80,8 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                             <strong className="text-slate-900 font-semibold">{data?.nama || '-'}</strong>
                         </div>
                         <div>
-                            <span className="text-slate-400 block">NIK:</span>
-                            <strong className="text-slate-900 font-mono">{data?.nik || '-'}</strong>
+                            <span className="text-slate-400 block">ID Karyawan:</span>
+                            <strong className="text-slate-900 font-mono">{data?.idFinger || data?.pin || data?.employee_id || data?.id || '-'}</strong>
                         </div>
                         <div>
                             <span className="text-slate-400 block">Jabatan / Golongan:</span>

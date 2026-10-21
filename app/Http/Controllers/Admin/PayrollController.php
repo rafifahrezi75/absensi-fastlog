@@ -308,6 +308,8 @@ class PayrollController extends Controller
                     'id' => $p->id,
                     'employee_id' => $employee->id,
                     'nama' => $employee->nama,
+                    'pin' => $employee->pin,
+                    'idFinger' => $employee->pin,
                     'nik' => $employee->nik,
                     'dept' => $employee->dept,
                     'jabatan' => $employee->jabatan ?: 'Staff',

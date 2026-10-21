@@ -154,7 +154,7 @@ const PayrollDetail = ({ isAdmin = true }) => {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-0.5">
-                        <span className="inline-flex items-center gap-1"><User className="w-3.5 h-3.5 text-slate-400" /> {employee?.nama} ({employee?.nik || '-'})</span>
+                        <span className="inline-flex items-center gap-1"><User className="w-3.5 h-3.5 text-slate-400" /> {employee?.nama} ({employee?.pin ? `ID: ${employee.pin}` : (employee?.id ? `ID: ${employee.id}` : (employee?.nik ? `ID: ${employee.nik}` : '-'))})</span>
                         <span className="inline-flex items-center gap-1"><Building2 className="w-3.5 h-3.5 text-slate-400" /> {deptLabel} • {employee?.jabatan || 'Staff'}</span>
                         <span className="inline-flex items-center gap-1"><Wallet className="w-3.5 h-3.5 text-slate-400" /> Golongan: {employee?.salary_grade?.nama || 'Standard'}</span>
                     </div>

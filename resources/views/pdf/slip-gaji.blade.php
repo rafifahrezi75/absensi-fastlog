@@ -205,15 +205,33 @@
 </head>
 <body>
 
+@php
+    $hasGd = extension_loaded('gd');
+    $logoBase64 = '';
+    if ($hasGd) {
+        $logoPath = public_path('images/front-end/logo3.webp');
+        if (file_exists($logoPath)) {
+            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+    }
+@endphp
+
     <div class="header">
         <table style="width: 100%; border-collapse: collapse;">
             <tr>
-                <td style="vertical-align: middle;">
+                <td style="width: 85px; vertical-align: middle; text-align: left;">
+                    @if($hasGd && !empty($logoBase64))
+                        <img src="{{ $logoBase64 }}" style="height: 52px; width: auto;" alt="Logo FastLog">
+                    @else
+                        <div style="font-size: 16px; font-weight: bold; color: #047857; letter-spacing: -0.5px;">Fast<span style="color: #4338ca;">Log</span></div>
+                    @endif
+                </td>
+                <td style="vertical-align: middle; text-align: center;">
                     <div class="company-title">PT. FASTLOG ERA MANDIRI</div>
                     <div class="doc-title">SLIP GAJI KARYAWAN</div>
                     <div class="period-subtitle">Periode: {{ $periodeLabel ?? $payroll->periode }}</div>
                 </td>
-                <td style="text-align: right; vertical-align: middle;">
+                <td style="width: 85px; text-align: right; vertical-align: middle;">
                     @if(($payroll->status ?? 'draft') === 'paid')
                         <span class="badge badge-paid">Lunas (Paid)</span>
                     @else
@@ -232,8 +250,8 @@
             <td class="info-value">{{ $deptLabel ?? $employee->dept ?? 'Umum' }}</td>
         </tr>
         <tr>
-            <td class="info-label">NIK:</td>
-            <td class="info-value">{{ $employee->nik ?? '-' }}</td>
+            <td class="info-label">ID Karyawan:</td>
+            <td class="info-value">{{ !empty($employee->pin) ? $employee->pin : ($employee->id ?? '-') }}</td>
             <td class="info-label">Jabatan:</td>
             <td class="info-value">{{ $employee->jabatan ?? 'Staff' }}</td>
         </tr>
