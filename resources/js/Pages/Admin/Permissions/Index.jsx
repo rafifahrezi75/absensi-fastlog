@@ -581,11 +581,11 @@ const Permissions = () => {
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2.5 mb-1">
             <h1 className="text-2xl font-bold text-slate-900">Kelola Izin &amp; Lembur</h1>
             {pendingCount > 0 && (
-              <span className="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-amber-200">
+              <span className="bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-amber-200 whitespace-nowrap">
                 {pendingCount} Menunggu
               </span>
             )}
@@ -593,12 +593,12 @@ const Permissions = () => {
           <p className="text-sm text-slate-500">Tinjau dan kelola seluruh pencatatan tap di luar jadwal, lembur mesin, serta pengajuan izin, cuti, dan sakit karyawan.</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2.5 shrink-0 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
           <button
             type="button"
             onClick={loadData}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition cursor-pointer shadow-sm disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition cursor-pointer shadow-sm disabled:opacity-60 whitespace-nowrap"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Segarkan</span>
@@ -606,7 +606,7 @@ const Permissions = () => {
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer shadow-sm whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Pengajuan</span>
