@@ -178,16 +178,16 @@ const DevicesIndex = () => {
             )}
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                     <h1 className="text-2xl font-bold text-slate-900">Mesin Sidik Jari</h1>
                     <p className="text-sm text-slate-500">Monitoring terminal biometrik Fingerspot, status telemetri, dan sinkronisasi cloud.</p>
                 </div>
-                <div className="flex items-center flex-wrap gap-2.5">
+                <div className="flex items-center gap-2.5 shrink-0 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
                     <button
                         type="button"
                         onClick={handlePing}
                         disabled={pingLoading}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-xs cursor-pointer disabled:opacity-60"
+                        className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-xs cursor-pointer disabled:opacity-60 whitespace-nowrap"
                     >
                         <Radio className={`w-3.5 h-3.5 text-indigo-600 ${pingLoading ? 'animate-pulse' : ''}`} />
                         <span>{pingLoading ? 'Menguji Ping...' : 'Uji Koneksi (Ping)'}</span>
@@ -197,7 +197,7 @@ const DevicesIndex = () => {
                         type="button"
                         onClick={handleSyncUsers}
                         disabled={syncUserLoading}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition shadow-xs cursor-pointer disabled:opacity-60"
+                        className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition shadow-xs cursor-pointer disabled:opacity-60 whitespace-nowrap"
                     >
                         <Users className={`w-3.5 h-3.5 ${syncUserLoading ? 'animate-spin' : ''}`} />
                         <span>{syncUserLoading ? 'Menyinkronkan Karyawan...' : 'Sinkron Data Karyawan'}</span>
@@ -206,7 +206,7 @@ const DevicesIndex = () => {
                     <button
                         type="button"
                         onClick={() => setIsFetchLogOpen(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm cursor-pointer"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm cursor-pointer whitespace-nowrap"
                     >
                         <RefreshCw className="w-3.5 h-3.5" />
                         <span>Sync Log Absensi</span>
