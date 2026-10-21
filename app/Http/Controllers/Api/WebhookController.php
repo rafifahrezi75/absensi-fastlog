@@ -169,6 +169,23 @@ class WebhookController extends Controller
                     $employee->update(['nama' => $cloudName]);
                 }
 
+                $scanDate = Carbon::parse($scanAt)->format('Y-m-d');
+                $isCorrected = AttendanceLog::whereDate('scan_at', $scanDate)
+                    ->where(function ($q) use ($employee, $pin) {
+                        $q->where('employee_id', $employee->id)
+                          ->orWhere('pin', $pin);
+                    })
+                    ->where(function ($q) {
+                        $q->whereIn('verify_method', ['koreksi_admin', 'manual', 'manual_admin'])
+                          ->orWhere('raw_data->source', 'koreksi_admin')
+                          ->orWhere('raw_data->source', 'manual_admin');
+                    })
+                    ->exists();
+
+                if ($isCorrected) {
+                    continue;
+                }
+
                 AttendanceLog::firstOrCreate(
                     [
                         'cloud_id' => $cloudId,

@@ -259,13 +259,32 @@ class FingerspotService
                 ['name' => 'Mesin Fingerprint Utama', 'location' => 'Kantor Fastlog', 'status' => 'active']
             );
 
+            $correctedEntries = AttendanceLog::whereDate('scan_at', '>=', $startDate)
+                ->whereDate('scan_at', '<=', $endDate)
+                ->where(function ($q) {
+                    $q->whereIn('verify_method', ['koreksi_admin', 'manual', 'manual_admin'])
+                      ->orWhere('raw_data->source', 'koreksi_admin')
+                      ->orWhere('raw_data->source', 'manual_admin');
+                })
+                ->get(['pin', 'employee_id', 'scan_at'])
+                ->mapWithKeys(function ($log) {
+                    $d = Carbon::parse($log->scan_at)->format('Y-m-d');
+                    return [
+                        $log->pin . '_' . $d => true,
+                        ($log->employee_id ? ($log->employee_id . '_' . $d) : '') => true,
+                    ];
+                })
+                ->all();
+
             foreach ($records as $item) {
                 if (!isset($item['pin']) || !isset($item['scan_date'])) {
                     continue;
                 }
 
                 $pin = trim((string)$item['pin']);
-                $scanAt = Carbon::parse($item['scan_date'])->format('Y-m-d H:i:s');
+                $parsedDate = Carbon::parse($item['scan_date']);
+                $scanAt = $parsedDate->format('Y-m-d H:i:s');
+                $scanDate = $parsedDate->format('Y-m-d');
                 $verifyMethod = isset($item['verify']) ? (string)$item['verify'] : '1';
                 $statusScan = isset($item['status_scan']) ? (string)$item['status_scan'] : '0';
 
@@ -285,6 +304,14 @@ class FingerspotService
                     $this->requestUserInfo($pin);
                 } elseif ($cloudName && $employee->nama !== $cloudName) {
                     $employee->update(['nama' => $cloudName]);
+                }
+
+                $keyPin = $pin . '_' . $scanDate;
+                $keyEmp = ($employee ? $employee->id : '') . '_' . $scanDate;
+
+                if (!empty($correctedEntries[$keyPin]) || (!empty($keyEmp) && !empty($correctedEntries[$keyEmp]))) {
+                    $totalSkipped++;
+                    continue;
                 }
 
                 $log = AttendanceLog::firstOrCreate(
