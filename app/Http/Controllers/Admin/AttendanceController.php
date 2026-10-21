@@ -67,8 +67,13 @@ class AttendanceController extends Controller
         $satOut = $settingsData['saturday_check_out'] ?? '12:00';
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
 
+        $categoriesList = ['izin', 'sakit', 'cuti', 'dinas', 'dispensasi_payroll'];
+        $totalApprovedIzin = Permission::whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
+            ->whereIn(DB::raw('LOWER(category)'), $categoriesList)
+            ->count();
+
         $izinQuery = Permission::whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
-            ->whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dinas'])
+            ->whereIn(DB::raw('LOWER(category)'), $categoriesList)
             ->where(function ($q) use ($targetDate) {
                 $q->whereDate('tanggal_mulai', '<=', $targetDate)
                   ->where(function ($sub) use ($targetDate) {
@@ -91,7 +96,8 @@ class AttendanceController extends Controller
         $stats = [
             'hadir' => 0,
             'terlambat' => 0,
-            'izin' => $izinCount,
+            'izin' => !empty($filterTanggal) ? $izinCount : $totalApprovedIzin,
+            'total_izin_disetujui' => $totalApprovedIzin,
             'belum_pulang' => 0,
             'total_karyawan' => $activeEmployeesCount > 0 ? $activeEmployeesCount : Employee::count(),
         ];
@@ -101,7 +107,7 @@ class AttendanceController extends Controller
         $endOfMonth = Carbon::parse($targetMonth . '-01')->endOfMonth()->toDateString();
 
         $izinBulanQuery = Permission::whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
-            ->whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dinas'])
+            ->whereIn(DB::raw('LOWER(category)'), $categoriesList)
             ->where(function ($q) use ($startOfMonth, $endOfMonth) {
                 $q->whereDate('tanggal_mulai', '<=', $endOfMonth)
                   ->where(function ($sub) use ($startOfMonth) {
@@ -124,6 +130,7 @@ class AttendanceController extends Controller
             'hadir' => 0,
             'terlambat' => 0,
             'izin' => $izinBulanCount,
+            'total_izin_disetujui' => $totalApprovedIzin,
             'total_kasus_terlambat' => 0,
         ];
         $monthHadirPins = [];

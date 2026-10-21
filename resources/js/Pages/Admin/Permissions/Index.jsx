@@ -210,8 +210,8 @@ const Permissions = () => {
         setStats({
           pending: unified.filter(p => p.status === 'menunggu' || p.status === 'pending').length,
           di_luar_jadwal: dbDiLuarJadwal.length,
-          izin_sakit: dbPermissions.filter(p => ['izin', 'sakit', 'cuti'].includes((p.category || '').toLowerCase())).length,
-          izin_cuti: dbPermissions.filter(p => ['izin', 'sakit', 'cuti'].includes((p.category || '').toLowerCase())).length,
+          izin_sakit: dbPermissions.filter(p => ['izin', 'sakit', 'cuti', 'dispensasi_payroll'].includes((p.category || '').toLowerCase())).length,
+          izin_cuti: dbPermissions.filter(p => ['izin', 'sakit', 'cuti', 'dispensasi_payroll'].includes((p.category || '').toLowerCase())).length,
           lembur_dinas: dbLembur.length + dbPermissions.filter(p => ['lembur', 'dinas'].includes((p.category || '').toLowerCase())).length
         });
       }

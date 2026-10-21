@@ -93,8 +93,8 @@ class PermissionController extends Controller
             'pending' => $pendingPermissionsCount + $pendingAnomaliesCount + $pendingOvertimeCount,
             'menunggu' => $pendingPermissionsCount + $pendingAnomaliesCount + $pendingOvertimeCount,
             'di_luar_jadwal' => AttendanceAnomaly::count(),
-            'izin_sakit' => Permission::whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti'])->count(),
-            'izin_cuti' => Permission::whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti'])->count(),
+            'izin_sakit' => Permission::whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dispensasi_payroll'])->count(),
+            'izin_cuti' => Permission::whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dispensasi_payroll'])->count(),
             'sakit' => Permission::where(DB::raw('LOWER(category)'), 'sakit')->count(),
             'lembur_dinas' => Permission::whereIn(DB::raw('LOWER(category)'), ['lembur', 'dinas'])->count() + OvertimeLog::count(),
         ];

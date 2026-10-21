@@ -134,18 +134,18 @@ const getPegawaiUntukKategori = (kategori, attendanceRecords = [], permissions =
 
   if (['Dinas Luar / Field', 'Sakit (Surat Dokter)', 'Izin Alasan Penting', 'Cuti Tahunan'].includes(kategori)) {
     const catMap = {
-      'Dinas Luar / Field': 'dinas',
-      'Sakit (Surat Dokter)': 'sakit',
-      'Izin Alasan Penting': 'izin',
-      'Cuti Tahunan': 'cuti',
+      'Dinas Luar / Field': ['dinas'],
+      'Sakit (Surat Dokter)': ['sakit'],
+      'Izin Alasan Penting': ['izin', 'dispensasi_payroll'],
+      'Cuti Tahunan': ['cuti'],
     };
-    const targetCat = catMap[kategori];
+    const targetCats = catMap[kategori] || [];
     const permMap = new Map();
     permissions
       .filter((p) => {
         const cat = (p.category || p.kategori || '').toLowerCase();
         const st = (p.status || '').toLowerCase();
-        return cat === targetCat && !['ditolak', 'rejected'].includes(st);
+        return targetCats.includes(cat) && !['ditolak', 'rejected'].includes(st);
       })
       .forEach((p) => {
         const pin = String(p.employee?.pin || p.pin || '-');
@@ -395,6 +395,19 @@ const Dashboard = () => {
   const izinPegawaiCount = useMemo(() => {
     return countForCategory('Dinas Luar / Field') + countForCategory('Sakit (Surat Dokter)') + countForCategory('Izin Alasan Penting') + countForCategory('Cuti Tahunan');
   }, [countForCategory]);
+
+  const approvedDinasIzinSakitCount = useMemo(() => {
+    if (permissions && permissions.length > 0) {
+      return permissions.filter((p) => {
+        const cat = (p.category || p.kategori || '').toLowerCase();
+        const st = (p.status || '').toLowerCase();
+        const isApproved = ['disetujui', 'approved'].includes(st);
+        const isCategory = ['dinas', 'izin', 'sakit', 'cuti', 'dispensasi_payroll'].includes(cat) || (!['lembur', 'di_luar_jadwal'].includes(cat) && p.source !== 'overtime' && p.source !== 'anomaly');
+        return isApproved && isCategory;
+      }).length;
+    }
+    return stats.total_izin_disetujui ?? stats.izin ?? 0;
+  }, [permissions, stats]);
 
   const alpaPegawaiCount = useMemo(() => {
     return countForCategory('Mangkir 1 Hari') + countForCategory('Mangkir >2 Hari Berturut') + countForCategory('Lupa Tap Kehadiran');
@@ -986,7 +999,7 @@ const Dashboard = () => {
         >
           <div>
             <p className="text-xs font-semibold uppercase text-blue-600 tracking-wider">Dinas / Izin / Sakit</p>
-            <h3 className="text-2xl font-bold text-slate-900 mt-1">{stats.izin}</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mt-1">{approvedDinasIzinSakitCount}</h3>
             <p className="text-xs text-blue-600 font-medium mt-1">Disetujui Admin</p>
           </div>
           <div className="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
