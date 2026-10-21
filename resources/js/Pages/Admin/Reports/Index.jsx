@@ -99,6 +99,8 @@ const Reports = () => {
                 return <span className="w-5 h-5 rounded font-bold bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center text-[10px] mx-auto">I</span>;
             case 'S':
                 return <span className="w-5 h-5 rounded font-bold bg-purple-100 text-purple-700 border border-purple-200 flex items-center justify-center text-[10px] mx-auto">S</span>;
+            case 'A':
+                return <span className="w-5 h-5 rounded font-bold bg-red-100 text-red-700 border border-red-300 flex items-center justify-center text-[10px] mx-auto">A</span>;
             case 'L':
                 return <span className="w-5 h-5 rounded font-bold bg-slate-200 text-slate-500 border border-slate-300 flex items-center justify-center text-[10px] mx-auto">L</span>;
             case 'LN':
@@ -174,10 +176,10 @@ const Reports = () => {
             return;
         }
 
-        const headers = ['Nama', 'Departemen', ...daysInPeriod.map(d => `${d.dayNum}/${d.dayName}`), 'Hadir (H)', 'Terlambat (T)', 'Lembur (OT)', 'Izin/Sakit (I/S)'];
+        const headers = ['Nama', 'Departemen', ...daysInPeriod.map(d => `${d.dayNum}/${d.dayName}`), 'Hadir (H)', 'Terlambat (T)', 'Lembur (OT)', 'Izin/Sakit (I/S)', 'Alpha (A)'];
 
         const rows = employees.map(emp => {
-            let countH = 0, countT = 0, countOT = 0, countIS = 0;
+            let countH = 0, countT = 0, countOT = 0, countIS = 0, countA = 0;
 
             const dailyStatus = daysInPeriod.map(d => {
                 const defaultSt = d.isHoliday ? 'LN' : (d.isSunday ? 'L' : '-');
@@ -186,6 +188,7 @@ const Reports = () => {
                 if (st === 'T') countT++;
                 if (st === 'OT') countOT++;
                 if (st === 'I' || st === 'S') countIS++;
+                if (st === 'A') countA++;
                 return st;
             });
 
@@ -196,7 +199,8 @@ const Reports = () => {
                 countH,
                 countT,
                 countOT,
-                countIS
+                countIS,
+                countA
             ].join(',');
         });
 
@@ -306,6 +310,10 @@ const Reports = () => {
                     <span>Sakit</span>
                 </div>
                 <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded font-bold bg-red-100 text-red-700 border border-red-300 flex items-center justify-center text-[10px]">A</span>
+                    <span>Alpha</span>
+                </div>
+                <div className="flex items-center gap-1.5">
                     <span className="w-5 h-5 rounded font-bold bg-slate-200 text-slate-500 border border-slate-300 flex items-center justify-center text-[10px]">L</span>
                     <span>Libur Minggu</span>
                 </div>
@@ -330,6 +338,7 @@ const Reports = () => {
                                 <th className="px-2 py-2 border-l border-slate-800 text-amber-300 min-w-[36px]" rowSpan="2" title="Total Terlambat">T</th>
                                 <th className="px-2 py-2 border-l border-slate-800 text-rose-300 min-w-[36px]" rowSpan="2" title="Total Lembur">OT</th>
                                 <th className="px-2 py-2 border-l border-slate-800 text-blue-300 min-w-[36px]" rowSpan="2" title="Total Izin/Sakit">I/S</th>
+                                <th className="px-2 py-2 border-l border-slate-800 text-red-400 min-w-[36px]" rowSpan="2" title="Total Alpha">A</th>
                             </tr>
                             <tr className="bg-slate-800 text-slate-200 border-b border-slate-700">
                                 {daysInPeriod.map((d) => (
@@ -351,7 +360,7 @@ const Reports = () => {
                         <tbody className="divide-y divide-slate-200 text-slate-700">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={daysInPeriod.length + 5} className="py-16 text-center">
+                                    <td colSpan={daysInPeriod.length + 6} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
                                             <p className="text-sm text-slate-400">Memuat data rekap presensi...</p>
@@ -360,7 +369,7 @@ const Reports = () => {
                                 </tr>
                             ) : employees.length > 0 ? (
                                 employees.map((emp) => {
-                                    let countH = 0, countT = 0, countOT = 0, countIS = 0;
+                                    let countH = 0, countT = 0, countOT = 0, countIS = 0, countA = 0;
 
                                     return (
                                         <tr key={emp.id} className="hover:bg-slate-100/60 transition">
@@ -377,11 +386,12 @@ const Reports = () => {
                                                 if (status === 'T') countT++;
                                                 if (status === 'OT') countOT++;
                                                 if (status === 'I' || status === 'S') countIS++;
+                                                if (status === 'A') countA++;
 
                                                 return (
                                                     <td
                                                         key={d.fullDate || d.dayNum}
-                                                        className={`p-1 border-r border-slate-200 ${status === 'LN' ? 'bg-rose-50/40' : status === 'L' ? 'bg-slate-50' : ''}`}
+                                                        className={`p-1 border-r border-slate-200 ${status === 'LN' ? 'bg-rose-50/40' : status === 'L' ? 'bg-slate-50' : status === 'A' ? 'bg-red-50/40' : ''}`}
                                                     >
                                                         {renderStatusBadge(status)}
                                                     </td>
@@ -392,12 +402,13 @@ const Reports = () => {
                                             <td className="px-2 py-2 font-bold border-l border-slate-200 bg-amber-50 text-amber-800">{countT}</td>
                                             <td className="px-2 py-2 font-bold border-l border-slate-200 bg-rose-50 text-rose-800">{countOT}</td>
                                             <td className="px-2 py-2 font-bold border-l border-slate-200 bg-blue-50 text-blue-800">{countIS}</td>
+                                            <td className="px-2 py-2 font-bold border-l border-slate-200 bg-red-50 text-red-800">{countA}</td>
                                         </tr>
                                     );
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan={daysInPeriod.length + 5} className="py-16 text-center">
+                                    <td colSpan={daysInPeriod.length + 6} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
                                                 <TableProperties className="w-7 h-7 text-slate-300" />

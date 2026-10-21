@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\Holiday;
+use App\Models\OvertimeLog;
+use App\Models\Permission;
 use App\Models\SystemSetting;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -56,6 +58,38 @@ class ReportController extends Controller
 
         $employees = $query->orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
 
+        $employeeIds = $employees->pluck('id')->all();
+
+        $approvedOvertimes = OvertimeLog::whereIn('employee_id', $employeeIds)
+            ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
+            ->whereBetween('waktu_tap', [$start, $end])
+            ->get()
+            ->groupBy(function ($ot) {
+                return $ot->employee_id . '_' . Carbon::parse($ot->waktu_tap)->format('Y-m-d');
+            });
+
+        $approvedPermissions = Permission::whereIn('employee_id', $employeeIds)
+            ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
+            ->where(function ($q) use ($start, $end) {
+                $q->whereDate('tanggal_mulai', '<=', $end->format('Y-m-d'))
+                  ->whereDate('tanggal_selesai', '>=', $start->format('Y-m-d'));
+            })
+            ->get();
+
+        $permissionsMap = [];
+        foreach ($approvedPermissions as $perm) {
+            $pStart = Carbon::parse($perm->tanggal_mulai)->startOfDay();
+            $pEnd = Carbon::parse($perm->tanggal_selesai ?? $perm->tanggal_mulai)->endOfDay();
+            $cat = strtolower($perm->category ?? 'izin');
+            $statusCode = ($cat === 'sakit') ? 'S' : 'I';
+
+            $pCurr = $pStart->copy();
+            while ($pCurr->lte($pEnd)) {
+                $permissionsMap[$perm->employee_id . '_' . $pCurr->format('Y-m-d')] = $statusCode;
+                $pCurr->addDay();
+            }
+        }
+
         $logs = AttendanceLog::whereBetween('scan_at', [$start, $end])
             ->orderBy('scan_at', 'asc')
             ->get();
@@ -82,9 +116,13 @@ class ReportController extends Controller
 
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
+        $normalOut = $settingsData['normal_check_out'] ?? '17:00';
         $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
+        $satOut = $settingsData['saturday_check_out'] ?? '12:00';
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
+        $today = Carbon::today();
+        $currentTimeStr = Carbon::now()->format('H:i:s');
 
         $nowYear = Carbon::now()->format('Y');
         $apiHolidays = Cache::remember('holidays_api_' . $nowYear, 86400, function () use ($nowYear) {
@@ -140,6 +178,7 @@ class ReportController extends Controller
                 $dateStr = $current->format('Y-m-d');
                 $isSunday = $current->isSunday();
                 $isHoliday = isset($holidaysMap[$dateStr]);
+                $hasPermission = $permissionsMap[$emp->id . '_' . $dateStr] ?? null;
 
                 $scans = [];
                 $empKey = 'emp_' . $emp->id . '_' . $dateStr;
@@ -162,13 +201,12 @@ class ReportController extends Controller
                     $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
                     $isLate = $firstScan->gt($lateThreshold);
 
-                    $hasOvertime = false;
-                    if ($lastScan) {
-                        $overtimeThreshold = Carbon::parse($dateStr . ' 17:30:00');
-                        if ($lastScan->gt($overtimeThreshold) || $firstScan->diffInHours($lastScan) >= 9) {
-                            $hasOvertime = true;
-                        }
-                    }
+                    $outBase = $isSat ? $satOut : $normalOut;
+                    $overtimeThreshold = Carbon::parse($dateStr . ' ' . $outBase . ':00')->addMinutes(30);
+
+                    $hasApprovedOt = isset($approvedOvertimes[$emp->id . '_' . $dateStr]);
+                    $hasScanOt = $lastScan && $lastScan->gt($overtimeThreshold);
+                    $hasOvertime = $hasApprovedOt || $hasScanOt;
 
                     if ($hasOvertime && !$isLate) {
                         $status = 'OT';
@@ -182,6 +220,16 @@ class ReportController extends Controller
                         $status = 'LN';
                     } elseif ($isSunday) {
                         $status = 'L';
+                    } elseif ($hasPermission) {
+                        $status = $hasPermission;
+                    } elseif ($current->lt($today)) {
+                        $status = 'A';
+                    } elseif ($current->equalTo($today)) {
+                        $isSat = $current->isSaturday();
+                        $schedInTime = $isSat ? $satIn : $normalIn;
+                        $tol = $isSat ? $satTol : $normalTol;
+                        $lateThreshold = Carbon::parse($dateStr . ' ' . $schedInTime . ':00')->addMinutes($tol)->format('H:i:s');
+                        $status = $currentTimeStr > $lateThreshold ? 'A' : '-';
                     } else {
                         $status = '-';
                     }
