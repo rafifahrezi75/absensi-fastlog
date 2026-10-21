@@ -6,7 +6,18 @@ import api from '../../../lib/api';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Attendance = () => {
-    const [modalData, setModalData] = useState({ isOpen: false, nama: '', masuk: '', keluar: '' });
+    const [modalData, setModalData] = useState({
+        isOpen: false,
+        employee_id: null,
+        pin: '',
+        nama: '',
+        nik: '',
+        deptDisplay: '',
+        tanggal: '',
+        tanggalDisplay: '',
+        masuk: '',
+        keluar: '',
+    });
     const [isTambahOpen, setIsTambahOpen] = useState(false);
 
     const [attendanceData, setAttendanceData] = useState([]);
@@ -22,8 +33,19 @@ const Attendance = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
 
-    const openModalKoreksi = useCallback((nama, masuk, keluar) => {
-        setModalData({ isOpen: true, nama, masuk, keluar });
+    const openModalKoreksi = useCallback((row) => {
+        setModalData({
+            isOpen: true,
+            employee_id: row.employee_id || null,
+            pin: row.finger || '',
+            nama: row.nama || (row.finger ? `Karyawan PIN #${row.finger}` : ''),
+            nik: row.nik || '',
+            deptDisplay: row.deptDisplay || '',
+            tanggal: row.tgl || '',
+            tanggalDisplay: row.tglDisplay || '',
+            masuk: row.in && row.in !== '-' ? row.in : '',
+            keluar: row.out && row.out !== '-' ? row.out : '',
+        });
     }, []);
 
     const closeModalKoreksi = useCallback(() => {
@@ -387,7 +409,8 @@ const Attendance = () => {
                                         </td>
                                         <td className="px-6 py-4 text-center whitespace-nowrap">
                                             <button 
-                                                onClick={() => openModalKoreksi(row.nama, row.in, row.out)} 
+                                                type="button"
+                                                onClick={() => openModalKoreksi(row)} 
                                                 className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" 
                                                 title="Koreksi Data"
                                             >
@@ -475,7 +498,15 @@ const Attendance = () => {
                 </div>
             </div>
 
-            <ModalKoreksi isOpen={modalData.isOpen} onClose={closeModalKoreksi} data={modalData} />
+            <ModalKoreksi 
+                isOpen={modalData.isOpen} 
+                onClose={closeModalKoreksi} 
+                data={modalData} 
+                onSuccess={(msg) => {
+                    showSuccess(msg);
+                    loadAttendance();
+                }}
+            />
             <ModalTambahManual 
                 isOpen={isTambahOpen} 
                 onClose={() => setIsTambahOpen(false)} 

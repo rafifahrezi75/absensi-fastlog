@@ -67,9 +67,13 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('api.admin.attendance.index');
     Route::post('/attendance/fetch', [AttendanceController::class, 'fetch'])->name('api.admin.attendance.fetch');
     Route::post('/attendance/manual', [AttendanceController::class, 'storeManual'])->name('api.admin.attendance.manual');
+    Route::match(['put', 'post'], '/attendance/koreksi', [AttendanceController::class, 'updateKoreksi'])->name('api.admin.attendance.koreksi');
+    Route::delete('/attendance/koreksi', [AttendanceController::class, 'destroyKoreksi'])->name('api.admin.attendance.destroy');
     Route::get('/anomalies', [AttendanceApiController::class, 'getAnomalies'])->name('api.admin.anomalies.index');
     Route::post('/anomalies/{id}/approve', [AttendanceApiController::class, 'approve'])->name('api.admin.anomalies.approve');
     Route::post('/anomalies/{id}/reject', [AttendanceApiController::class, 'reject'])->name('api.admin.anomalies.reject');
+    Route::put('/anomalies/{id}', [AttendanceApiController::class, 'update'])->name('api.admin.anomalies.update');
+    Route::delete('/anomalies/{id}', [AttendanceApiController::class, 'destroy'])->name('api.admin.anomalies.destroy');
 
     Route::get('/permissions', [PermissionController::class, 'index'])->name('api.admin.permissions.index');
     Route::post('/permissions', [PermissionController::class, 'store'])->name('api.admin.permissions.store');

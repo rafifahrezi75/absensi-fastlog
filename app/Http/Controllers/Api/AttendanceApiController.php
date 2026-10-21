@@ -180,4 +180,150 @@ class AttendanceApiController extends Controller
 
         return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
     }
+
+    public function update(Request $request, string|int $id): JsonResponse
+    {
+        $type = $request->input('type') ?? $request->input('source');
+        $status = $request->input('status');
+        $adminNote = $request->input('catatan_admin') ?? $request->input('admin_note');
+        $durationMinutes = $request->input('durasi_menit') ?? $request->input('duration_minutes');
+
+        $statusUpper = match (strtoupper($status ?? '')) {
+            'DISETUJUI', 'APPROVED' => 'DISETUJUI',
+            'DITOLAK', 'REJECTED' => 'DITOLAK',
+            'MENUNGGU', 'PENDING' => 'MENUNGGU',
+            default => null,
+        };
+
+        if ($type === 'overtime' || $type === 'lembur') {
+            $overtime = OvertimeLog::find($id);
+            if (!$overtime) {
+                return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
+            }
+            if ($statusUpper) {
+                $overtime->status = $statusUpper;
+            }
+            if ($adminNote !== null) {
+                $overtime->catatan_admin = $adminNote;
+            }
+            if ($durationMinutes !== null) {
+                $overtime->durasi_menit = (int)$durationMinutes;
+            }
+            $overtime->save();
+
+            if ($statusUpper === 'DISETUJUI') {
+                $tapTime = Carbon::parse($overtime->waktu_tap);
+                $date = $tapTime->toDateString();
+                $attendance = Attendance::firstOrNew([
+                    'employee_id' => $overtime->employee_id,
+                    'tanggal' => $date,
+                ]);
+                if (!$attendance->exists) {
+                    $attendance->user_id = $overtime->user_id;
+                    $attendance->status = 'hadir';
+                }
+                if (!$attendance->jam_pulang) {
+                    $attendance->jam_pulang = $tapTime;
+                }
+                $attendance->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data lembur berhasil diperbarui.',
+                'overtime' => $overtime->load('employee'),
+            ]);
+        }
+
+        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
+            $anomaly = AttendanceAnomaly::find($id);
+            if (!$anomaly) {
+                return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
+            }
+            if ($statusUpper) {
+                $anomaly->status = $statusUpper;
+            }
+            if ($adminNote !== null) {
+                $anomaly->catatan_admin = $adminNote;
+            }
+            $anomaly->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data di luar jadwal berhasil diperbarui.',
+                'anomaly' => $anomaly->load('employee'),
+            ]);
+        }
+
+        $overtime = OvertimeLog::find($id);
+        if ($overtime) {
+            if ($statusUpper) {
+                $overtime->status = $statusUpper;
+            }
+            if ($adminNote !== null) {
+                $overtime->catatan_admin = $adminNote;
+            }
+            $overtime->save();
+            return response()->json([
+                'success' => true,
+                'message' => 'Data lembur berhasil diperbarui.',
+                'overtime' => $overtime->load('employee'),
+            ]);
+        }
+
+        $anomaly = AttendanceAnomaly::find($id);
+        if ($anomaly) {
+            if ($statusUpper) {
+                $anomaly->status = $statusUpper;
+            }
+            if ($adminNote !== null) {
+                $anomaly->catatan_admin = $adminNote;
+            }
+            $anomaly->save();
+            return response()->json([
+                'success' => true,
+                'message' => 'Data di luar jadwal berhasil diperbarui.',
+                'anomaly' => $anomaly->load('employee'),
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
+    }
+
+    public function destroy(Request $request, string|int $id): JsonResponse
+    {
+        $type = $request->input('type') ?? $request->query('type') ?? $request->input('source') ?? $request->query('source');
+
+        if ($type === 'overtime' || $type === 'lembur') {
+            $overtime = OvertimeLog::find($id);
+            if (!$overtime) {
+                return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
+            }
+            $overtime->delete();
+            return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus.']);
+        }
+
+        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
+            $anomaly = AttendanceAnomaly::find($id);
+            if (!$anomaly) {
+                return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
+            }
+            $anomaly->delete();
+            return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
+        }
+
+        $overtime = OvertimeLog::find($id);
+        if ($overtime) {
+            $overtime->delete();
+            return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus.']);
+        }
+
+        $anomaly = AttendanceAnomaly::find($id);
+        if ($anomaly) {
+            $anomaly->delete();
+            return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
+    }
 }
