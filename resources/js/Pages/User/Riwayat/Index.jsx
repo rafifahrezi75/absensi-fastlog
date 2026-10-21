@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { 
     Clock, Filter, Search, X, CheckCircle2, AlertCircle, 
-    FileText, Trash2, ExternalLink, Image as ImageIcon, Loader2, Plus 
+    FileText, Trash2, ExternalLink, Image as ImageIcon, Loader2 
 } from 'lucide-react';
 import api from '../../../lib/api';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Riwayat = () => {
     const location = useLocation();
-    const navigate = useNavigate();
 
     const [riwayat, setRiwayat] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -130,19 +129,9 @@ const Riwayat = () => {
                 </div>
             )}
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900">Riwayat Pengajuan</h2>
-                    <p className="text-sm text-gray-500">Daftar semua pengajuan izin, sakit, dinas, cuti, dan lembur Anda</p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => navigate('/user/pengajuan')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-semibold transition shadow-sm shadow-orange-500/20 cursor-pointer w-fit"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Buat Pengajuan Baru</span>
-                </button>
+            <div>
+                <h2 className="text-xl font-bold text-gray-900">Riwayat Pengajuan</h2>
+                <p className="text-sm text-gray-500">Daftar semua pengajuan izin, sakit, dinas, cuti, dan lembur Anda</p>
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -304,7 +293,7 @@ const Riwayat = () => {
                         <div className="p-12 text-center text-gray-400">
                             <Clock className="w-10 h-10 mx-auto text-gray-300 mb-3" />
                             <p className="text-sm font-medium">Tidak ada data pengajuan yang cocok.</p>
-                            <p className="text-xs text-gray-400 mt-1">Gunakan tombol Buat Pengajuan Baru untuk mengajukan permohonan.</p>
+                            <p className="text-xs text-gray-400 mt-1">Gunakan formulir pengajuan di Dasbor untuk mengajukan permohonan baru.</p>
                         </div>
                     )}
                 </div>
