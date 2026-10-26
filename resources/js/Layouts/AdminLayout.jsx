@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     X, LayoutDashboard, Clock, FileCheck2,
     Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell,
-    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers, ChevronDown, ChevronRight
+    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers, ChevronDown, ChevronRight, CalendarClock
 } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
@@ -239,6 +239,11 @@ const AdminLayout = () => {
                         <span>Laporan Presensi</span>
                     </NavLink>
 
+                    <NavLink to="/admin/settings" className={navLinkClass}>
+                        <CalendarClock className="w-4 h-4" />
+                        <span>Aturan Kerja & Lembur</span>
+                    </NavLink>
+
                     <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">Sistem & Perangkat</div>
 
                     <NavLink to="/admin/master-akun" className={navLinkClass}>
@@ -248,10 +253,6 @@ const AdminLayout = () => {
                     <NavLink to="/admin/devices" className={navLinkClass}>
                         <Cpu className="w-4 h-4" />
                         <span>Mesin Sidik Jari</span>
-                    </NavLink>
-                    <NavLink to="/admin/settings" className={navLinkClass}>
-                        <Settings className="w-4 h-4" />
-                        <span>Pengaturan Sistem</span>
                     </NavLink>
                 </nav>
 

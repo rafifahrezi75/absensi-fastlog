@@ -283,7 +283,7 @@ const Settings = () => {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px]">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
-                <p className="text-slate-500 text-sm font-medium">Memuat Pengaturan Sistem...</p>
+                <p className="text-slate-500 text-sm font-medium">Memuat Aturan Kerja & Lembur...</p>
             </div>
         );
     }
@@ -292,8 +292,8 @@ const Settings = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Pengaturan Sistem</h1>
-                    <p className="text-sm text-slate-500">Kelola jam kerja operasional, kategori keterlambatan, aturan lembur, dan kalender libur.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Aturan Kerja & Lembur</h1>
+                    <p className="text-sm text-slate-500">Kelola jadwal jam kerja operasional, kategori keterlambatan, aturan lembur, dan kalender hari libur.</p>
                 </div>
             </div>
 
