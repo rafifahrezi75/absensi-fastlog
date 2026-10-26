@@ -197,6 +197,7 @@ const Riwayat = () => {
                                             <option value="Dinas">Dinas</option>
                                             <option value="Cuti">Cuti</option>
                                             <option value="Lembur">Lembur</option>
+                                            <option value="Absensi">Absensi Luar</option>
                                         </select>
                                     </div>
 

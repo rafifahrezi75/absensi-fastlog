@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-    CheckCircle, FileText, AlertCircle, XCircle, 
-    Thermometer, Briefcase, Clock, ArrowRight, Loader2, CheckCircle2, X
+    FileText, AlertCircle,
+    Briefcase, Clock, ArrowRight, Loader2, X, Timer, Navigation, Info
 } from 'lucide-react';
 import PengajuanModal from '../../../Components/PengajuanModal';
 import { useAuth } from '../../../Contexts/AuthContext';
@@ -16,7 +16,7 @@ const Home = () => {
     const [modalType, setModalType] = useState('Izin');
     const [notif, setNotif] = useState(null);
 
-    const [stats, setStats] = useState({ izin: 0, sakit: 0, dinas: 0, menunggu: 0, disetujui: 0, total: 0 });
+    const [stats, setStats] = useState({ izin: 0, sakit: 0, dinas: 0, lembur: 0, absensi: 0, menunggu: 0, disetujui: 0, total: 0 });
     const [recentList, setRecentList] = useState([]);
     const [employeeData, setEmployeeData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -139,12 +139,25 @@ const Home = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="bg-sky-50 border border-sky-100 rounded-xl p-3.5 flex items-start gap-3">
+                <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+                <div>
+                    <p className="text-xs font-semibold text-sky-800 mb-1">Keterangan Jenis Pengajuan</p>
+                    <ul className="text-[11px] text-sky-700 space-y-0.5">
+                        <li><span className="font-semibold">Izin / Sakit</span> — keperluan pribadi atau keterangan sakit</li>
+                        <li><span className="font-semibold">Dinas Luar</span> — penugasan kerja di luar kantor</li>
+                        <li><span className="font-semibold">Lembur</span> — kerja di luar jam kerja normal</li>
+                        <li><span className="font-semibold">Absensi Luar</span> — tap in/out untuk karyawan lapangan (wajib foto GPS)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
                     <div>
-                        <p className="text-xs text-gray-500 mb-0.5">Izin Pribadi</p>
+                        <p className="text-xs text-gray-500 mb-0.5">Izin & Sakit</p>
                         <p className="text-lg font-bold text-blue-600">
-                            {stats.izin} <span className="text-xs font-medium text-gray-400">pengajuan</span>
+                            {(stats.izin ?? 0) + (stats.sakit ?? 0)} <span className="text-xs font-medium text-gray-400">pengajuan</span>
                         </p>
                     </div>
                     <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
@@ -154,55 +167,76 @@ const Home = () => {
 
                 <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
                     <div>
-                        <p className="text-xs text-gray-500 mb-0.5">Sakit</p>
-                        <p className="text-lg font-bold text-rose-600">
-                            {stats.sakit} <span className="text-xs font-medium text-gray-400">pengajuan</span>
-                        </p>
-                    </div>
-                    <div className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
-                        <Thermometer className="w-4 h-4" />
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
-                    <div>
                         <p className="text-xs text-gray-500 mb-0.5">Dinas Luar</p>
                         <p className="text-lg font-bold text-orange-600">
-                            {stats.dinas} <span className="text-xs font-medium text-gray-400">pengajuan</span>
+                            {stats.dinas ?? 0} <span className="text-xs font-medium text-gray-400">pengajuan</span>
                         </p>
                     </div>
                     <div className="w-9 h-9 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
                         <Briefcase className="w-4 h-4" />
                     </div>
                 </div>
+
+                <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p className="text-xs text-gray-500 mb-0.5">Lembur</p>
+                        <p className="text-lg font-bold text-purple-600">
+                            {stats.lembur ?? 0} <span className="text-xs font-medium text-gray-400">pengajuan</span>
+                        </p>
+                    </div>
+                    <div className="w-9 h-9 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                        <Timer className="w-4 h-4" />
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p className="text-xs text-gray-500 mb-0.5">Absensi Luar</p>
+                        <p className="text-lg font-bold text-teal-600">
+                            {stats.absensi ?? 0} <span className="text-xs font-medium text-gray-400">pengajuan</span>
+                        </p>
+                    </div>
+                    <div className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600">
+                        <Navigation className="w-4 h-4" />
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <button 
-                    type="button" 
-                    onClick={() => openForm('Izin')} 
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button
+                    type="button"
+                    onClick={() => openForm('IzinSakit')}
                     className="flex items-center justify-center gap-2.5 py-3.5 bg-white border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white rounded-xl font-semibold text-xs transition shadow-sm cursor-pointer"
                 >
                     <FileText className="w-4 h-4" />
-                    <span>Ajukan Izin</span>
+                    <span>Izin / Sakit</span>
                 </button>
 
-                <button 
-                    type="button" 
-                    onClick={() => openForm('Sakit')} 
-                    className="flex items-center justify-center gap-2.5 py-3.5 bg-white border-2 border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl font-semibold text-xs transition shadow-sm cursor-pointer"
-                >
-                    <Thermometer className="w-4 h-4" />
-                    <span>Ajukan Sakit</span>
-                </button>
-
-                <button 
-                    type="button" 
-                    onClick={() => openForm('Dinas')} 
+                <button
+                    type="button"
+                    onClick={() => openForm('Dinas')}
                     className="flex items-center justify-center gap-2.5 py-3.5 bg-orange-500 border-2 border-orange-500 text-white hover:bg-orange-600 rounded-xl font-semibold text-xs transition shadow-sm cursor-pointer"
                 >
                     <Briefcase className="w-4 h-4" />
                     <span>Dinas Luar</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => openForm('Lembur')}
+                    className="flex items-center justify-center gap-2.5 py-3.5 bg-white border-2 border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white rounded-xl font-semibold text-xs transition shadow-sm cursor-pointer"
+                >
+                    <Timer className="w-4 h-4" />
+                    <span>Ajukan Lembur</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => openForm('Absensi')}
+                    className="flex items-center justify-center gap-2.5 py-3.5 bg-teal-600 border-2 border-teal-600 text-white hover:bg-teal-700 rounded-xl font-semibold text-xs transition shadow-sm cursor-pointer"
+                >
+                    <Navigation className="w-4 h-4" />
+                    <span>Absensi Luar</span>
                 </button>
             </div>
 
@@ -258,7 +292,7 @@ const Home = () => {
                         })
                     ) : (
                         <div className="py-8 text-center text-slate-400 text-xs">
-                            Belum ada riwayat pengajuan. Gunakan tombol di atas untuk mengajukan izin, sakit, atau dinas luar.
+                            Belum ada riwayat pengajuan. Gunakan tombol di atas untuk mengajukan izin, sakit, dinas luar, atau lembur.
                         </div>
                     )}
                 </div>
