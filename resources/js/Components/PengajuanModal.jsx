@@ -23,6 +23,11 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState(null);
 
+    const [izinSakitType, setIzinSakitType] = useState('izin');
+    const [tapType, setTapType] = useState('out');
+
+    const needsCamera = type === 'Dinas' || type === 'Absensi';
+
     useEffect(() => {
         if (!isOpen) {
             stopCamera();
@@ -35,9 +40,16 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
             setStartDate(new Date().toISOString().split('T')[0]);
             setEndDate(new Date().toISOString().split('T')[0]);
             setErrorMsg(null);
+            setIzinSakitType('izin');
+            setTapType('out');
         } else if (isOpen && type === 'Dinas') {
             getLocation();
             setKeterangan(prev => prev ? prev : "Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: ");
+        } else if (isOpen && type === 'Lembur') {
+            setKeterangan(prev => prev ? prev : "Tanggal Lembur: \nJam Mulai: \nJam Selesai: \nPekerjaan yang Dilakukan: \nAlasan Lembur: ");
+        } else if (isOpen && type === 'Absensi') {
+            getLocation();
+            setKeterangan(prev => prev ? prev : "Alasan tidak bisa tap di kantor:\nLokasi Kerja: ");
         }
     }, [isOpen, type]);
 
@@ -56,7 +68,6 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     setLocation({ lat, lng });
-
                     try {
                         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
                         const data = await response.json();
@@ -68,9 +79,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
                     }
                     setIsLocating(false);
                 },
-                (error) => {
-                    setIsLocating(false);
-                },
+                () => { setIsLocating(false); },
                 { enableHighAccuracy: true }
             );
         } else {
@@ -123,14 +132,11 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
 
             const now = new Date();
             const timeStr = now.toLocaleDateString('id-ID', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
+                weekday: 'long', year: 'numeric', month: 'short', day: 'numeric'
             }) + ', ' + now.toLocaleTimeString('id-ID') + ' WIB';
 
-            const coordStr = location 
-                ? `GPS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` 
+            const coordStr = location
+                ? `GPS: ${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
                 : 'GPS: Memindai koordinat...';
 
             ctx.textAlign = 'left';
@@ -146,7 +152,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
 
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 11px sans-serif';
-            let displayAddr = address || 'Lokasi Dinas Luar Kantor';
+            let displayAddr = address || (type === 'Absensi' ? 'Lokasi Absensi Lapangan' : 'Lokasi Dinas Luar Kantor');
             if (displayAddr.length > 55) {
                 displayAddr = displayAddr.substring(0, 52) + '...';
             }
@@ -198,30 +204,43 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
             setErrorMsg('Keterangan atau alasan pengajuan wajib diisi.');
             return;
         }
+        if (needsCamera && !photoData) {
+            setErrorMsg('Foto bukti dengan watermark GPS wajib diambil untuk pengajuan ini.');
+            return;
+        }
 
         try {
             setSubmitting(true);
             setErrorMsg(null);
 
             const formData = new FormData();
-            formData.append('category', type.toLowerCase());
+
+            let category;
+            if (type === 'IzinSakit') {
+                category = izinSakitType;
+            } else {
+                category = type.toLowerCase();
+            }
+            formData.append('category', category);
             formData.append('tanggal_mulai', startDate);
             formData.append('tanggal_selesai', endDate);
-            formData.append('keterangan', keterangan);
+
+            let finalKeterangan = keterangan;
+            if (type === 'Absensi') {
+                finalKeterangan = `[Tap ${tapType === 'in' ? 'In' : 'Out'}]\n${keterangan}`;
+            }
+            formData.append('keterangan', finalKeterangan);
 
             if (selectedFile) {
                 formData.append('lampiran', selectedFile);
             }
-
             if (photoData) {
                 formData.append('photo_base64', photoData);
             }
-
             if (location) {
                 formData.append('latitude', location.lat);
                 formData.append('longitude', location.lng);
             }
-
             if (address) {
                 formData.append('location_address', address);
             }
@@ -231,9 +250,8 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
             });
 
             if (onSuccess) {
-                onSuccess(res.data.message || `Pengajuan ${type} berhasil dikirimkan.`);
+                onSuccess(res.data.message || 'Pengajuan berhasil dikirimkan.');
             }
-
             onClose();
         } catch (err) {
             setErrorMsg(err.response?.data?.message || 'Gagal mengirimkan pengajuan.');
@@ -244,6 +262,20 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
 
     if (!isOpen) return null;
 
+    const getModalTitle = () => {
+        if (type === 'IzinSakit') return 'Form Izin / Sakit';
+        if (type === 'Absensi') return 'Form Absensi Luar';
+        return `Form ${type}`;
+    };
+
+    const getModalDesc = () => {
+        if (type === 'Dinas') return 'Wajib foto real-time dan lokasi GPS dinas';
+        if (type === 'Lembur') return 'Pengajuan kerja lembur di luar jam kerja normal';
+        if (type === 'IzinSakit') return 'Pilih jenis pengajuan: izin pribadi atau sakit';
+        if (type === 'Absensi') return 'Tap in/out untuk karyawan lapangan — wajib foto GPS';
+        return 'Keperluan Pribadi atau Izin Khusus';
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={onClose}></div>
@@ -251,12 +283,8 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
             <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
                     <div>
-                        <h2 className="text-lg font-bold text-gray-900">Form {type}</h2>
-                        <p className="text-xs text-gray-500">
-                            {type === 'Sakit' ? 'Sertakan surat dokter jika lebih dari 1 hari' : 
-                             type === 'Dinas' ? 'Wajib foto real-time dan lokasi dinas' : 
-                             'Keperluan Pribadi atau Izin Khusus'}
-                        </p>
+                        <h2 className="text-lg font-bold text-gray-900">{getModalTitle()}</h2>
+                        <p className="text-xs text-gray-500">{getModalDesc()}</p>
                     </div>
                     <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-50 rounded-full transition cursor-pointer">
                         <X className="w-5 h-5" />
@@ -272,26 +300,96 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4" id="pengajuan-modal-form">
+
+                        {type === 'IzinSakit' && (
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5">
+                                <label className="block text-xs font-semibold text-gray-700 mb-2.5">Jenis Pengajuan</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIzinSakitType('izin')}
+                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${
+                                            izinSakitType === 'izin'
+                                                ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
+                                        }`}
+                                    >
+                                        Izin Pribadi
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIzinSakitType('sakit')}
+                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${
+                                            izinSakitType === 'sakit'
+                                                ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
+                                                : 'bg-white border-rose-200 text-rose-500 hover:border-rose-400'
+                                        }`}
+                                    >
+                                        Sakit
+                                    </button>
+                                </div>
+                                {izinSakitType === 'sakit' && (
+                                    <p className="text-[11px] text-rose-600 mt-2 font-medium flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3 shrink-0" />
+                                        Sertakan surat keterangan dokter jika lebih dari 1 hari
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {type === 'Absensi' && (
+                            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3.5">
+                                <label className="block text-xs font-semibold text-gray-700 mb-2.5">Jenis Absensi</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setTapType('in')}
+                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${
+                                            tapType === 'in'
+                                                ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                                                : 'bg-white border-teal-200 text-teal-600 hover:border-teal-400'
+                                        }`}
+                                    >
+                                        Tap In (Masuk)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTapType('out')}
+                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${
+                                            tapType === 'out'
+                                                ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                                                : 'bg-white border-teal-200 text-teal-600 hover:border-teal-400'
+                                        }`}
+                                    >
+                                        Tap Out (Pulang)
+                                    </button>
+                                </div>
+                                <p className="text-[11px] text-teal-700 mt-2 font-medium">
+                                    Pilih sesuai jenis absensi yang ingin diajukan. Foto GPS wajib disertakan.
+                                </p>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Tanggal Mulai</label>
-                                <input 
-                                    type="date" 
-                                    required 
+                                <input
+                                    type="date"
+                                    required
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition" 
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Tanggal Selesai</label>
-                                <input 
-                                    type="date" 
-                                    required 
+                                <input
+                                    type="date"
+                                    required
                                     value={endDate}
                                     min={startDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition" 
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
                                 />
                             </div>
                         </div>
@@ -299,34 +397,46 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
                         <div>
                             <div className="flex items-center justify-between mb-1">
                                 <label className="block text-xs font-semibold text-gray-700">Keterangan / Alasan</label>
-                                {type === 'Dinas' && (
-                                    <span className="text-[10px] text-orange-600 font-medium">Format Dinas Luar Kantor</span>
-                                )}
+                                {type === 'Dinas' && <span className="text-[10px] text-orange-600 font-medium">Format Dinas Luar Kantor</span>}
+                                {type === 'Lembur' && <span className="text-[10px] text-purple-600 font-medium">Format Pengajuan Lembur</span>}
+                                {type === 'Absensi' && <span className="text-[10px] text-teal-600 font-medium">Alasan Absensi Lapangan</span>}
                             </div>
-                            <textarea 
-                                required 
-                                rows={type === 'Dinas' ? 4 : 3} 
+                            <textarea
+                                required
+                                rows={type === 'Dinas' || type === 'Lembur' || type === 'Absensi' ? 4 : 3}
                                 value={keterangan}
                                 onChange={(e) => setKeterangan(e.target.value)}
                                 placeholder={
                                     type === 'Dinas'
                                         ? "Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: "
-                                        : `Jelaskan alasan pengajuan ${type.toLowerCase()}...`
-                                } 
+                                        : type === 'Lembur'
+                                        ? "Tanggal Lembur: \nJam Mulai: \nJam Selesai: \nPekerjaan yang Dilakukan: \nAlasan Lembur: "
+                                        : type === 'Absensi'
+                                        ? "Alasan tidak bisa tap di kantor:\nLokasi Kerja: "
+                                        : `Jelaskan alasan pengajuan ${type === 'IzinSakit' ? (izinSakitType === 'izin' ? 'izin' : 'sakit') : type.toLowerCase()}...`
+                                }
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition resize-none font-mono text-xs"
                             ></textarea>
                             {type === 'Dinas' && (
                                 <p className="text-[11px] text-gray-500 mt-1">Lengkapi instansi tujuan, agenda, perkiraan jam pelaksanaan, dan kendaraan yang digunakan.</p>
                             )}
+                            {type === 'Lembur' && (
+                                <p className="text-[11px] text-gray-500 mt-1">Isi jam mulai dan selesai lembur, serta pekerjaan yang akan atau sudah dilakukan.</p>
+                            )}
+                            {type === 'Absensi' && (
+                                <p className="text-[11px] text-gray-500 mt-1">Jelaskan mengapa tidak memungkinkan tap di kantor dan sebutkan lokasi kerja Anda saat ini.</p>
+                            )}
                         </div>
 
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                {type === 'Dinas' ? 'Foto Bukti Kamera (Watermark Google Maps)' : 'Lampiran Dokumen / Foto Bukti'}
+                                {type === 'Dinas' ? 'Foto Bukti Kamera (Watermark Google Maps)' :
+                                 type === 'Absensi' ? 'Foto Bukti Lokasi — Wajib (Watermark GPS)' :
+                                 'Lampiran Dokumen / Foto Bukti'}
                             </label>
 
                             <div className="relative">
-                                {type === 'Dinas' ? (
+                                {needsCamera ? (
                                     <div className="w-full border-2 border-orange-200 border-dashed rounded-lg bg-orange-50/50 p-2">
                                         {photoData ? (
                                             <div>
@@ -359,14 +469,14 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
                                                 <video ref={videoRef} autoPlay playsInline className="w-full h-auto" />
                                                 <canvas ref={canvasRef} className="hidden" />
                                                 <button type="button" onClick={takePhoto} className="absolute bottom-4 bg-orange-500 text-white font-semibold text-xs px-4 py-2 rounded-full shadow-lg hover:bg-orange-600 transition flex items-center gap-1.5 cursor-pointer">
-                                                    <Camera className="w-4 h-4" /> Ambil Foto + Lokasi Google
+                                                    <Camera className="w-4 h-4" /> Ambil Foto + Lokasi GPS
                                                 </button>
                                             </div>
                                         ) : (
                                             <button type="button" onClick={startCamera} className="w-full flex flex-col items-center justify-center py-6 hover:bg-orange-50 transition rounded-lg cursor-pointer">
                                                 <Camera className="w-6 h-6 text-orange-500 mb-1" />
                                                 <p className="text-xs text-orange-600 font-medium">Buka Kamera</p>
-                                                <p className="text-[10px] text-gray-500 mt-1">Klik sekali untuk mengaktifkan kamera perangkat</p>
+                                                <p className="text-[10px] text-gray-500 mt-1">Klik untuk mengaktifkan kamera perangkat</p>
                                             </button>
                                         )}
                                     </div>
@@ -385,7 +495,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
                             </div>
                         </div>
 
-                        {type === 'Dinas' && (
+                        {needsCamera && (
                             <div className="bg-orange-50/50 border border-orange-100 rounded-lg p-3">
                                 <div className="flex items-start gap-2">
                                     <MapPin className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
@@ -418,8 +528,8 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess }) => {
                     <button type="button" onClick={onClose} disabled={submitting} className="px-4 py-2 text-xs font-semibold text-gray-600 hover:text-gray-900 transition cursor-pointer">
                         Batal
                     </button>
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         form="pengajuan-modal-form"
                         disabled={submitting}
                         className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm shadow-orange-500/20 cursor-pointer disabled:opacity-60"
