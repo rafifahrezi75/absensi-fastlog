@@ -18,6 +18,7 @@ class LateRuleCategory extends Model
         'departemen_list',
         'jabatan_keywords',
         'is_default',
+        'is_locked',
     ];
 
     protected $casts = [
@@ -25,6 +26,7 @@ class LateRuleCategory extends Model
         'departemen_list' => 'array',
         'jabatan_keywords' => 'array',
         'is_default' => 'boolean',
+        'is_locked' => 'boolean',
     ];
 
     public function tiers(): HasMany

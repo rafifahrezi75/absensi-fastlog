@@ -39,6 +39,7 @@ class LateRuleController extends Controller
             'departemen_list' => 'nullable|array',
             'jabatan_keywords' => 'nullable|array',
             'is_default' => 'nullable|boolean',
+            'is_locked' => 'nullable|boolean',
             'tiers' => 'nullable|array',
         ]);
 
@@ -56,6 +57,7 @@ class LateRuleController extends Controller
                 'departemen_list' => $validated['departemen_list'] ?? [],
                 'jabatan_keywords' => $validated['jabatan_keywords'] ?? [],
                 'is_default' => $validated['is_default'] ?? false,
+                'is_locked' => $validated['is_locked'] ?? false,
             ]);
 
             if (!empty($validated['tiers']) && is_array($validated['tiers'])) {
@@ -99,6 +101,7 @@ class LateRuleController extends Controller
             'departemen_list' => 'nullable|array',
             'jabatan_keywords' => 'nullable|array',
             'is_default' => 'nullable|boolean',
+            'is_locked' => 'nullable|boolean',
             'tiers' => 'nullable|array',
         ]);
 
@@ -116,6 +119,7 @@ class LateRuleController extends Controller
                 'departemen_list' => $validated['departemen_list'] ?? [],
                 'jabatan_keywords' => $validated['jabatan_keywords'] ?? [],
                 'is_default' => $validated['is_default'] ?? false,
+                'is_locked' => $validated['is_locked'] ?? false,
             ]);
 
             if (isset($validated['tiers']) && is_array($validated['tiers'])) {
@@ -151,6 +155,12 @@ class LateRuleController extends Controller
     public function destroyCategory(string $id): JsonResponse
     {
         $category = LateRuleCategory::findOrFail($id);
+
+        if ($category->is_locked) {
+            return response()->json([
+                'message' => 'Kategori keterlambatan ini terkunci. Hilangkan centang kunci terlebih dahulu melalui menu edit jika ingin menghapusnya.'
+            ], 422);
+        }
 
         Employee::where('late_category_id', $category->id)->update(['late_category_id' => null]);
         $category->delete();
