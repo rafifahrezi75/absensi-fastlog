@@ -6,7 +6,7 @@ import api from '../../../lib/api';
 const FormPengajuan = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    
+
     const today = new Date().toISOString().split('T')[0];
     const [formType, setFormType] = useState('Izin');
     const [startDate, setStartDate] = useState(today);
@@ -38,7 +38,7 @@ const FormPengajuan = () => {
                     setEmployeeData(res.data.employee || null);
                     setOvertimeRules(res.data.overtime_rules || null);
                 }
-            } catch (err) {}
+            } catch (err) { }
         };
         fetchUserData();
     }, []);
@@ -119,9 +119,9 @@ const FormPengajuan = () => {
     return (
         <div className="max-w-2xl mx-auto space-y-6">
             <div className="flex items-center gap-4 mb-2">
-                <button 
-                    type="button" 
-                    onClick={() => navigate('/user/home')} 
+                <button
+                    type="button"
+                    onClick={() => navigate('/user/home')}
                     className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 transition cursor-pointer"
                 >
                     <ArrowLeft className="w-5 h-5" />
@@ -143,15 +143,15 @@ const FormPengajuan = () => {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1.5">Jenis Pengajuan</label>
-                        <select 
-                            value={formType} 
+                        <select
+                            value={formType}
                             onChange={(e) => {
                                 const val = e.target.value;
                                 setFormType(val);
                                 if (val === 'Dinas' && !keterangan.trim()) {
                                     setKeterangan("Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: ");
                                 }
-                            }} 
+                            }}
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition cursor-pointer"
                         >
                             <option value="Izin">Izin (Keperluan Pribadi)</option>
@@ -180,11 +180,10 @@ const FormPengajuan = () => {
                                 <button
                                     type="button"
                                     onClick={() => setTipeLembur('DAILY')}
-                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
-                                        tipeLembur === 'DAILY'
+                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${tipeLembur === 'DAILY'
                                             ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
                                             : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
-                                    }`}
+                                        }`}
                                 >
                                     <div>
                                         <p className="text-xs font-bold">Standby Daily</p>
@@ -203,11 +202,10 @@ const FormPengajuan = () => {
                                 <button
                                     type="button"
                                     onClick={() => setTipeLembur('WEEKENDS')}
-                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
-                                        tipeLembur === 'WEEKENDS'
+                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${tipeLembur === 'WEEKENDS'
                                             ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
                                             : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
-                                    }`}
+                                        }`}
                                 >
                                     <div>
                                         <p className="text-xs font-bold">Standby Weekends</p>
@@ -226,11 +224,10 @@ const FormPengajuan = () => {
                                 <button
                                     type="button"
                                     onClick={() => setTipeLembur('HARI_BESAR')}
-                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
-                                        tipeLembur === 'HARI_BESAR'
+                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${tipeLembur === 'HARI_BESAR'
                                             ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
                                             : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
-                                    }`}
+                                        }`}
                                 >
                                     <div>
                                         <p className="text-xs font-bold">Hari Besar</p>
@@ -269,23 +266,23 @@ const FormPengajuan = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal Mulai</label>
-                            <input 
-                                type="date" 
-                                required 
+                            <input
+                                type="date"
+                                required
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition" 
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tanggal Selesai</label>
-                            <input 
-                                type="date" 
-                                required 
+                            <input
+                                type="date"
+                                required
                                 value={endDate}
                                 min={startDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition" 
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
                             />
                         </div>
                     </div>
@@ -297,16 +294,16 @@ const FormPengajuan = () => {
                                 <span className="text-xs text-orange-600 font-medium">Format Dinas Luar Kantor</span>
                             )}
                         </div>
-                        <textarea 
-                            required 
-                            rows={formType === 'Dinas' ? 5 : 4} 
+                        <textarea
+                            required
+                            rows={formType === 'Dinas' ? 5 : 4}
                             value={keterangan}
                             onChange={(e) => setKeterangan(e.target.value)}
                             placeholder={
                                 formType === 'Dinas'
                                     ? "Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: "
                                     : "Jelaskan secara rinci alasan atau keperluan pengajuan Anda..."
-                            } 
+                            }
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition resize-none font-mono text-xs"
                         ></textarea>
                     </div>
@@ -326,17 +323,17 @@ const FormPengajuan = () => {
                                     </span>
                                 )}
                             </div>
-                            <input 
-                                type="file" 
-                                accept="image/*,.pdf" 
-                                className="hidden" 
-                                onChange={handleFileChange} 
+                            <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                className="hidden"
+                                onChange={handleFileChange}
                             />
                         </label>
                     </div>
 
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={submitting}
                         className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-sm shadow-orange-500/20 disabled:opacity-60"
                     >

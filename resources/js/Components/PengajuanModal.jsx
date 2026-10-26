@@ -57,7 +57,8 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
             getLocation();
             setKeterangan(prev => prev ? prev : "Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: ");
         } else if (isOpen && type === 'Lembur') {
-            setKeterangan(prev => prev ? prev : "Tanggal Lembur: \nJam Mulai: \nJam Selesai: \nPekerjaan yang Dilakukan: \nAlasan Lembur: ");
+            // Dikosongkan sesuai permintaan agar tidak ada format bawaan di dalam text box
+            setKeterangan('');
         } else if (isOpen && type === 'Absensi') {
             getLocation();
             setKeterangan(prev => prev ? prev : "Alasan tidak bisa tap di kantor:\nLokasi Kerja: ");
@@ -79,7 +80,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
     useEffect(() => {
         if (cameraActive && videoRef.current && mediaStream) {
             videoRef.current.srcObject = mediaStream;
-            videoRef.current.play().catch(() => {});
+            videoRef.current.play().catch(() => { });
         }
     }, [cameraActive, mediaStream]);
 
@@ -338,22 +339,20 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                     <button
                                         type="button"
                                         onClick={() => setIzinSakitType('izin')}
-                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${
-                                            izinSakitType === 'izin'
-                                                ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
-                                                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
-                                        }`}
+                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${izinSakitType === 'izin'
+                                            ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
+                                            }`}
                                     >
                                         Izin Pribadi
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setIzinSakitType('sakit')}
-                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${
-                                            izinSakitType === 'sakit'
-                                                ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
-                                                : 'bg-white border-rose-200 text-rose-500 hover:border-rose-400'
-                                        }`}
+                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${izinSakitType === 'sakit'
+                                            ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
+                                            : 'bg-white border-rose-200 text-rose-500 hover:border-rose-400'
+                                            }`}
                                     >
                                         Sakit
                                     </button>
@@ -374,22 +373,20 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                     <button
                                         type="button"
                                         onClick={() => setTapType('in')}
-                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${
-                                            tapType === 'in'
-                                                ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
-                                                : 'bg-white border-teal-200 text-teal-600 hover:border-teal-400'
-                                        }`}
+                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${tapType === 'in'
+                                            ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                                            : 'bg-white border-teal-200 text-teal-600 hover:border-teal-400'
+                                            }`}
                                     >
                                         Tap In (Masuk)
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setTapType('out')}
-                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${
-                                            tapType === 'out'
-                                                ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
-                                                : 'bg-white border-teal-200 text-teal-600 hover:border-teal-400'
-                                        }`}
+                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${tapType === 'out'
+                                            ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
+                                            : 'bg-white border-teal-200 text-teal-600 hover:border-teal-400'
+                                            }`}
                                     >
                                         Tap Out (Pulang)
                                     </button>
@@ -418,11 +415,10 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                     <button
                                         type="button"
                                         onClick={() => setTipeLembur('DAILY')}
-                                        className={`p-2.5 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
-                                            tipeLembur === 'DAILY'
-                                                ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
-                                                : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
-                                        }`}
+                                        className={`p-2.5 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${tipeLembur === 'DAILY'
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                                            : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
+                                            }`}
                                     >
                                         <div>
                                             <p className="text-xs font-bold">Standby Daily</p>
@@ -441,11 +437,10 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                     <button
                                         type="button"
                                         onClick={() => setTipeLembur('WEEKENDS')}
-                                        className={`p-2.5 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
-                                            tipeLembur === 'WEEKENDS'
-                                                ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
-                                                : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
-                                        }`}
+                                        className={`p-2.5 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${tipeLembur === 'WEEKENDS'
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                                            : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
+                                            }`}
                                     >
                                         <div>
                                             <p className="text-xs font-bold">Standby Weekends</p>
@@ -464,11 +459,10 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                     <button
                                         type="button"
                                         onClick={() => setTipeLembur('HARI_BESAR')}
-                                        className={`p-2.5 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
-                                            tipeLembur === 'HARI_BESAR'
-                                                ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
-                                                : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
-                                        }`}
+                                        className={`p-2.5 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${tipeLembur === 'HARI_BESAR'
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                                            : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
+                                            }`}
                                     >
                                         <div>
                                             <p className="text-xs font-bold">Hari Besar</p>
@@ -532,7 +526,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                             <div className="flex items-center justify-between mb-1">
                                 <label className="block text-xs font-semibold text-gray-700">Keterangan / Alasan</label>
                                 {type === 'Dinas' && <span className="text-[10px] text-orange-600 font-medium">Format Dinas Luar Kantor</span>}
-                                {type === 'Lembur' && <span className="text-[10px] text-purple-600 font-medium">Format Pengajuan Lembur</span>}
+                                {/* Tulisan "Format Pengajuan Lembur" di sebelah kanan sudah dihapus */}
                                 {type === 'Absensi' && <span className="text-[10px] text-teal-600 font-medium">Alasan Absensi Lapangan</span>}
                             </div>
                             <textarea
@@ -544,19 +538,19 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                     type === 'Dinas'
                                         ? "Instansi / Tempat Tujuan: \nKeperluan / Agenda: \nEstimasi Jam: \nKendaraan: "
                                         : type === 'Lembur'
-                                        ? "Tanggal Lembur: \nJam Mulai: \nJam Selesai: \nPekerjaan yang Dilakukan: \nAlasan Lembur: "
-                                        : type === 'Absensi'
-                                        ? "Alasan tidak bisa tap di kantor:\nLokasi Kerja: "
-                                        : `Jelaskan alasan pengajuan ${type === 'IzinSakit' ? (izinSakitType === 'izin' ? 'izin' : 'sakit') : type.toLowerCase()}...`
+                                            ? "Isi dengan pekerjaan yang akan dilakukan."
+                                            : type === 'Absensi'
+                                                ? "Alasan tidak bisa tap di kantor:\nLokasi Kerja: "
+                                                : `Jelaskan alasan pengajuan ${type === 'IzinSakit' ? (izinSakitType === 'izin' ? 'izin' : 'sakit') : type.toLowerCase()}...`
                                 }
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition resize-none font-mono text-xs"
                             ></textarea>
                             {type === 'Dinas' && (
                                 <p className="text-[11px] text-gray-500 mt-1">Lengkapi instansi tujuan, agenda, perkiraan jam pelaksanaan, dan kendaraan yang digunakan.</p>
                             )}
-                            {type === 'Lembur' && (
-                                <p className="text-[11px] text-gray-500 mt-1">Isi jam mulai dan selesai lembur, serta pekerjaan yang akan atau sudah dilakukan.</p>
-                            )}
+                            {/* {type === 'Lembur' && (
+                                <p className="text-[11px] text-gray-500 mt-1">Isi dengan pekerjaan yang akan dilakukan.</p>
+                            )} */}
                             {type === 'Absensi' && (
                                 <p className="text-[11px] text-gray-500 mt-1">Jelaskan mengapa tidak memungkinkan tap di kantor dan sebutkan lokasi kerja Anda saat ini.</p>
                             )}
@@ -565,8 +559,8 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">
                                 {type === 'Dinas' ? 'Foto Bukti Kamera (Watermark Google Maps)' :
-                                 type === 'Absensi' ? 'Foto Bukti Lokasi — Wajib (Watermark GPS)' :
-                                 'Lampiran Dokumen / Foto Bukti'}
+                                    type === 'Absensi' ? 'Foto Bukti Lokasi — Wajib (Watermark GPS)' :
+                                        'Lampiran Dokumen / Foto Bukti'}
                             </label>
 
                             <div className="relative">
