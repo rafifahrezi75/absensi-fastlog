@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Employee;
 use App\Models\Holiday;
 use App\Models\OvertimeLog;
+use App\Models\OvertimeRuleCategory;
 use App\Models\Permission;
 use App\Models\SystemSetting;
 use Carbon\Carbon;
@@ -42,11 +43,51 @@ class OvertimeCalculationService
         return $result;
     }
 
+    public function getCategoryForEmployee(Employee $employee): ?OvertimeRuleCategory
+    {
+        $categories = OvertimeRuleCategory::orderBy('id', 'asc')->get();
+        if ($categories->isEmpty()) {
+            return null;
+        }
+
+        $dept = strtolower(trim((string)$employee->dept));
+        $jabatan = strtolower(trim((string)$employee->jabatan));
+
+        foreach ($categories as $cat) {
+            $deptList = array_map(fn($d) => strtolower(trim($d)), $cat->departemen_list ?: []);
+            if (!empty($dept) && in_array($dept, $deptList)) {
+                return $cat;
+            }
+        }
+
+        foreach ($categories as $cat) {
+            $keywords = array_map(fn($k) => strtolower(trim($k)), $cat->jabatan_keywords ?: []);
+            foreach ($keywords as $kw) {
+                if ($kw !== '' && (str_contains($jabatan, $kw) || str_contains($dept, $kw))) {
+                    return $cat;
+                }
+            }
+        }
+
+        foreach ($categories as $cat) {
+            if ($cat->is_default) {
+                return $cat;
+            }
+        }
+
+        return $categories->first();
+    }
+
     public function determineStaffCategory(Employee $employee): string
     {
+        $cat = $this->getCategoryForEmployee($employee);
+        if ($cat) {
+            return strtoupper($cat->kode);
+        }
+
         $lateService = app(LateCalculationService::class);
-        $cat = $lateService->determineCategory($employee);
-        $code = strtoupper((string)($cat->kode ?? ''));
+        $lateCat = $lateService->determineCategory($employee);
+        $code = strtoupper((string)($lateCat->kode ?? ''));
 
         if (str_contains($code, 'LAPANGAN') || str_contains($code, 'OPERASIONAL')) {
             return 'LAPANGAN';
@@ -60,21 +101,30 @@ class OvertimeCalculationService
         $dt = Carbon::parse($dateTime);
         $dateStr = $dt->toDateString();
         $timeStr = $dt->format('H:i:s');
-        $staffCategory = $this->determineStaffCategory($employee);
+        $otCat = $this->getCategoryForEmployee($employee);
+        $staffCategory = $otCat ? strtoupper($otCat->kode) : $this->determineStaffCategory($employee);
+        $categoryName = $otCat ? $otCat->nama : ($staffCategory === 'LAPANGAN' ? 'Staf Lapangan' : 'Staf Kantor');
         $catLower = strtolower($staffCategory);
         $settings = $this->getSettings();
+
+        $dailyStart = $otCat ? $otCat->daily_start : ($settings['overtime_' . $catLower . '_daily_start'] ?? ($staffCategory === 'LAPANGAN' ? '16:31' : '17:00'));
+        $dailyRate = $otCat ? (float)$otCat->daily_rate : ($settings['overtime_' . $catLower . '_daily_rate'] ?? 50000);
+
+        $weekendStart = $otCat ? $otCat->weekend_start : ($settings['overtime_' . $catLower . '_weekend_start'] ?? ($staffCategory === 'LAPANGAN' ? '12:01' : '13:00'));
+        $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($settings['overtime_' . $catLower . '_weekend_rate'] ?? 75000);
+
+        $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($settings['overtime_' . $catLower . '_holiday_rate'] ?? 300000);
 
         $isHoliday = Holiday::whereDate('tanggal', $dateStr)->exists();
         $isWeekend = $dt->isSaturday() || $dt->isSunday();
 
         if ($isHoliday) {
-            $rate = $settings['overtime_' . $catLower . '_holiday_rate'] ?? 300000;
             return [
                 'staff_category' => $staffCategory,
-                'category_name' => $staffCategory === 'LAPANGAN' ? 'Staf Lapangan' : 'Staf Kantor',
+                'category_name' => $categoryName,
                 'tipe_lembur' => 'HARI_BESAR',
                 'nama_tipe' => 'Lembur Hari Besar',
-                'nominal' => (float)$rate,
+                'nominal' => (float)$holidayRate,
                 'start_time' => '00:00',
                 'qualifies' => true,
                 'date' => $dateStr,
@@ -82,40 +132,37 @@ class OvertimeCalculationService
         }
 
         if ($isWeekend) {
-            $rate = $settings['overtime_' . $catLower . '_weekend_rate'] ?? 75000;
             if ($dt->isSunday()) {
                 $start = '00:00';
                 $qualifies = true;
             } else {
-                $start = $settings['overtime_' . $catLower . '_weekend_start'] ?? ($staffCategory === 'LAPANGAN' ? '12:01' : '13:00');
+                $start = $weekendStart;
                 $startThreshold = $start . (strlen($start) === 5 ? ':00' : '');
                 $qualifies = $timeStr >= $startThreshold;
             }
 
             return [
                 'staff_category' => $staffCategory,
-                'category_name' => $staffCategory === 'LAPANGAN' ? 'Staf Lapangan' : 'Staf Kantor',
+                'category_name' => $categoryName,
                 'tipe_lembur' => 'WEEKENDS',
                 'nama_tipe' => 'Lembur Standby Weekends',
-                'nominal' => (float)$rate,
+                'nominal' => (float)$weekendRate,
                 'start_time' => $start,
                 'qualifies' => $qualifies,
                 'date' => $dateStr,
             ];
         }
 
-        $start = $settings['overtime_' . $catLower . '_daily_start'] ?? ($staffCategory === 'LAPANGAN' ? '16:31' : '17:00');
-        $rate = $settings['overtime_' . $catLower . '_daily_rate'] ?? 50000;
-        $startThreshold = $start . (strlen($start) === 5 ? ':00' : '');
+        $startThreshold = $dailyStart . (strlen($dailyStart) === 5 ? ':00' : '');
         $qualifies = $timeStr >= $startThreshold;
 
         return [
             'staff_category' => $staffCategory,
-            'category_name' => $staffCategory === 'LAPANGAN' ? 'Staf Lapangan' : 'Staf Kantor',
+            'category_name' => $categoryName,
             'tipe_lembur' => 'DAILY',
             'nama_tipe' => 'Lembur Standby Daily',
-            'nominal' => (float)$rate,
-            'start_time' => $start,
+            'nominal' => (float)$dailyRate,
+            'start_time' => $dailyStart,
             'qualifies' => $qualifies,
             'date' => $dateStr,
         ];

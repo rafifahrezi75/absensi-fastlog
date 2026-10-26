@@ -1,26 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Save,
     Calendar,
     Trash2,
     Plus,
     Clock,
-    DollarSign,
     AlertCircle,
     Loader2,
     Briefcase,
     CheckCircle2,
-    X
+    X,
+    Edit3,
+    Lock,
+    ShieldCheck
 } from 'lucide-react';
 import api from '../../../lib/api';
-import { Link } from 'react-router-dom';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
+import ModalKategoriLembur from './Components/ModalKategoriLembur';
+import ModalKategoriTerlambat from '../MasterPayroll/Components/ModalKategoriTerlambat';
+import TabKategoriTerlambat from '../MasterPayroll/Components/TabKategoriTerlambat';
 
 const Settings = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('schedule');
-    const [saveSuccess, setSaveSuccess] = useState(false);
     const [errorMsg, setErrorMsg] = useState(null);
 
     const [settings, setSettings] = useState({
@@ -30,18 +33,6 @@ const Settings = () => {
         saturday_check_in: '',
         saturday_check_out: '',
         saturday_tolerance: '',
-        late_fine_per_minute: '',
-        absent_deduction: '',
-        overtime_kantor_daily_start: '',
-        overtime_kantor_daily_rate: '',
-        overtime_kantor_weekend_start: '',
-        overtime_kantor_weekend_rate: '',
-        overtime_kantor_holiday_rate: '',
-        overtime_lapangan_daily_start: '',
-        overtime_lapangan_daily_rate: '',
-        overtime_lapangan_weekend_start: '',
-        overtime_lapangan_weekend_rate: '',
-        overtime_lapangan_holiday_rate: '',
     });
 
     const [holidays, setHolidays] = useState([]);
@@ -49,23 +40,67 @@ const Settings = () => {
     const [newHolidayDesc, setNewHolidayDesc] = useState('');
     const [isNational, setIsNational] = useState(false);
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    const [lateCategories, setLateCategories] = useState([]);
+    const [exemptEmployees, setExemptEmployees] = useState([]);
+    const [allEmployees, setAllEmployees] = useState([]);
 
-    const fetchData = async () => {
+    const [overtimeCategories, setOvertimeCategories] = useState([]);
+
+    const [modalLateRule, setModalLateRule] = useState({ isOpen: false, data: null });
+    const [modalOvertimeRule, setModalOvertimeRule] = useState({ isOpen: false, data: null });
+
+    const fetchSettings = useCallback(async () => {
         try {
-            setLoading(true);
             const res = await api.get('/api/admin/settings');
             setSettings(res.data.settings || {});
             setHolidays(res.data.holidays || []);
         } catch (error) {
             console.error(error);
             setErrorMsg('Gagal mengambil data pengaturan.');
-        } finally {
-            setLoading(false);
         }
-    };
+    }, []);
+
+    const fetchLateRules = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/late-rules');
+            setLateCategories(res.data.categories || []);
+            setExemptEmployees(res.data.exempt_employees || []);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    const fetchAllEmployees = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/employees');
+            setAllEmployees(res.data.employees || []);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    const fetchOvertimeRules = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/overtime-rules');
+            setOvertimeCategories(res.data.categories || []);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    useEffect(() => {
+        const loadAll = async () => {
+            setLoading(true);
+            await Promise.all([
+                fetchSettings(),
+                fetchLateRules(),
+                fetchAllEmployees(),
+                fetchOvertimeRules()
+            ]);
+            setLoading(false);
+        };
+        loadAll();
+    }, [fetchSettings, fetchLateRules, fetchAllEmployees, fetchOvertimeRules]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -137,6 +172,100 @@ const Settings = () => {
         }
     };
 
+    const openModalLateRule = (data = null) => setModalLateRule({ isOpen: true, data });
+    const closeModalLateRule = () => setModalLateRule({ isOpen: false, data: null });
+
+    const handleSaveLateCategory = async (formData) => {
+        try {
+            if (formData.id) {
+                await api.put(`/api/admin/late-rules/${formData.id}`, formData);
+                showSuccess('Kategori keterlambatan berhasil diperbarui.');
+            } else {
+                await api.post('/api/admin/late-rules', formData);
+                showSuccess('Kategori keterlambatan berhasil ditambahkan.');
+            }
+            closeModalLateRule();
+            fetchLateRules();
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Gagal menyimpan kategori keterlambatan.';
+            showError(msg);
+        }
+    };
+
+    const handleDeleteLateCategory = async (id, nama) => {
+        const confirmed = await showConfirm({
+            title: 'Hapus Kategori Keterlambatan',
+            text: `Apakah Anda yakin ingin menghapus kategori "${nama}"?`,
+            confirmText: 'Ya, Hapus',
+            confirmColor: '#e11d48'
+        });
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/api/admin/late-rules/${id}`);
+            showSuccess('Kategori keterlambatan berhasil dihapus.');
+            fetchLateRules();
+        } catch (err) {
+            showError(err.response?.data?.message || 'Gagal menghapus kategori keterlambatan.');
+        }
+    };
+
+    const handleToggleExemption = async (employeeId) => {
+        try {
+            const res = await api.post(`/api/admin/late-rules/toggle-exemption/${employeeId}`);
+            showSuccess(res.data.message || 'Status pengkhususan diperbarui.');
+            fetchLateRules();
+        } catch (err) {
+            showError(err.response?.data?.message || 'Gagal mengubah status pengkhususan.');
+        }
+    };
+
+    const openModalOvertimeRule = (data = null) => setModalOvertimeRule({ isOpen: true, data });
+    const closeModalOvertimeRule = () => setModalOvertimeRule({ isOpen: false, data: null });
+
+    const handleSaveOvertimeCategory = async (formData) => {
+        try {
+            if (formData.id) {
+                await api.put(`/api/admin/overtime-rules/${formData.id}`, formData);
+                showSuccess('Kategori lembur berhasil diperbarui.');
+            } else {
+                await api.post('/api/admin/overtime-rules', formData);
+                showSuccess('Kategori lembur berhasil ditambahkan.');
+            }
+            closeModalOvertimeRule();
+            fetchOvertimeRules();
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Gagal menyimpan kategori lembur.';
+            showError(msg);
+        }
+    };
+
+    const handleDeleteOvertimeCategory = async (id, nama) => {
+        const confirmed = await showConfirm({
+            title: 'Hapus Kategori Lembur',
+            text: `Apakah Anda yakin ingin menghapus kategori "${nama}"?`,
+            confirmText: 'Ya, Hapus',
+            confirmColor: '#e11d48'
+        });
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/api/admin/overtime-rules/${id}`);
+            showSuccess('Kategori lembur berhasil dihapus.');
+            fetchOvertimeRules();
+        } catch (err) {
+            showError(err.response?.data?.message || 'Gagal menghapus kategori lembur.');
+        }
+    };
+
+    const formatIDR = (val) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0
+        }).format(val || 0);
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const cleanDate = dateString.split(' ')[0];
@@ -164,10 +293,9 @@ const Settings = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Pengaturan Sistem</h1>
-                    <p className="text-sm text-slate-500">Kelola jam kerja operasional, kalkulasi denda, dan kalender libur perusahaan.</p>
+                    <p className="text-sm text-slate-500">Kelola jam kerja operasional, kategori keterlambatan, aturan lembur, dan kalender libur.</p>
                 </div>
             </div>
-
 
             {errorMsg && (
                 <div className="p-4 rounded-xl flex items-center justify-between text-sm transition shadow-sm bg-rose-50 text-rose-800 border border-rose-200">
@@ -178,7 +306,7 @@ const Settings = () => {
                     <button
                         type="button"
                         onClick={() => setErrorMsg(null)}
-                        className="p-1 hover:bg-black/5 rounded-lg transition"
+                        className="p-1 hover:bg-black/5 rounded-lg transition cursor-pointer"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -186,49 +314,49 @@ const Settings = () => {
             )}
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex items-center gap-2.5">
                         {activeTab === 'schedule' && <Clock className="w-4 h-4 text-indigo-600" />}
+                        {activeTab === 'late_rules' && <Clock className="w-4 h-4 text-indigo-600" />}
                         {activeTab === 'overtime' && <Briefcase className="w-4 h-4 text-amber-600" />}
-                        {activeTab === 'fines' && <DollarSign className="w-4 h-4 text-rose-600" />}
                         {activeTab === 'holidays' && <Calendar className="w-4 h-4 text-emerald-600" />}
                         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
                             {activeTab === 'schedule' && 'Jadwal Operasional'}
+                            {activeTab === 'late_rules' && 'Kategori & Aturan Keterlambatan'}
                             {activeTab === 'overtime' && 'Aturan Lembur Flat / Ritase'}
-                            {activeTab === 'fines' && 'Skema Finansial & Denda'}
                             {activeTab === 'holidays' && 'Kelola Hari Libur & Tanggal Merah'}
                         </h2>
                     </div>
 
-                    <div className="flex bg-slate-100 p-1 rounded-lg w-full sm:w-fit self-start sm:self-auto">
+                    <div className="flex flex-wrap bg-slate-100 p-1 rounded-lg w-full lg:w-fit">
                         <button
                             type="button"
                             onClick={() => setActiveTab('schedule')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition ${activeTab === 'schedule' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'schedule' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                         >
                             <Clock className="w-3.5 h-3.5" />
                             Jam Kerja
                         </button>
                         <button
                             type="button"
+                            onClick={() => setActiveTab('late_rules')}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'late_rules' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                            Kategori Terlambat
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setActiveTab('overtime')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition ${activeTab === 'overtime' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'overtime' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                         >
                             <Briefcase className="w-3.5 h-3.5" />
                             Aturan Lembur
                         </button>
                         <button
                             type="button"
-                            onClick={() => setActiveTab('fines')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition ${activeTab === 'fines' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                        >
-                            <DollarSign className="w-3.5 h-3.5" />
-                            Denda & Potongan
-                        </button>
-                        <button
-                            type="button"
                             onClick={() => setActiveTab('holidays')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition ${activeTab === 'holidays' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'holidays' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                         >
                             <Calendar className="w-3.5 h-3.5" />
                             Hari Libur
@@ -337,309 +465,192 @@ const Settings = () => {
                     </div>
                 )}
 
+                {activeTab === 'late_rules' && (
+                    <div className="p-6">
+                        <TabKategoriTerlambat
+                            categories={lateCategories}
+                            exemptEmployees={exemptEmployees}
+                            allEmployees={allEmployees}
+                            onOpenModal={openModalLateRule}
+                            onDeleteCategory={handleDeleteLateCategory}
+                            onToggleExemption={handleToggleExemption}
+                        />
+                    </div>
+                )}
+
                 {activeTab === 'overtime' && (
-                    <div>
-                        <div className="p-6 space-y-6">
-                            <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div>
-                                    <div className="flex items-center gap-2 font-bold text-sm text-amber-950">
-                                        <Briefcase className="w-4 h-4 text-amber-600" />
-                                        <span>Sistem Lembur Flat / Ritase per Hari</span>
-                                    </div>
-                                    <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
-                                        Kompensasi lembur diberikan dalam tarif flat/ritase per hari mengingat durasi waktu yang tidak menentu. Jam mulai lembur dihitung berdasarkan kategori staf (Kantor vs Lapangan) dan jenis hari (Daily, Weekends, Hari Besar/Libur Nasional).
-                                    </p>
+                    <div className="p-6 space-y-6">
+                        <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                            <div>
+                                <div className="flex items-center gap-2 font-bold text-sm text-amber-950">
+                                    <Briefcase className="w-4 h-4 text-amber-600" />
+                                    <span>Standar Aturan Lembur Flat / Ritase</span>
                                 </div>
+                                <p className="text-xs text-amber-800/90 mt-1 max-w-2xl leading-relaxed">
+                                    Kelola standar kategori lembur dinamis untuk Staf Kantor, Staf Lapangan, maupun divisi lainnya. Setiap standar dapat disesuaikan jam mulai dan tarif flat harian untuk hari kerja, akhir pekan, dan hari libur nasional.
+                                </p>
                             </div>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-5 space-y-4">
-                                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                                            <h3 className="font-bold text-sm text-slate-800">A. Staf Kantor</h3>
-                                        </div>
-                                        <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200">
-                                            CS, Dokumen, Finance, Accounting, Procurement
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold text-slate-700">Lembur Standby Daily</span>
-                                                <span className="text-[11px] text-slate-500 font-medium">Senin - Jumat</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mulai Jam</label>
-                                                    <input
-                                                        type="time"
-                                                        name="overtime_kantor_daily_start"
-                                                        value={settings.overtime_kantor_daily_start || '17:00'}
-                                                        onChange={handleChange}
-                                                        className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
-                                                    <div className="relative">
-                                                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
-                                                        <input
-                                                            type="number"
-                                                            name="overtime_kantor_daily_rate"
-                                                            value={settings.overtime_kantor_daily_rate || '50000'}
-                                                            onChange={handleChange}
-                                                            className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold text-slate-700">Lembur Standby Weekends</span>
-                                                <span className="text-[11px] text-slate-500 font-medium">Sabtu & Minggu</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mulai Jam</label>
-                                                    <input
-                                                        type="time"
-                                                        name="overtime_kantor_weekend_start"
-                                                        value={settings.overtime_kantor_weekend_start || '13:00'}
-                                                        onChange={handleChange}
-                                                        className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
-                                                    <div className="relative">
-                                                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
-                                                        <input
-                                                            type="number"
-                                                            name="overtime_kantor_weekend_rate"
-                                                            value={settings.overtime_kantor_weekend_rate || '75000'}
-                                                            onChange={handleChange}
-                                                            className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold text-slate-700">Lembur Hari Besar</span>
-                                                <span className="text-[11px] text-slate-500 font-medium">Hari Libur Nasional</span>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
-                                                <div className="relative">
-                                                    <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
-                                                    <input
-                                                        type="number"
-                                                        name="overtime_kantor_holiday_rate"
-                                                        value={settings.overtime_kantor_holiday_rate || '300000'}
-                                                        onChange={handleChange}
-                                                        className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-5 space-y-4">
-                                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-                                            <h3 className="font-bold text-sm text-slate-800">B. Staf Lapangan</h3>
-                                        </div>
-                                        <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">
-                                            Operasional / Lapangan
-                                        </span>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold text-slate-700">Lembur Standby Daily</span>
-                                                <span className="text-[11px] text-slate-500 font-medium">Senin - Jumat</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mulai Jam</label>
-                                                    <input
-                                                        type="time"
-                                                        name="overtime_lapangan_daily_start"
-                                                        value={settings.overtime_lapangan_daily_start || '16:31'}
-                                                        onChange={handleChange}
-                                                        className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
-                                                    <div className="relative">
-                                                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
-                                                        <input
-                                                            type="number"
-                                                            name="overtime_lapangan_daily_rate"
-                                                            value={settings.overtime_lapangan_daily_rate || '50000'}
-                                                            onChange={handleChange}
-                                                            className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold text-slate-700">Lembur Standby Weekends</span>
-                                                <span className="text-[11px] text-slate-500 font-medium">Sabtu & Minggu</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mulai Jam</label>
-                                                    <input
-                                                        type="time"
-                                                        name="overtime_lapangan_weekend_start"
-                                                        value={settings.overtime_lapangan_weekend_start || '12:01'}
-                                                        onChange={handleChange}
-                                                        className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
-                                                    <div className="relative">
-                                                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
-                                                        <input
-                                                            type="number"
-                                                            name="overtime_lapangan_weekend_rate"
-                                                            value={settings.overtime_lapangan_weekend_rate || '75000'}
-                                                            onChange={handleChange}
-                                                            className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs font-bold text-slate-700">Lembur Hari Besar</span>
-                                                <span className="text-[11px] text-slate-500 font-medium">Hari Libur Nasional</span>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
-                                                <div className="relative">
-                                                    <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
-                                                    <input
-                                                        type="number"
-                                                        name="overtime_lapangan_holiday_rate"
-                                                        value={settings.overtime_lapangan_holiday_rate || '300000'}
-                                                        onChange={handleChange}
-                                                        className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
-                            <span className="text-xs text-slate-500">Tarif dan jam acuan lembur tersimpan otomatis untuk kalkulasi payroll dan persetujuan lembur.</span>
                             <button
                                 type="button"
-                                onClick={saveSettings}
-                                disabled={saving}
-                                className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-50"
+                                onClick={() => openModalOvertimeRule(null)}
+                                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm transition shrink-0 cursor-pointer"
                             >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan Lembur'}</span>
+                                <Plus className="w-4 h-4" />
+                                Tambah Kategori Lembur
                             </button>
                         </div>
-                    </div>
-                )}
 
-                {activeTab === 'fines' && (
-                    <div>
-                        <div className="p-6 space-y-6">
-                            <div className="p-4 bg-indigo-50/80 border border-indigo-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div>
-                                    <div className="flex items-center gap-2 font-bold text-sm text-indigo-950">
-                                        <Clock className="w-4 h-4 text-indigo-600" />
-                                        <span>Kategori & Skema Sanksi Keterlambatan</span>
-                                    </div>
-                                    <p className="text-xs text-indigo-800/80 mt-1">
-                                        Aturan keterlambatan menggunakan kategori (Staf Kantor vs Staf Lapangan) dengan 4 tingkatan (tier) denda dan toleransi 3x sebulan.
-                                    </p>
-                                </div>
-                                <Link
-                                    to="/admin/master-payroll"
-                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition shadow-sm text-center"
+                        {overtimeCategories.length === 0 ? (
+                            <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                <AlertCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                <p className="text-xs text-slate-500 font-medium">Belum ada standar kategori lembur terdaftar.</p>
+                                <button
+                                    type="button"
+                                    onClick={() => openModalOvertimeRule(null)}
+                                    className="mt-3 inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
                                 >
-                                    Buka Kategori Terlambat &rarr;
-                                </Link>
+                                    <Plus className="w-3.5 h-3.5" /> Tambah Standar Sekarang
+                                </button>
                             </div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {overtimeCategories.map((cat) => (
+                                    <div
+                                        key={cat.id}
+                                        className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden flex flex-col justify-between hover:border-slate-300 transition"
+                                    >
+                                        <div className="p-5 space-y-4">
+                                            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <h3 className="font-bold text-sm text-slate-900">{cat.nama}</h3>
+                                                        <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                                            {cat.kode}
+                                                        </span>
+                                                        {cat.is_default && (
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+                                                                Default
+                                                            </span>
+                                                        )}
+                                                        {cat.is_locked && (
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                                                                <Lock className="w-3 h-3 text-slate-400" /> Terkunci
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {cat.deskripsi && (
+                                                        <p className="text-xs text-slate-500 leading-snug">{cat.deskripsi}</p>
+                                                    )}
+                                                </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-slate-600">Denda Keterlambatan per Menit</label>
-                                <div className="relative rounded-lg shadow-sm max-w-md">
-                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm font-medium">
-                                        Rp
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openModalOvertimeRule(cat)}
+                                                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                                                        title="Edit Standar Kategori"
+                                                    >
+                                                        <Edit3 className="w-4 h-4" />
+                                                    </button>
+                                                    {!cat.is_locked && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteOvertimeCategory(cat.id, cat.nama)}
+                                                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                                            title="Hapus Standar Kategori"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <div>
+                                                    <span className="text-[11px] font-semibold text-slate-400 block mb-1">
+                                                        Departemen Terkait:
+                                                    </span>
+                                                    {Array.isArray(cat.departemen_list) && cat.departemen_list.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {cat.departemen_list.map((dept, idx) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700"
+                                                                >
+                                                                    {dept}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[11px] text-slate-400 italic">Semua Departemen (Fallback / Umum)</span>
+                                                    )}
+                                                </div>
+
+                                                {Array.isArray(cat.jabatan_keywords) && cat.jabatan_keywords.length > 0 && (
+                                                    <div>
+                                                        <span className="text-[11px] font-semibold text-slate-400 block mb-1">
+                                                            Kata Kunci Jabatan:
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {cat.jabatan_keywords.map((kw, idx) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-50 text-amber-800 border border-amber-100"
+                                                                >
+                                                                    {kw}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                                        Standby Daily
+                                                    </span>
+                                                    <div className="text-xs font-bold text-slate-800 mt-1">
+                                                        {formatIDR(cat.daily_rate)} <span className="text-[10px] font-normal text-slate-500">/ hari</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500 mt-0.5">
+                                                        Mulai {cat.daily_start || '17:00'} WIB
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                                        Standby Weekends
+                                                    </span>
+                                                    <div className="text-xs font-bold text-slate-800 mt-1">
+                                                        {formatIDR(cat.weekend_rate)} <span className="text-[10px] font-normal text-slate-500">/ hari</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500 mt-0.5">
+                                                        Mulai {cat.weekend_start || '13:00'} WIB
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                                                        Hari Besar
+                                                    </span>
+                                                    <div className="text-xs font-bold text-slate-800 mt-1">
+                                                        {formatIDR(cat.holiday_rate)} <span className="text-[10px] font-normal text-slate-500">/ hari</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500 mt-0.5">
+                                                        Flat Libur Nasional
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <input
-                                        type="number"
-                                        name="late_fine_per_minute"
-                                        placeholder="0"
-                                        value={settings.late_fine_per_minute || ''}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                                    />
-                                </div>
-                                <p className="text-xs text-slate-400">Denda otomatis dikalkulasikan setelah batas toleransi menit terlewati.</p>
+                                ))}
                             </div>
-
-                            <hr className="border-slate-200" />
-
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-slate-600">Potongan Absen / Mangkir (per Hari)</label>
-                                <div className="relative rounded-lg shadow-sm max-w-md">
-                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm font-medium">
-                                        Rp
-                                    </div>
-                                    <input
-                                        type="number"
-                                        name="absent_deduction"
-                                        placeholder="0"
-                                        value={settings.absent_deduction || ''}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                                    />
-                                </div>
-                                <p className="text-xs text-slate-400">Potongan gaji untuk karyawan yang tidak hadir tanpa keterangan resmi.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
-                            <span className="text-xs text-slate-500">Nilai denda dan potongan disimpan langsung ke basis data.</span>
-                            <button
-                                type="button"
-                                onClick={saveSettings}
-                                disabled={saving}
-                                className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-50"
-                            >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                <span>{saving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
-                            </button>
-                        </div>
+                        )}
                     </div>
                 )}
+
+
 
                 {activeTab === 'holidays' && (
                     <div className="p-6 space-y-6">
@@ -741,6 +752,20 @@ const Settings = () => {
                     </div>
                 )}
             </div>
+
+            <ModalKategoriTerlambat
+                isOpen={modalLateRule.isOpen}
+                onClose={closeModalLateRule}
+                onSave={handleSaveLateCategory}
+                initialData={modalLateRule.data}
+            />
+
+            <ModalKategoriLembur
+                isOpen={modalOvertimeRule.isOpen}
+                onClose={closeModalOvertimeRule}
+                onSave={handleSaveOvertimeCategory}
+                data={modalOvertimeRule.data}
+            />
         </div>
     );
 };

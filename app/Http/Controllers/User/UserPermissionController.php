@@ -89,7 +89,9 @@ class UserPermissionController extends Controller
             });
 
         $overtimeService = app(\App\Services\OvertimeCalculationService::class);
-        $staffCategory = $overtimeService->determineStaffCategory($employee);
+        $otCat = $overtimeService->getCategoryForEmployee($employee);
+        $staffCategory = $otCat ? strtoupper($otCat->kode) : $overtimeService->determineStaffCategory($employee);
+        $categoryName = $otCat ? $otCat->nama : ($staffCategory === 'LAPANGAN' ? 'Staf Lapangan' : 'Staf Kantor');
         $overtimeSettings = $overtimeService->getSettings();
         $catLower = strtolower($staffCategory);
 
@@ -105,12 +107,12 @@ class UserPermissionController extends Controller
             ],
             'overtime_rules' => [
                 'staff_category' => $staffCategory,
-                'category_name' => $staffCategory === 'LAPANGAN' ? 'Staf Lapangan' : 'Staf Kantor',
-                'daily_start' => $overtimeSettings['overtime_' . $catLower . '_daily_start'] ?? ($staffCategory === 'LAPANGAN' ? '16:31' : '17:00'),
-                'daily_rate' => $overtimeSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000,
-                'weekend_start' => $overtimeSettings['overtime_' . $catLower . '_weekend_start'] ?? ($staffCategory === 'LAPANGAN' ? '12:01' : '13:00'),
-                'weekend_rate' => $overtimeSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000,
-                'holiday_rate' => $overtimeSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000,
+                'category_name' => $categoryName,
+                'daily_start' => $otCat ? $otCat->daily_start : ($overtimeSettings['overtime_' . $catLower . '_daily_start'] ?? ($staffCategory === 'LAPANGAN' ? '16:31' : '17:00')),
+                'daily_rate' => $otCat ? (float)$otCat->daily_rate : ($overtimeSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000),
+                'weekend_start' => $otCat ? $otCat->weekend_start : ($overtimeSettings['overtime_' . $catLower . '_weekend_start'] ?? ($staffCategory === 'LAPANGAN' ? '12:01' : '13:00')),
+                'weekend_rate' => $otCat ? (float)$otCat->weekend_rate : ($overtimeSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000),
+                'holiday_rate' => $otCat ? (float)$otCat->holiday_rate : ($overtimeSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000),
             ],
             'stats' => [
                 'izin' => $countIzin,
