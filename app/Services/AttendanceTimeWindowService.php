@@ -7,6 +7,7 @@ use App\Models\AttendanceAnomaly;
 use App\Models\Employee;
 use App\Models\OvertimeLog;
 use App\Models\SystemSetting;
+use App\Services\OvertimeCalculationService;
 use Carbon\Carbon;
 
 class AttendanceTimeWindowService
@@ -109,15 +110,17 @@ class AttendanceTimeWindowService
             return $this->handleCheckIn($employee, $tapTime, $date, $timeStr);
         }
 
-        if ($timeStr >= '09:01:00' && $timeStr <= '15:59:59') {
-            return $this->handleAnomaly($employee, $tapTime, $date, $reason);
+        $overtimeService = app(OvertimeCalculationService::class);
+        $eval = $overtimeService->evaluateOvertimeDay($employee, $tapTime);
+        if ($eval['qualifies']) {
+            return $this->handleOvertime($employee, $tapTime, $date, $eval);
         }
 
-        if ($timeStr >= '16:00:00' && $timeStr <= '17:30:59') {
+        if ($timeStr >= '12:00:00') {
             return $this->handleCheckOut($employee, $tapTime, $date);
         }
 
-        return $this->handleOvertime($employee, $tapTime, $date);
+        return $this->handleAnomaly($employee, $tapTime, $date, $reason);
     }
 
     protected function handleCheckIn(Employee $employee, Carbon $tapTime, string $date, string $timeStr): array
@@ -248,27 +251,58 @@ class AttendanceTimeWindowService
         ];
     }
 
-    protected function handleOvertime(Employee $employee, Carbon $tapTime, string $date): array
+    protected function handleOvertime(Employee $employee, Carbon $tapTime, string $date, ?array $eval = null): array
     {
-        $attendance = Attendance::where('employee_id', $employee->id)->where('tanggal', $date)->first();
-
-        $overtimeBase = Carbon::parse($date . ' 17:30:00');
-        $durationMinutes = max(0, $overtimeBase->diffInMinutes($tapTime, false));
-
-        $overtime = OvertimeLog::create([
+        $attendance = Attendance::firstOrNew([
             'employee_id' => $employee->id,
-            'user_id' => $employee->user_id,
-            'attendance_id' => $attendance?->id,
-            'waktu_tap' => $tapTime,
-            'durasi_menit' => (int) $durationMinutes,
-            'status' => 'MENUNGGU',
+            'tanggal' => $date,
         ]);
+
+        if (!$attendance->exists) {
+            $attendance->user_id = $employee->user_id;
+            $attendance->status = 'hadir';
+        }
+
+        if (!$attendance->jam_pulang || $tapTime->gt(Carbon::parse($attendance->jam_pulang))) {
+            $attendance->jam_pulang = $tapTime;
+            $attendance->save();
+        }
+
+        if (!$eval) {
+            $eval = app(OvertimeCalculationService::class)->evaluateOvertimeDay($employee, $tapTime);
+        }
+
+        $existing = OvertimeLog::where('employee_id', $employee->id)
+            ->whereDate('waktu_tap', $date)
+            ->first();
+
+        if ($existing) {
+            $existing->update([
+                'waktu_tap' => $tapTime,
+                'tipe_lembur' => $eval['tipe_lembur'],
+                'kategori_staf' => $eval['staff_category'],
+                'nominal' => $eval['nominal'],
+            ]);
+            $overtime = $existing;
+        } else {
+            $overtime = OvertimeLog::create([
+                'employee_id' => $employee->id,
+                'user_id' => $employee->user_id,
+                'attendance_id' => $attendance?->id,
+                'waktu_tap' => $tapTime,
+                'durasi_menit' => 0,
+                'tipe_lembur' => $eval['tipe_lembur'],
+                'kategori_staf' => $eval['staff_category'],
+                'nominal' => $eval['nominal'],
+                'status' => 'MENUNGGU',
+            ]);
+        }
 
         return [
             'success' => true,
             'window' => 'LEMBUR',
             'action' => 'LEMBUR_TERCATAT',
-            'message' => 'Tap lembur berhasil dicatat. Menunggu persetujuan admin.',
+            'message' => 'Tap lembur berhasil dicatat (' . $eval['nama_tipe'] . ' - Rp ' . number_format($eval['nominal'], 0, ',', '.') . '). Menunggu persetujuan admin.',
             'overtime' => $overtime->load('employee'),
         ];
     }

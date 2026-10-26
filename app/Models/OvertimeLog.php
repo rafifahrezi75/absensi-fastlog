@@ -16,6 +16,9 @@ class OvertimeLog extends Model
         'attendance_id',
         'waktu_tap',
         'durasi_menit',
+        'tipe_lembur',
+        'kategori_staf',
+        'nominal',
         'status',
         'catatan_admin',
     ];
@@ -23,6 +26,7 @@ class OvertimeLog extends Model
     protected $casts = [
         'waktu_tap' => 'datetime',
         'durasi_menit' => 'integer',
+        'nominal' => 'float',
     ];
 
     protected function serializeDate(\DateTimeInterface $date): string

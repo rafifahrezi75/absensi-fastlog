@@ -29,6 +29,16 @@ class SettingController extends Controller
             'saturday_tolerance' => '15',
             'late_fine_per_minute' => '1000',
             'absent_deduction' => '50000',
+            'overtime_kantor_daily_start' => '17:00',
+            'overtime_kantor_daily_rate' => '50000',
+            'overtime_kantor_weekend_start' => '13:00',
+            'overtime_kantor_weekend_rate' => '75000',
+            'overtime_kantor_holiday_rate' => '300000',
+            'overtime_lapangan_daily_start' => '16:31',
+            'overtime_lapangan_daily_rate' => '50000',
+            'overtime_lapangan_weekend_start' => '12:01',
+            'overtime_lapangan_weekend_rate' => '75000',
+            'overtime_lapangan_holiday_rate' => '300000',
         ];
 
         $settings = array_merge($defaultSettings, $settings);
@@ -51,6 +61,16 @@ class SettingController extends Controller
             'saturday_tolerance' => 'nullable|integer',
             'late_fine_per_minute' => 'nullable|numeric',
             'absent_deduction' => 'nullable|numeric',
+            'overtime_kantor_daily_start' => 'nullable|string',
+            'overtime_kantor_daily_rate' => 'nullable|numeric',
+            'overtime_kantor_weekend_start' => 'nullable|string',
+            'overtime_kantor_weekend_rate' => 'nullable|numeric',
+            'overtime_kantor_holiday_rate' => 'nullable|numeric',
+            'overtime_lapangan_daily_start' => 'nullable|string',
+            'overtime_lapangan_daily_rate' => 'nullable|numeric',
+            'overtime_lapangan_weekend_start' => 'nullable|string',
+            'overtime_lapangan_weekend_rate' => 'nullable|numeric',
+            'overtime_lapangan_holiday_rate' => 'nullable|numeric',
         ]);
 
         DB::beginTransaction();
