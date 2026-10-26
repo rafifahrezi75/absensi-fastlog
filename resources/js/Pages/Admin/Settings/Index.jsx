@@ -5,7 +5,6 @@ import {
     Trash2,
     Plus,
     Clock,
-    DollarSign,
     AlertCircle,
     Loader2,
     Briefcase,
@@ -34,8 +33,6 @@ const Settings = () => {
         saturday_check_in: '',
         saturday_check_out: '',
         saturday_tolerance: '',
-        late_fine_per_minute: '',
-        absent_deduction: '',
     });
 
     const [holidays, setHolidays] = useState([]);
@@ -296,7 +293,7 @@ const Settings = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Pengaturan Sistem</h1>
-                    <p className="text-sm text-slate-500">Kelola jam kerja operasional, kategori keterlambatan, aturan lembur, denda, dan kalender libur.</p>
+                    <p className="text-sm text-slate-500">Kelola jam kerja operasional, kategori keterlambatan, aturan lembur, dan kalender libur.</p>
                 </div>
             </div>
 
@@ -322,13 +319,11 @@ const Settings = () => {
                         {activeTab === 'schedule' && <Clock className="w-4 h-4 text-indigo-600" />}
                         {activeTab === 'late_rules' && <Clock className="w-4 h-4 text-indigo-600" />}
                         {activeTab === 'overtime' && <Briefcase className="w-4 h-4 text-amber-600" />}
-                        {activeTab === 'fines' && <DollarSign className="w-4 h-4 text-rose-600" />}
                         {activeTab === 'holidays' && <Calendar className="w-4 h-4 text-emerald-600" />}
                         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
                             {activeTab === 'schedule' && 'Jadwal Operasional'}
                             {activeTab === 'late_rules' && 'Kategori & Aturan Keterlambatan'}
                             {activeTab === 'overtime' && 'Aturan Lembur Flat / Ritase'}
-                            {activeTab === 'fines' && 'Skema Finansial & Denda'}
                             {activeTab === 'holidays' && 'Kelola Hari Libur & Tanggal Merah'}
                         </h2>
                     </div>
@@ -357,14 +352,6 @@ const Settings = () => {
                         >
                             <Briefcase className="w-3.5 h-3.5" />
                             Aturan Lembur
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('fines')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'fines' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                        >
-                            <DollarSign className="w-3.5 h-3.5" />
-                            Denda & Potongan
                         </button>
                         <button
                             type="button"
@@ -663,81 +650,7 @@ const Settings = () => {
                     </div>
                 )}
 
-                {activeTab === 'fines' && (
-                    <div>
-                        <div className="p-6 space-y-6">
-                            <div className="p-4 bg-indigo-50/80 border border-indigo-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div>
-                                    <div className="flex items-center gap-2 font-bold text-sm text-indigo-950">
-                                        <Clock className="w-4 h-4 text-indigo-600" />
-                                        <span>Kategori & Skema Sanksi Keterlambatan</span>
-                                    </div>
-                                    <p className="text-xs text-indigo-800/80 mt-1">
-                                        Aturan keterlambatan menggunakan kategori standar dinamis (Staf Kantor, Lapangan, dll.) dengan 4 tingkatan denda dan toleransi bulanan.
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveTab('late_rules')}
-                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition shadow-sm text-center cursor-pointer"
-                                >
-                                    Buka Kategori Terlambat &rarr;
-                                </button>
-                            </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-slate-600">Denda Keterlambatan per Menit (Fallback Klasik)</label>
-                                <div className="relative rounded-lg shadow-sm max-w-md">
-                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm font-medium">
-                                        Rp
-                                    </div>
-                                    <input
-                                        type="number"
-                                        name="late_fine_per_minute"
-                                        placeholder="0"
-                                        value={settings.late_fine_per_minute || ''}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                                    />
-                                </div>
-                                <p className="text-xs text-slate-400">Denda otomatis dikalkulasikan jika tidak menggunakan skema tier kategori bertingkat.</p>
-                            </div>
-
-                            <hr className="border-slate-200" />
-
-                            <div className="space-y-2">
-                                <label className="block text-xs font-semibold text-slate-600">Potongan Absen / Mangkir (per Hari)</label>
-                                <div className="relative rounded-lg shadow-sm max-w-md">
-                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm font-medium">
-                                        Rp
-                                    </div>
-                                    <input
-                                        type="number"
-                                        name="absent_deduction"
-                                        placeholder="0"
-                                        value={settings.absent_deduction || ''}
-                                        onChange={handleChange}
-                                        className="w-full pl-10 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                                    />
-                                </div>
-                                <p className="text-xs text-slate-400">Potongan gaji untuk karyawan yang tidak hadir tanpa keterangan resmi.</p>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
-                            <span className="text-xs text-slate-500">Nilai denda dan potongan disimpan langsung ke basis data.</span>
-                            <button
-                                type="button"
-                                onClick={saveSettings}
-                                disabled={saving}
-                                className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-50"
-                            >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                <span>{saving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
 
                 {activeTab === 'holidays' && (
                     <div className="p-6 space-y-6">
