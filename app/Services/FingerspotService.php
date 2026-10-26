@@ -55,6 +55,9 @@ class FingerspotService
                         ? trim((string)$userData['name'])
                         : null;
 
+                    $existingEmp = Employee::where('pin', $pin)->first();
+                    $staffGradeId = $existingEmp?->salary_grade_id ?: (\App\Models\SalaryGrade::where('kode', 'GOL-03')->value('id') ?: \App\Models\SalaryGrade::value('id'));
+
                     Employee::updateOrCreate(
                         ['pin' => $pin],
                         [
@@ -69,6 +72,7 @@ class FingerspotService
                             'vein' => isset($userData['vein']) ? (string)$userData['vein'] : null,
                             'template' => isset($userData['template']) ? (string)$userData['template'] : null,
                             'raw_data' => $userData,
+                            'salary_grade_id' => $staffGradeId,
                             'status' => 'active',
                         ]
                     );

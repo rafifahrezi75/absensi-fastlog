@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\SalaryGrade;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -32,6 +33,11 @@ class EmployeeController extends Controller
             'is_exempt' => 'nullable|boolean',
             'status' => ['nullable', Rule::in(['active', 'inactive', 'aktif', 'nonaktif'])],
         ]);
+
+        if (empty($validated['salary_grade_id'])) {
+            $defaultGrade = SalaryGrade::where('kode', 'GOL-03')->first() ?? SalaryGrade::first();
+            $validated['salary_grade_id'] = $defaultGrade?->id;
+        }
 
         if (isset($validated['status'])) {
             $validated['status'] = match($validated['status']) {

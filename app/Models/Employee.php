@@ -69,11 +69,16 @@ class Employee extends Model
 
     public function getEffectiveGajiPokokAttribute(): float
     {
-        if ($this->gaji_pokok_kustom !== null) {
+        if ($this->gaji_pokok_kustom !== null && (float)$this->gaji_pokok_kustom > 0) {
             return (float)$this->gaji_pokok_kustom;
         }
 
-        return $this->salaryGrade ? (float)$this->salaryGrade->gaji_pokok : 0.0;
+        if ($this->salaryGrade && (float)$this->salaryGrade->gaji_pokok > 0) {
+            return (float)$this->salaryGrade->gaji_pokok;
+        }
+
+        $defaultGrade = SalaryGrade::where('kode', 'GOL-03')->first() ?? SalaryGrade::first();
+        return $defaultGrade ? (float)$defaultGrade->gaji_pokok : 5000000.0;
     }
 }
 

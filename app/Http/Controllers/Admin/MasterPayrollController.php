@@ -252,8 +252,8 @@ class MasterPayrollController extends Controller
         $karyawanDisesuaikanCount = 0;
 
         foreach ($employees as $emp) {
-            $stdGapok = $emp->salaryGrade ? (float)$emp->salaryGrade->gaji_pokok : 3000000;
-            $isGapokCustom = ($emp->gaji_pokok_kustom !== null && abs((float)$emp->gaji_pokok_kustom - $stdGapok) >= 0.01);
+            $stdGapok = ($emp->salaryGrade && (float)$emp->salaryGrade->gaji_pokok > 0) ? (float)$emp->salaryGrade->gaji_pokok : 5000000;
+            $isGapokCustom = ($emp->gaji_pokok_kustom !== null && (float)$emp->gaji_pokok_kustom > 0 && abs((float)$emp->gaji_pokok_kustom - $stdGapok) >= 0.01);
             $effectiveGapok = $isGapokCustom ? (float)$emp->gaji_pokok_kustom : $stdGapok;
 
             $customOverrides = $emp->customSalaryComponents->keyBy('salary_component_id');
@@ -350,7 +350,7 @@ class MasterPayrollController extends Controller
                 'dept' => $emp->dept ?: 'Umum',
                 'jabatan' => $emp->jabatan ?: 'Staff',
                 'tipe_staf' => $emp->tipe_staf ?: 'kantor',
-                'golongan' => $emp->salaryGrade ? $emp->salaryGrade->nama : 'Standard',
+                'golongan' => ($emp->salaryGrade && $emp->salaryGrade->nama) ? $emp->salaryGrade->nama : 'Staff',
                 'standard_gapok' => $stdGapok,
                 'gaji_pokok' => $effectiveGapok,
                 'is_gaji_pokok_custom' => $isGapokCustom,
@@ -372,8 +372,8 @@ class MasterPayrollController extends Controller
     {
         $employee = Employee::with(['salaryGrade', 'customSalaryComponents'])->findOrFail($id);
 
-        $stdGapok = $employee->salaryGrade ? (float)$employee->salaryGrade->gaji_pokok : 3000000;
-        $isGapokCustom = ($employee->gaji_pokok_kustom !== null && abs((float)$employee->gaji_pokok_kustom - $stdGapok) >= 0.01);
+        $stdGapok = ($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000;
+        $isGapokCustom = ($employee->gaji_pokok_kustom !== null && (float)$employee->gaji_pokok_kustom > 0 && abs((float)$employee->gaji_pokok_kustom - $stdGapok) >= 0.01);
 
         $activeMasterComponents = SalaryComponent::where('status', 'aktif')->get();
         $customOverrides = $employee->customSalaryComponents->keyBy('salary_component_id');
@@ -450,7 +450,7 @@ class MasterPayrollController extends Controller
                 'dept' => $employee->dept ?: 'Umum',
                 'jabatan' => $employee->jabatan ?: 'Staff',
                 'tipe_staf' => $employee->tipe_staf ?: 'kantor',
-                'golongan' => $employee->salaryGrade ? $employee->salaryGrade->nama : 'Standard',
+                'golongan' => ($employee->salaryGrade && $employee->salaryGrade->nama) ? $employee->salaryGrade->nama : 'Staff',
                 'standard_gapok' => $stdGapok,
                 'gaji_pokok_kustom' => $employee->gaji_pokok_kustom !== null ? (float)$employee->gaji_pokok_kustom : null,
                 'is_gaji_pokok_custom' => $isGapokCustom,
@@ -499,7 +499,7 @@ class MasterPayrollController extends Controller
             }
         }
 
-        $stdGapok = $employee->salaryGrade ? (float)$employee->salaryGrade->gaji_pokok : 3000000;
+        $stdGapok = ($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000;
         $gapokKustom = ($validated['is_gaji_pokok_custom'] && isset($validated['gaji_pokok_kustom'])) 
             ? (float)$validated['gaji_pokok_kustom'] 
             : null;

@@ -226,7 +226,7 @@ class PayrollController extends Controller
                 }
             } else {
                 if ($absentComp && $absentComp->metode === 'harian') {
-                    $dailyRate = round(($employee->salaryGrade ? (float)$employee->salaryGrade->gaji_pokok : 3000000) / 22);
+                    $dailyRate = round((($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000) / 22);
                 } else {
                     $dailyRate = $absentDeduction;
                 }
@@ -552,7 +552,7 @@ class PayrollController extends Controller
                 ->where('periode', $periode)
                 ->first();
 
-            if ($existingPayroll && $existingPayroll->status === 'paid' && !$forceRecalculate) {
+            if ($existingPayroll && $existingPayroll->status === 'paid' && (float)$existingPayroll->gaji_pokok > 0 && !$forceRecalculate) {
                 $deptLabel = $deptLabels[$employee->dept] ?? $employee->dept;
                 $savedCatatan = $existingPayroll->catatan ? json_decode($existingPayroll->catatan, true) : null;
                 $bpjsDetails = $savedCatatan['bpjs_details'] ?? [];
@@ -566,7 +566,7 @@ class PayrollController extends Controller
                     'dept' => $employee->dept,
                     'deptLabel' => $deptLabel ?: 'Umum',
                     'jabatan' => $employee->jabatan ?: 'Staff',
-                    'golongan' => $employee->salaryGrade?->nama ?: 'Staff',
+                    'golongan' => ($employee->salaryGrade && $employee->salaryGrade->nama) ? $employee->salaryGrade->nama : 'Staff',
                     'gapok' => (float)$existingPayroll->gaji_pokok,
                     'tunjangan' => (float)$existingPayroll->tunjangan,
                     'lembur' => (float)$existingPayroll->lembur,
@@ -589,12 +589,11 @@ class PayrollController extends Controller
                 continue;
             }
 
-            // Gaji Pokok (Kustom vs Standar Golongan)
-            $gajiPokok = $employee->gaji_pokok_kustom !== null 
+            $gajiPokok = ($employee->gaji_pokok_kustom !== null && (float)$employee->gaji_pokok_kustom > 0)
                 ? (float)$employee->gaji_pokok_kustom 
-                : ($employee->salaryGrade ? (float)$employee->salaryGrade->gaji_pokok : 3000000);
+                : (($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000);
 
-            $tarifLembur = $employee->salaryGrade ? (float)$employee->salaryGrade->tarif_lembur : 50000;
+            $tarifLembur = ($employee->salaryGrade && (float)$employee->salaryGrade->tarif_lembur > 0) ? (float)$employee->salaryGrade->tarif_lembur : 50000;
 
             // Resolve komponen gaji untuk karyawan ini
             $customOverrides = $employee->customSalaryComponents->keyBy('salary_component_id');
@@ -842,7 +841,7 @@ class PayrollController extends Controller
                 'dept' => $employee->dept,
                 'deptLabel' => $deptLabel ?: 'Umum',
                 'jabatan' => $employee->jabatan ?: 'Staff',
-                'golongan' => $employee->salaryGrade?->nama ?: 'Staff',
+                'golongan' => ($employee->salaryGrade && $employee->salaryGrade->nama) ? $employee->salaryGrade->nama : 'Staff',
                 'gapok' => $gajiPokok,
                 'tunjangan' => (float)$allowancesFixed,
                 'lembur' => (float)$lemburPay,

@@ -101,6 +101,14 @@ class WebhookController extends Controller
                     $updateData['nik'] = trim((string)$nik);
                 }
 
+                $existingEmp = Employee::where('pin', $pin)->first();
+                if (!$existingEmp || empty($existingEmp->salary_grade_id)) {
+                    $staffGradeId = \App\Models\SalaryGrade::where('kode', 'GOL-03')->value('id') ?: \App\Models\SalaryGrade::value('id');
+                    if ($staffGradeId) {
+                        $updateData['salary_grade_id'] = $staffGradeId;
+                    }
+                }
+
                 Employee::updateOrCreate(
                     ['pin' => $pin],
                     $updateData

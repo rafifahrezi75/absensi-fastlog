@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Employee;
+use App\Models\SalaryGrade;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -23,6 +24,8 @@ class UserSeeder extends Seeder
             ]
         );
 
+        $staffGrade = SalaryGrade::where('kode', 'GOL-03')->first() ?? SalaryGrade::first();
+
         Employee::updateOrCreate(
             ['nama' => 'Budi Santoso'],
             [
@@ -30,6 +33,7 @@ class UserSeeder extends Seeder
                 'nik' => 'FL-2026-001',
                 'dept' => 'Operasional',
                 'jabatan' => 'Staff Logistik',
+                'salary_grade_id' => $staffGrade?->id,
                 'status' => 'active',
             ]
         );
@@ -45,7 +49,10 @@ class UserSeeder extends Seeder
 
         $aliefEmployee = Employee::where('nama', 'alief')->first();
         if ($aliefEmployee) {
-            $aliefEmployee->update(['user_id' => $aliefUser->id]);
+            $aliefEmployee->update([
+                'user_id' => $aliefUser->id,
+                'salary_grade_id' => $aliefEmployee->salary_grade_id ?: $staffGrade?->id,
+            ]);
         }
     }
 }

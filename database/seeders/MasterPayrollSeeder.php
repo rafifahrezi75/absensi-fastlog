@@ -128,5 +128,15 @@ class MasterPayrollSeeder extends Seeder
         foreach ($components as $component) {
             SalaryComponent::updateOrCreate(['nama' => $component['nama']], $component);
         }
+
+        $staffGrade = SalaryGrade::where('kode', 'GOL-03')->first() ?? SalaryGrade::first();
+        if ($staffGrade) {
+            \App\Models\Employee::whereNull('salary_grade_id')
+                ->orWhere('salary_grade_id', 0)
+                ->update(['salary_grade_id' => $staffGrade->id]);
+        }
+
+        \App\Models\Employee::where('gaji_pokok_kustom', '<=', 0)
+            ->update(['gaji_pokok_kustom' => null]);
     }
 }
