@@ -12,6 +12,7 @@ use App\Models\Permission;
 use App\Models\SalaryComponent;
 use App\Models\SystemSetting;
 use App\Services\LateCalculationService;
+use App\Services\OvertimeCalculationService;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -682,16 +683,23 @@ class PayrollController extends Controller
             }
 
             if ($employee->is_exempt) {
-                $overtimeMinutes = 0;
+                $overtimeDays = 0;
                 $lemburPay = 0;
                 $potonganTerlambat = 0;
+                $overtimeResult = [
+                    'is_exempt' => true,
+                    'total_days' => 0,
+                    'total_pay' => 0,
+                    'daily_days' => 0,
+                    'weekend_days' => 0,
+                    'holiday_days' => 0,
+                    'details' => [],
+                ];
             } else {
-                $overtimeMinutes = OvertimeLog::where('employee_id', $employee->id)
-                    ->whereBetween('waktu_tap', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
-                    ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
-                    ->sum('durasi_menit');
-
-                $lemburPay = round(($overtimeMinutes / 60) * $tarifLembur);
+                $overtimeService = app(OvertimeCalculationService::class);
+                $overtimeResult = $overtimeService->calculateMonthOvertime($employee, $startDate, $endDate);
+                $lemburPay = $overtimeResult['total_pay'];
+                $overtimeDays = $overtimeResult['total_days'];
             }
 
             if ($absentComp && $absentComp->metode === 'harian') {
@@ -746,6 +754,7 @@ class PayrollController extends Controller
                     'tier4_count' => $lateResult['tier4_count'] ?? 0,
                     'total_deduction' => $potonganTerlambat,
                 ],
+                'overtime_details' => $overtimeResult,
             ]);
 
             $savedPayroll = Payroll::updateOrCreate([
@@ -764,7 +773,7 @@ class PayrollController extends Controller
                 'hadir_hari' => $hadirCount,
                 'terlambat_menit' => $totalLateMinutes,
                 'alpa_hari' => $alpaCount,
-                'lembur_menit' => $overtimeMinutes,
+                'lembur_menit' => $overtimeDays,
                 'status' => $currentStatus,
                 'dibayar_pada' => $paidAt,
                 'catatan' => $catatanJson,

@@ -181,6 +181,11 @@ const Permissions = () => {
         const rawStatus = (item.status || 'MENUNGGU').toLowerCase();
         const normStatus = rawStatus === 'pending' ? 'menunggu' : (rawStatus === 'approved' ? 'disetujui' : (rawStatus === 'rejected' ? 'ditolak' : rawStatus));
 
+        const tipeLemburLabel = item.tipe_lembur === 'HARI_BESAR' 
+          ? 'Lembur Hari Besar' 
+          : (item.tipe_lembur === 'WEEKENDS' ? 'Lembur Standby Weekends' : 'Lembur Standby Daily');
+        const nominalStr = item.nominal ? `Rp ${Number(item.nominal).toLocaleString('id-ID')}` : (durationMin > 0 ? `${durationMin} Menit` : 'Flat');
+
         return {
           id: `db_lembur_${item.id}`,
           rawId: item.id,
@@ -190,8 +195,8 @@ const Permissions = () => {
           avatar: getInitials(item.employee?.nama),
           category: 'lembur',
           date: formatDate(tapTime),
-          duration: `${durationMin} Menit (dari 17:30)`,
-          description: item.catatan_admin || item.admin_note || `Tap lembur mesin (${formatTime(tapTime)})`,
+          duration: `${tipeLemburLabel} (${nominalStr})`,
+          description: item.catatan_admin || item.admin_note || `Tap lembur mesin ${item.kategori_staf ? `[${item.kategori_staf}]` : ''} jam ${formatTime(tapTime)}`,
           attachment: null,
           status: normStatus,
           sortTime: tapTime

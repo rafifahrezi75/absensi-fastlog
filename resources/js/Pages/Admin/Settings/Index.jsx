@@ -32,6 +32,16 @@ const Settings = () => {
         saturday_tolerance: '',
         late_fine_per_minute: '',
         absent_deduction: '',
+        overtime_kantor_daily_start: '',
+        overtime_kantor_daily_rate: '',
+        overtime_kantor_weekend_start: '',
+        overtime_kantor_weekend_rate: '',
+        overtime_kantor_holiday_rate: '',
+        overtime_lapangan_daily_start: '',
+        overtime_lapangan_daily_rate: '',
+        overtime_lapangan_weekend_start: '',
+        overtime_lapangan_weekend_rate: '',
+        overtime_lapangan_holiday_rate: '',
     });
 
     const [holidays, setHolidays] = useState([]);
@@ -178,11 +188,13 @@ const Settings = () => {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-2.5">
-                        {activeTab === 'schedule' && <Briefcase className="w-4 h-4 text-indigo-600" />}
+                        {activeTab === 'schedule' && <Clock className="w-4 h-4 text-indigo-600" />}
+                        {activeTab === 'overtime' && <Briefcase className="w-4 h-4 text-amber-600" />}
                         {activeTab === 'fines' && <DollarSign className="w-4 h-4 text-rose-600" />}
                         {activeTab === 'holidays' && <Calendar className="w-4 h-4 text-emerald-600" />}
                         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
                             {activeTab === 'schedule' && 'Jadwal Operasional'}
+                            {activeTab === 'overtime' && 'Aturan Lembur Flat / Ritase'}
                             {activeTab === 'fines' && 'Skema Finansial & Denda'}
                             {activeTab === 'holidays' && 'Kelola Hari Libur & Tanggal Merah'}
                         </h2>
@@ -196,6 +208,14 @@ const Settings = () => {
                         >
                             <Clock className="w-3.5 h-3.5" />
                             Jam Kerja
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('overtime')}
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-md transition ${activeTab === 'overtime' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <Briefcase className="w-3.5 h-3.5" />
+                            Aturan Lembur
                         </button>
                         <button
                             type="button"
@@ -312,6 +332,235 @@ const Settings = () => {
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 <span>{saving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'overtime' && (
+                    <div>
+                        <div className="p-6 space-y-6">
+                            <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <div className="flex items-center gap-2 font-bold text-sm text-amber-950">
+                                        <Briefcase className="w-4 h-4 text-amber-600" />
+                                        <span>Sistem Lembur Flat / Ritase per Hari</span>
+                                    </div>
+                                    <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
+                                        Kompensasi lembur diberikan dalam tarif flat/ritase per hari mengingat durasi waktu yang tidak menentu. Jam mulai lembur dihitung berdasarkan kategori staf (Kantor vs Lapangan) dan jenis hari (Daily, Weekends, Hari Besar/Libur Nasional).
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-5 space-y-4">
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                                            <h3 className="font-bold text-sm text-slate-800">A. Staf Kantor</h3>
+                                        </div>
+                                        <span className="text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-200">
+                                            CS, Dokumen, Finance, Accounting, Procurement
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-slate-700">Lembur Standby Daily</span>
+                                                <span className="text-[11px] text-slate-500 font-medium">Senin - Jumat</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mulai Jam</label>
+                                                    <input
+                                                        type="time"
+                                                        name="overtime_kantor_daily_start"
+                                                        value={settings.overtime_kantor_daily_start || '17:00'}
+                                                        onChange={handleChange}
+                                                        className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
+                                                    <div className="relative">
+                                                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
+                                                        <input
+                                                            type="number"
+                                                            name="overtime_kantor_daily_rate"
+                                                            value={settings.overtime_kantor_daily_rate || '50000'}
+                                                            onChange={handleChange}
+                                                            className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-slate-700">Lembur Standby Weekends</span>
+                                                <span className="text-[11px] text-slate-500 font-medium">Sabtu & Minggu</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mulai Jam</label>
+                                                    <input
+                                                        type="time"
+                                                        name="overtime_kantor_weekend_start"
+                                                        value={settings.overtime_kantor_weekend_start || '13:00'}
+                                                        onChange={handleChange}
+                                                        className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
+                                                    <div className="relative">
+                                                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
+                                                        <input
+                                                            type="number"
+                                                            name="overtime_kantor_weekend_rate"
+                                                            value={settings.overtime_kantor_weekend_rate || '75000'}
+                                                            onChange={handleChange}
+                                                            className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-slate-700">Lembur Hari Besar</span>
+                                                <span className="text-[11px] text-slate-500 font-medium">Hari Libur Nasional</span>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
+                                                <div className="relative">
+                                                    <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
+                                                    <input
+                                                        type="number"
+                                                        name="overtime_kantor_holiday_rate"
+                                                        value={settings.overtime_kantor_holiday_rate || '300000'}
+                                                        onChange={handleChange}
+                                                        className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-5 space-y-4">
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                                            <h3 className="font-bold text-sm text-slate-800">B. Staf Lapangan</h3>
+                                        </div>
+                                        <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">
+                                            Operasional / Lapangan
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-slate-700">Lembur Standby Daily</span>
+                                                <span className="text-[11px] text-slate-500 font-medium">Senin - Jumat</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mulai Jam</label>
+                                                    <input
+                                                        type="time"
+                                                        name="overtime_lapangan_daily_start"
+                                                        value={settings.overtime_lapangan_daily_start || '16:31'}
+                                                        onChange={handleChange}
+                                                        className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
+                                                    <div className="relative">
+                                                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
+                                                        <input
+                                                            type="number"
+                                                            name="overtime_lapangan_daily_rate"
+                                                            value={settings.overtime_lapangan_daily_rate || '50000'}
+                                                            onChange={handleChange}
+                                                            className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-slate-700">Lembur Standby Weekends</span>
+                                                <span className="text-[11px] text-slate-500 font-medium">Sabtu & Minggu</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Mulai Jam</label>
+                                                    <input
+                                                        type="time"
+                                                        name="overtime_lapangan_weekend_start"
+                                                        value={settings.overtime_lapangan_weekend_start || '12:01'}
+                                                        onChange={handleChange}
+                                                        className="w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
+                                                    <div className="relative">
+                                                        <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
+                                                        <input
+                                                            type="number"
+                                                            name="overtime_lapangan_weekend_rate"
+                                                            value={settings.overtime_lapangan_weekend_rate || '75000'}
+                                                            onChange={handleChange}
+                                                            className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-bold text-slate-700">Lembur Hari Besar</span>
+                                                <span className="text-[11px] text-slate-500 font-medium">Hari Libur Nasional</span>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tarif Flat per Hari</label>
+                                                <div className="relative">
+                                                    <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">Rp</span>
+                                                    <input
+                                                        type="number"
+                                                        name="overtime_lapangan_holiday_rate"
+                                                        value={settings.overtime_lapangan_holiday_rate || '300000'}
+                                                        onChange={handleChange}
+                                                        className="w-full pl-8 text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
+                            <span className="text-xs text-slate-500">Tarif dan jam acuan lembur tersimpan otomatis untuk kalkulasi payroll dan persetujuan lembur.</span>
+                            <button
+                                type="button"
+                                onClick={saveSettings}
+                                disabled={saving}
+                                className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-50"
+                            >
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan Lembur'}</span>
                             </button>
                         </div>
                     </div>
