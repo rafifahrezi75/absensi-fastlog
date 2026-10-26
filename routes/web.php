@@ -121,6 +121,12 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::put('/master-payroll/komponen/{id}', [MasterPayrollController::class, 'updateKomponen'])->name('api.admin.master-payroll.komponen.update');
     Route::delete('/master-payroll/komponen/{id}', [MasterPayrollController::class, 'destroyKomponen'])->name('api.admin.master-payroll.komponen.destroy');
 
+    Route::get('/master-payroll/employee-salaries', [MasterPayrollController::class, 'indexEmployeeSalaries'])->name('api.admin.master-payroll.employee-salaries.index');
+    Route::get('/master-payroll/employee-salaries/{id}', [MasterPayrollController::class, 'showEmployeeSalary'])->name('api.admin.master-payroll.employee-salaries.show');
+    Route::post('/master-payroll/employee-salaries/{id}', [MasterPayrollController::class, 'updateEmployeeSalary'])->name('api.admin.master-payroll.employee-salaries.update');
+    Route::post('/master-payroll/employee-salaries/{id}/reset', [MasterPayrollController::class, 'resetEmployeeSalary'])->name('api.admin.master-payroll.employee-salaries.reset');
+
+
     Route::get('/master-tindakan', [MasterTindakanController::class, 'index'])->name('api.admin.master-tindakan.index');
     Route::post('/master-tindakan', [MasterTindakanController::class, 'store'])->name('api.admin.master-tindakan.store');
     Route::put('/master-tindakan/{id}', [MasterTindakanController::class, 'update'])->name('api.admin.master-tindakan.update');

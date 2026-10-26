@@ -29,6 +29,8 @@ class Employee extends Model
         'dept',
         'jabatan',
         'salary_grade_id',
+        'tipe_staf',
+        'gaji_pokok_kustom',
         'late_category_id',
         'is_exempt',
         'status',
@@ -37,6 +39,7 @@ class Employee extends Model
     protected $casts = [
         'raw_data' => 'array',
         'is_exempt' => 'boolean',
+        'gaji_pokok_kustom' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -58,4 +61,19 @@ class Employee extends Model
     {
         return $this->hasMany(AttendanceLog::class);
     }
+
+    public function customSalaryComponents(): HasMany
+    {
+        return $this->hasMany(EmployeeSalaryComponent::class);
+    }
+
+    public function getEffectiveGajiPokokAttribute(): float
+    {
+        if ($this->gaji_pokok_kustom !== null) {
+            return (float)$this->gaji_pokok_kustom;
+        }
+
+        return $this->salaryGrade ? (float)$this->salaryGrade->gaji_pokok : 0.0;
+    }
 }
+
