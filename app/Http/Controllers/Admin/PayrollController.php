@@ -505,7 +505,7 @@ class PayrollController extends Controller
         return $pdf->download($filename);
     }
 
-    private function calculatePayrollForPeriod(string $periode, bool $forceRecalculate = false): array
+    public function calculatePayrollForPeriod(string $periode, bool $forceRecalculate = false): array
     {
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
@@ -524,26 +524,6 @@ class PayrollController extends Controller
         $lateFinePerMinute = ($lateFineComp && (float)$lateFineComp->nilai > 0) ? (float)$lateFineComp->nilai : (float)($settingsData['late_fine_per_minute'] ?? 1000);
         $absentDeduction = ($absentComp && (float)$absentComp->nilai > 0) ? (float)$absentComp->nilai : (float)($settingsData['absent_deduction'] ?? 50000);
 
-        $allowancesBreakdown = $activeComponents->where('tipe', 'tambahan')
-            ->where('metode', 'nominal')
-            ->map(function ($c) {
-                return [
-                    'nama' => $c->nama,
-                    'nominal' => (float)$c->nilai,
-                ];
-            })->values()->all();
-        $allowancesFixed = array_sum(array_column($allowancesBreakdown, 'nominal'));
-
-        $potonganNominalComps = $activeComponents->where('tipe', 'potongan')
-            ->where('metode', 'nominal')
-            ->map(function ($c) {
-                return [
-                    'nama' => $c->nama,
-                    'nominal' => (float)$c->nilai,
-                ];
-            })->values()->all();
-        $potonganNominalFixed = array_sum(array_column($potonganNominalComps, 'nominal'));
-
         $monthDate = Carbon::createFromFormat('Y-m', $periode)->startOfMonth();
         $startDate = $monthDate->copy()->startOfMonth();
         $endDate = $monthDate->copy()->endOfMonth();
@@ -554,7 +534,7 @@ class PayrollController extends Controller
             ->pluck('tanggal')
             ->toArray();
 
-        $employees = Employee::with('salaryGrade')
+        $employees = Employee::with(['salaryGrade', 'customSalaryComponents', 'lateCategory'])
             ->orderByRaw('nama IS NULL, nama ASC')
             ->get();
 
@@ -576,20 +556,7 @@ class PayrollController extends Controller
                 $deptLabel = $deptLabels[$employee->dept] ?? $employee->dept;
                 $savedCatatan = $existingPayroll->catatan ? json_decode($existingPayroll->catatan, true) : null;
                 $bpjsDetails = $savedCatatan['bpjs_details'] ?? [];
-                if (empty($bpjsDetails)) {
-                    foreach ($activeComponents->where('tipe', 'potongan')->where('metode', 'persen') as $comp) {
-                        $basisVal = (float)$existingPayroll->gaji_pokok;
-                        if ($comp->batas_dasar && $basisVal > (float)$comp->batas_dasar) {
-                            $basisVal = (float)$comp->batas_dasar;
-                        }
-                        $bpjsDetails[] = [
-                            'nama' => $comp->nama,
-                            'persen' => (float)$comp->nilai,
-                            'nominal' => round($basisVal * ((float)$comp->nilai / 100)),
-                        ];
-                    }
-                }
-                $tunjanganDetails = $savedCatatan['tunjangan_details'] ?? $allowancesBreakdown;
+                $tunjanganDetails = $savedCatatan['tunjangan_details'] ?? [];
 
                 $resultList[] = [
                     'id' => $employee->id,
@@ -622,8 +589,119 @@ class PayrollController extends Controller
                 continue;
             }
 
-            $gajiPokok = $employee->salaryGrade ? (float)$employee->salaryGrade->gaji_pokok : 3000000;
+            // Gaji Pokok (Kustom vs Standar Golongan)
+            $gajiPokok = $employee->gaji_pokok_kustom !== null 
+                ? (float)$employee->gaji_pokok_kustom 
+                : ($employee->salaryGrade ? (float)$employee->salaryGrade->gaji_pokok : 3000000);
+
             $tarifLembur = $employee->salaryGrade ? (float)$employee->salaryGrade->tarif_lembur : 50000;
+
+            // Resolve komponen gaji untuk karyawan ini
+            $customOverrides = $employee->customSalaryComponents->keyBy('salary_component_id');
+            $pureCustoms = $employee->customSalaryComponents->whereNull('salary_component_id')->where('is_active', true);
+
+            $allowancesBreakdown = [];
+            $allowancesFixed = 0;
+            $potonganBPJSBreakdown = [];
+            $potonganLainnya = 0;
+
+            foreach ($activeComponents as $comp) {
+                // Keterlambatan dan alpa adalah komponen global
+                $isLateOrAbsent = str_contains(strtolower($comp->nama), 'keterlambatan') || 
+                                  str_contains(strtolower($comp->nama), 'telat') ||
+                                  str_contains(strtolower($comp->nama), 'alpha') ||
+                                  str_contains(strtolower($comp->nama), 'alpa');
+                if ($isLateOrAbsent) {
+                    continue;
+                }
+
+                $ov = $customOverrides->get($comp->id);
+                if ($ov && !$ov->is_active) {
+                    // Tidak berlaku
+                    continue;
+                }
+
+                $metode = ($ov && $ov->metode) ? $ov->metode : $comp->metode;
+                $nilai = ($ov && $ov->nilai !== null) ? (float)$ov->nilai : (float)$comp->nilai;
+
+                if ($comp->tipe === 'tambahan') {
+                    if ($metode === 'persen') {
+                        $nom = round($gajiPokok * ($nilai / 100));
+                        $allowancesBreakdown[] = [
+                            'nama' => $comp->nama,
+                            'persen' => $nilai,
+                            'nominal' => $nom,
+                        ];
+                        $allowancesFixed += $nom;
+                    } else {
+                        $allowancesBreakdown[] = [
+                            'nama' => $comp->nama,
+                            'nominal' => $nilai,
+                        ];
+                        $allowancesFixed += $nilai;
+                    }
+                } elseif ($comp->tipe === 'potongan') {
+                    if ($metode === 'persen') {
+                        $basisVal = $gajiPokok;
+                        if ($comp->batas_dasar && $basisVal > (float)$comp->batas_dasar) {
+                            $basisVal = (float)$comp->batas_dasar;
+                        }
+                        $nom = round($basisVal * ($nilai / 100));
+                        $potonganBPJSBreakdown[] = [
+                            'nama' => $comp->nama,
+                            'persen' => $nilai,
+                            'nominal' => $nom,
+                        ];
+                        $potonganLainnya += $nom;
+                    } else {
+                        $potonganBPJSBreakdown[] = [
+                            'nama' => $comp->nama,
+                            'persen' => null,
+                            'nominal' => $nilai,
+                        ];
+                        $potonganLainnya += $nilai;
+                    }
+                }
+            }
+
+            // Komponen khusus karyawan
+            foreach ($pureCustoms as $cc) {
+                $nilai = (float)$cc->nilai;
+                if ($cc->tipe === 'tambahan') {
+                    if ($cc->metode === 'persen') {
+                        $nom = round($gajiPokok * ($nilai / 100));
+                        $allowancesBreakdown[] = [
+                            'nama' => $cc->nama,
+                            'persen' => $nilai,
+                            'nominal' => $nom,
+                        ];
+                        $allowancesFixed += $nom;
+                    } else {
+                        $allowancesBreakdown[] = [
+                            'nama' => $cc->nama,
+                            'nominal' => $nilai,
+                        ];
+                        $allowancesFixed += $nilai;
+                    }
+                } elseif ($cc->tipe === 'potongan') {
+                    if ($cc->metode === 'persen') {
+                        $nom = round($gajiPokok * ($nilai / 100));
+                        $potonganBPJSBreakdown[] = [
+                            'nama' => $cc->nama,
+                            'persen' => $nilai,
+                            'nominal' => $nom,
+                        ];
+                        $potonganLainnya += $nom;
+                    } else {
+                        $potonganBPJSBreakdown[] = [
+                            'nama' => $cc->nama,
+                            'persen' => null,
+                            'nominal' => $nilai,
+                        ];
+                        $potonganLainnya += $nilai;
+                    }
+                }
+            }
 
             $logs = AttendanceLog::where('employee_id', $employee->id)
                 ->whereDate('scan_at', '>=', $startDate)
@@ -708,31 +786,6 @@ class PayrollController extends Controller
                 $potonganAlpa = $alpaCount * $absentDeduction;
             }
 
-            $potonganBPJSBreakdown = [];
-            $potonganPersen = 0;
-            foreach ($activeComponents->where('tipe', 'potongan')->where('metode', 'persen') as $comp) {
-                $basisVal = $gajiPokok;
-                if ($comp->batas_dasar && $basisVal > (float)$comp->batas_dasar) {
-                    $basisVal = (float)$comp->batas_dasar;
-                }
-                $nilaiPot = round($basisVal * ((float)$comp->nilai / 100));
-                $potonganPersen += $nilaiPot;
-                $potonganBPJSBreakdown[] = [
-                    'nama' => $comp->nama,
-                    'persen' => (float)$comp->nilai,
-                    'nominal' => $nilaiPot,
-                ];
-            }
-
-            foreach ($potonganNominalComps as $pnc) {
-                $potonganBPJSBreakdown[] = [
-                    'nama' => $pnc['nama'],
-                    'persen' => null,
-                    'nominal' => $pnc['nominal'],
-                ];
-            }
-
-            $potonganLainnya = $potonganPersen + $potonganNominalFixed;
             $totalPotongan = $potonganTerlambat + $potonganAlpa + $potonganLainnya;
             $totalBonus = $allowancesFixed + $lemburPay;
             $thp = max(0, $gajiPokok + $totalBonus - $totalPotongan);

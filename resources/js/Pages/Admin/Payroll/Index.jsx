@@ -386,14 +386,14 @@ const Payroll = () => {
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => openModalDetails(item)}
-                                                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1"
+                                                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
                                                         title="Rincian Absensi & Dispensasi"
                                                     >
                                                         <CalendarCheck2 className="w-3.5 h-3.5 text-indigo-600" /> Rincian
                                                     </button>
                                                     <button
                                                         onClick={() => navigate(`/admin/payroll/${item.payroll_id || item.id}`)}
-                                                        className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1"
+                                                        className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
                                                         title="Buka Halaman Detail & Preview PDF"
                                                     >
                                                         <FileText className="w-3.5 h-3.5" /> Detail Slip
@@ -401,7 +401,7 @@ const Payroll = () => {
                                                     {item.status !== 'paid' && (
                                                         <button
                                                             onClick={() => handleTandaiDibayar(item)}
-                                                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition inline-flex items-center gap-1"
+                                                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
                                                         >
                                                             <CheckCircle className="w-3.5 h-3.5" /> Bayar
                                                         </button>
