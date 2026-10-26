@@ -1,13 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Layers, Plus, Search, Edit3, Trash2, CheckCircle, XCircle, CheckCircle2, X, Loader2, Clock, ShieldCheck, Users, RotateCcw, Filter, Sparkles } from 'lucide-react';
+import { Layers, Plus, Search, Edit3, Trash2, CheckCircle, XCircle, X, Loader2, Users, RotateCcw, Filter } from 'lucide-react';
 import ModalGolongan from './Components/ModalGolongan';
 import ModalKomponen from './Components/ModalKomponen';
-import ModalKategoriTerlambat from './Components/ModalKategoriTerlambat';
-import TabKategoriTerlambat from './Components/TabKategoriTerlambat';
 import PanelAturGaji from './Components/PanelAturGaji';
-import { Layers, Plus, Search, Edit3, Trash2, CheckCircle, XCircle, CheckCircle2, X, Loader2 } from 'lucide-react';
-import ModalGolongan from './Components/ModalGolongan';
-import ModalKomponen from './Components/ModalKomponen';
 import api from '../../../lib/api';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
@@ -18,22 +13,16 @@ const MasterPayroll = () => {
     const [golonganList, setGolonganList] = useState([]);
     const [komponenList, setKomponenList] = useState([]);
     const [employeeSalaries, setEmployeeSalaries] = useState([]);
-    const [lateCategories, setLateCategories] = useState([]);
-    const [exemptEmployees, setExemptEmployees] = useState([]);
-    const [allEmployees, setAllEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingEmployees, setLoadingEmployees] = useState(false);
     const [notif, setNotif] = useState(null);
 
-    // Filter states for Gaji Karyawan tab
     const [empStaffType, setEmpStaffType] = useState('');
     const [empGrade, setEmpGrade] = useState('');
     const [empOnlyCustomized, setEmpOnlyCustomized] = useState(false);
 
-    // Modals & Drawers
     const [modalGolongan, setModalGolongan] = useState({ isOpen: false, data: null });
     const [modalKomponen, setModalKomponen] = useState({ isOpen: false, data: null });
-    const [modalLateRule, setModalLateRule] = useState({ isOpen: false, data: null });
     const [panelAturGaji, setPanelAturGaji] = useState({ isOpen: false, employeeId: null });
 
     const showNotif = (message, type = 'success') => {
@@ -82,25 +71,6 @@ const MasterPayroll = () => {
         }
     }, []);
 
-    const fetchLateRules = useCallback(async () => {
-        try {
-            const res = await api.get('/api/admin/late-rules');
-            setLateCategories(res.data.categories || []);
-            setExemptEmployees(res.data.exempt_employees || []);
-        } catch (err) {
-            showNotif(err.response?.data?.message || 'Gagal memuat aturan keterlambatan.', 'error');
-        }
-    }, []);
-
-    const fetchAllEmployees = useCallback(async () => {
-        try {
-            const res = await api.get('/api/admin/employees');
-            setAllEmployees(res.data.employees || []);
-        } catch (err) {
-            console.error(err);
-        }
-    }, []);
-
     useEffect(() => {
         const loadAll = async () => {
             setLoading(true);
@@ -108,21 +78,11 @@ const MasterPayroll = () => {
                 fetchGolongan(),
                 fetchKomponen(),
                 fetchEmployeeSalaries(true),
-                fetchLateRules(),
-                fetchAllEmployees(),
             ]);
             setLoading(false);
         };
         loadAll();
-    }, [fetchGolongan, fetchKomponen, fetchEmployeeSalaries, fetchLateRules, fetchAllEmployees]);
-    useEffect(() => {
-        const loadAll = async () => {
-            setLoading(true);
-            await Promise.all([fetchGolongan(), fetchKomponen()]);
-            setLoading(false);
-        };
-        loadAll();
-    }, [fetchGolongan, fetchKomponen]);
+    }, [fetchGolongan, fetchKomponen, fetchEmployeeSalaries]);
 
     const formatIDR = (val) => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
@@ -256,55 +216,6 @@ const MasterPayroll = () => {
         }
     };
 
-    const openModalLateRule = (data = null) => setModalLateRule({ isOpen: true, data });
-    const closeModalLateRule = () => setModalLateRule({ isOpen: false, data: null });
-
-    const handleSaveLateCategory = async (formData) => {
-        try {
-            if (formData.id) {
-                await api.put(`/api/admin/late-rules/${formData.id}`, formData);
-                showSuccess('Kategori keterlambatan berhasil diperbarui.');
-            } else {
-                await api.post('/api/admin/late-rules', formData);
-                showSuccess('Kategori keterlambatan berhasil ditambahkan.');
-            }
-            closeModalLateRule();
-            fetchLateRules();
-        } catch (err) {
-            const msg = err.response?.data?.message || 'Gagal menyimpan kategori keterlambatan.';
-            showNotif(msg, 'error');
-        }
-    };
-
-    const handleDeleteLateCategory = async (id, nama) => {
-        const confirmed = await showConfirm({
-            title: 'Hapus Kategori Keterlambatan',
-            text: `Apakah Anda yakin ingin menghapus kategori "${nama}"?`,
-            confirmText: 'Ya, Hapus',
-            confirmColor: '#e11d48'
-        });
-        if (!confirmed) return;
-
-        try {
-            await api.delete(`/api/admin/late-rules/${id}`);
-            showSuccess('Kategori keterlambatan berhasil dihapus.');
-            fetchLateRules();
-        } catch (err) {
-            showNotif(err.response?.data?.message || 'Gagal menghapus kategori keterlambatan.', 'error');
-        }
-    };
-
-    const handleToggleExemption = async (employeeId) => {
-        try {
-            const res = await api.post(`/api/admin/late-rules/toggle-exemption/${employeeId}`);
-            showSuccess(res.data.message || 'Status pengkhususan diperbarui.');
-            fetchLateRules();
-            fetchAllEmployees();
-        } catch (err) {
-            showNotif(err.response?.data?.message || 'Gagal memperbarui status pengkhususan.', 'error');
-        }
-    };
-
     const handleResetEmployeeSalary = async (employee) => {
         const confirmed = await showConfirm({
             title: 'Kembalikan ke Standar?',
@@ -336,8 +247,8 @@ const MasterPayroll = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Master Payroll & Aturan</h1>
-                    <p className="text-sm text-slate-500">Kelola master golongan gaji, komponen penggajian, pengaturan per karyawan, dan sanksi keterlambatan.</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Master Payroll</h1>
+                    <p className="text-sm text-slate-500">Kelola gaji karyawan, master golongan gaji, dan komponen penggajian.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {activeTab !== 'gaji_karyawan' && (
@@ -345,28 +256,13 @@ const MasterPayroll = () => {
                             onClick={() => {
                                 if (activeTab === 'golongan') openModalGolongan();
                                 else if (activeTab === 'komponen') openModalKomponen();
-                                else openModalLateRule();
                             }}
                             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
                         >
                             <Plus className="w-4 h-4" /> 
-                            {activeTab === 'golongan' ? 'Tambah Golongan' : activeTab === 'komponen' ? 'Tambah Komponen' : 'Tambah Kategori Terlambat'}
+                            {activeTab === 'golongan' ? 'Tambah Golongan' : 'Tambah Komponen'}
                         </button>
                     )}
-                    <h1 className="text-2xl font-bold text-slate-900">Master Payroll</h1>
-                    <p className="text-sm text-slate-500">Kelola master golongan gaji dan komponen penggajian.</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => {
-                            if (activeTab === 'golongan') openModalGolongan();
-                            else openModalKomponen();
-                        }}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
-                    >
-                        <Plus className="w-4 h-4" /> 
-                        {activeTab === 'golongan' ? 'Tambah Golongan' : 'Tambah Komponen'}
-                    </button>
                 </div>
             </div>
 
@@ -380,7 +276,6 @@ const MasterPayroll = () => {
                 </div>
             )}
 
-            {/* TAB SELECTOR & GLOBAL SEARCH */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex flex-wrap bg-slate-100 p-1 rounded-lg w-full sm:w-fit gap-1">
                     <button
@@ -423,7 +318,6 @@ const MasterPayroll = () => {
                 </div>
             ) : (
                 <>
-                    {/* 4 SUMMARY STAT CARDS */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                             <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Golongan Aktif</span>
@@ -447,7 +341,6 @@ const MasterPayroll = () => {
                         </div>
                     </div>
 
-                    {/* TAB CONTENT 1: GOLONGAN GAJI */}
                     {activeTab === 'golongan' && (
                         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                             <div className="overflow-x-auto">
@@ -507,7 +400,6 @@ const MasterPayroll = () => {
                         </div>
                     )}
 
-                    {/* TAB CONTENT 2: KOMPONEN GAJI */}
                     {activeTab === 'komponen' && (
                         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                             <div className="flex flex-col">
@@ -553,10 +445,10 @@ const MasterPayroll = () => {
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             <div className="flex items-center justify-center gap-2">
-                                                                <button onClick={() => openModalKomponen(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Ubah">
+                                                                <button onClick={() => openModalKomponen(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" title="Ubah">
                                                                     <Edit3 className="w-4 h-4" />
                                                                 </button>
-                                                                <button onClick={() => handleDeleteKomponen(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
+                                                                <button onClick={() => handleDeleteKomponen(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus">
                                                                     <Trash2 className="w-4 h-4" />
                                                                 </button>
                                                             </div>
@@ -565,55 +457,10 @@ const MasterPayroll = () => {
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="6" className="py-12 text-center">
+                                                    <td colSpan="5" className="py-12 text-center">
                                                         <div className="flex flex-col items-center gap-2">
                                                             <Layers className="w-8 h-8 text-slate-300" />
                                                             <p className="text-sm font-medium text-slate-500">Tidak ada data komponen gaji</p>
-                            ) : (
-                                <table className="w-full text-sm text-left text-slate-600">
-                                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-                                        <tr>
-                                            <th className="px-6 py-3.5 font-semibold">Nama Komponen</th>
-                                            <th className="px-6 py-3.5 font-semibold">Tipe</th>
-                                            <th className="px-6 py-3.5 font-semibold">Nilai / Metode</th>
-                                            <th className="px-6 py-3.5 font-semibold">Sifat</th>
-                                            <th className="px-6 py-3.5 font-semibold">Status</th>
-                                            <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {filteredKomponen.length > 0 ? (
-                                            filteredKomponen.map((item) => (
-                                                <tr key={item.id} className="hover:bg-slate-50/60 transition">
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-semibold text-slate-800">{item.nama}</div>
-                                                        <div className="text-xs text-slate-400 mt-0.5">{item.keterangan || '-'}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-md ${item.tipe === 'tambahan' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
-                                                            {item.tipe === 'tambahan' ? 'Tambahan' : 'Potongan'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 font-medium text-slate-900">{formatMetodeTampilan(item)}</td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="text-xs text-slate-600 font-medium">
-                                                            {item.opsional ? 'Opsional / Variabel' : 'Wajib (Default)'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${item.status === 'aktif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                                                            {item.status === 'aktif' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                                                            {item.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <button onClick={() => openModalKomponen(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" title="Ubah">
-                                                                <Edit3 className="w-4 h-4" />
-                                                            </button>
-                                                            <button onClick={() => handleDeleteKomponen(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -625,10 +472,8 @@ const MasterPayroll = () => {
                         </div>
                     )}
 
-                    {/* TAB CONTENT 3: GAJI KARYAWAN */}
                     {activeTab === 'gaji_karyawan' && (
                         <div className="space-y-4">
-                            {/* Filter Bar specifically for Gaji Karyawan */}
                             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
                                 <div className="flex flex-wrap items-center gap-2.5">
                                     <div className="flex items-center gap-1.5 text-slate-500 font-semibold mr-1">
@@ -673,7 +518,6 @@ const MasterPayroll = () => {
                                 </div>
                             </div>
 
-                            {/* Table Gaji Karyawan */}
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm text-left text-slate-600">
@@ -783,11 +627,8 @@ const MasterPayroll = () => {
                 </>
             )}
 
-            {/* MODALS & DRAWERS */}
             <ModalGolongan isOpen={modalGolongan.isOpen} onClose={closeModalGolongan} onSave={handleSaveGolongan} data={modalGolongan.data} />
             <ModalKomponen isOpen={modalKomponen.isOpen} onClose={closeModalKomponen} onSave={handleSaveKomponen} data={modalKomponen.data} />
-            <ModalKategoriTerlambat isOpen={modalLateRule.isOpen} onClose={closeModalLateRule} onSave={handleSaveLateCategory} data={modalLateRule.data} />
-
             <PanelAturGaji
                 isOpen={panelAturGaji.isOpen}
                 employeeId={panelAturGaji.employeeId}
