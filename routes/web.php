@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\DeviceController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EmployeeHrActionController;
+use App\Http\Controllers\Admin\LateRuleController;
 use App\Http\Controllers\Admin\MasterPayrollController;
 use App\Http\Controllers\Admin\MasterTindakanController;
 use App\Http\Controllers\Admin\PayrollController;
@@ -124,6 +125,12 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::post('/master-tindakan', [MasterTindakanController::class, 'store'])->name('api.admin.master-tindakan.store');
     Route::put('/master-tindakan/{id}', [MasterTindakanController::class, 'update'])->name('api.admin.master-tindakan.update');
     Route::delete('/master-tindakan/{id}', [MasterTindakanController::class, 'destroy'])->name('api.admin.master-tindakan.destroy');
+
+    Route::get('/late-rules', [LateRuleController::class, 'index'])->name('api.admin.late-rules.index');
+    Route::post('/late-rules', [LateRuleController::class, 'storeCategory'])->name('api.admin.late-rules.store');
+    Route::put('/late-rules/{id}', [LateRuleController::class, 'updateCategory'])->name('api.admin.late-rules.update');
+    Route::delete('/late-rules/{id}', [LateRuleController::class, 'destroyCategory'])->name('api.admin.late-rules.destroy');
+    Route::post('/late-rules/toggle-exemption/{employeeId}', [LateRuleController::class, 'toggleExemption'])->name('api.admin.late-rules.toggle-exemption');
 
     Route::get('/employee-hr-actions', [EmployeeHrActionController::class, 'index'])->name('api.admin.employee-hr-actions.index');
     Route::post('/employee-hr-actions', [EmployeeHrActionController::class, 'store'])->name('api.admin.employee-hr-actions.store');

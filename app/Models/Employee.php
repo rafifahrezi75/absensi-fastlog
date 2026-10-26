@@ -29,11 +29,14 @@ class Employee extends Model
         'dept',
         'jabatan',
         'salary_grade_id',
+        'late_category_id',
+        'is_exempt',
         'status',
     ];
 
     protected $casts = [
         'raw_data' => 'array',
+        'is_exempt' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -44,6 +47,11 @@ class Employee extends Model
     public function salaryGrade(): BelongsTo
     {
         return $this->belongsTo(SalaryGrade::class, 'salary_grade_id');
+    }
+
+    public function lateCategory(): BelongsTo
+    {
+        return $this->belongsTo(LateRuleCategory::class, 'late_category_id');
     }
 
     public function attendanceLogs(): HasMany

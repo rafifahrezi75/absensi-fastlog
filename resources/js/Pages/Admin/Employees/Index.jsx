@@ -14,6 +14,7 @@ const Employees = () => {
     const [syncFilter, setSyncFilter] = useState('');
 
     const [salaryGrades, setSalaryGrades] = useState([]);
+    const [lateCategories, setLateCategories] = useState([]);
 
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
@@ -24,6 +25,15 @@ const Employees = () => {
         try {
             const res = await api.get('/api/admin/master-payroll/golongan');
             setSalaryGrades(res.data.golongan || []);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
+    const loadLateCategories = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/late-rules');
+            setLateCategories(res.data.categories || []);
         } catch (err) {
             console.error(err);
         }
@@ -41,6 +51,9 @@ const Employees = () => {
                 jabatan: emp.jabatan || '',
                 salary_grade_id: emp.salary_grade_id || '',
                 salaryGradeName: emp.salary_grade ? emp.salary_grade.nama : (emp.salaryGrade ? emp.salaryGrade.nama : '-'),
+                late_category_id: emp.late_category_id || '',
+                lateCategoryName: emp.late_category?.nama || (emp.lateCategory?.nama || null),
+                is_exempt: Boolean(emp.is_exempt),
                 syncStatus: emp.pin ? 'synced' : 'unsynced'
             }));
             setEmployees(list);
@@ -54,7 +67,8 @@ const Employees = () => {
     useEffect(() => {
         loadEmployees();
         loadSalaryGrades();
-    }, [loadEmployees, loadSalaryGrades]);
+        loadLateCategories();
+    }, [loadEmployees, loadSalaryGrades, loadLateCategories]);
 
     useEffect(() => {
         if (notif) {
@@ -148,6 +162,8 @@ const Employees = () => {
                 dept: formData.dept || null,
                 jabatan: formData.jabatan || null,
                 salary_grade_id: formData.salary_grade_id || null,
+                late_category_id: formData.late_category_id || null,
+                is_exempt: Boolean(formData.is_exempt),
             };
 
             if (formData.id) {
@@ -366,6 +382,11 @@ const Employees = () => {
                                                             )
                                                         )}
                                                     </div>
+                                                    {emp.is_exempt && (
+                                                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-amber-200 mt-0.5">
+                                                            Bebas Denda & Lembur
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
@@ -382,7 +403,12 @@ const Employees = () => {
                                             {emp.dept || <span className="text-slate-300 italic">-</span>}
                                         </td>
                                         <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
-                                            {emp.jabatan || <span className="text-slate-300 italic">Belum diisi</span>}
+                                            <div>{emp.jabatan || <span className="text-slate-300 italic">Belum diisi</span>}</div>
+                                            {emp.lateCategoryName && (
+                                                <span className="text-[10px] text-indigo-600 font-medium block mt-0.5">
+                                                    Kat: {emp.lateCategoryName}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-xs font-semibold text-indigo-700 whitespace-nowrap">
                                             <span className="bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded">
@@ -452,6 +478,7 @@ const Employees = () => {
                 onSave={handleSaveEmployee}
                 data={modalConfig.data}
                 salaryGrades={salaryGrades}
+                lateCategories={lateCategories}
             />
         </div>
     );

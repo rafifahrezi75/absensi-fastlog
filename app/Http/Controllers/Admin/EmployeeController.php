@@ -12,7 +12,7 @@ class EmployeeController extends Controller
 {
     public function index(): JsonResponse
     {
-        $employees = Employee::with('salaryGrade')->orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
+        $employees = Employee::with(['salaryGrade', 'lateCategory'])->orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
 
         return response()->json([
             'employees' => $employees,
@@ -28,6 +28,8 @@ class EmployeeController extends Controller
             'dept' => 'nullable|string|max:100',
             'jabatan' => 'nullable|string|max:100',
             'salary_grade_id' => 'nullable|exists:salary_grades,id',
+            'late_category_id' => 'nullable|exists:late_rule_categories,id',
+            'is_exempt' => 'nullable|boolean',
             'status' => ['nullable', Rule::in(['active', 'inactive', 'aktif', 'nonaktif'])],
         ]);
 
@@ -40,7 +42,7 @@ class EmployeeController extends Controller
         }
 
         $employee = Employee::create($validated);
-        $employee->load('salaryGrade');
+        $employee->load(['salaryGrade', 'lateCategory']);
 
         return response()->json([
             'message' => 'Data karyawan berhasil ditambahkan.',
@@ -59,6 +61,8 @@ class EmployeeController extends Controller
             'dept' => 'nullable|string|max:100',
             'jabatan' => 'nullable|string|max:100',
             'salary_grade_id' => 'nullable|exists:salary_grades,id',
+            'late_category_id' => 'nullable|exists:late_rule_categories,id',
+            'is_exempt' => 'nullable|boolean',
             'status' => ['nullable', Rule::in(['active', 'inactive', 'aktif', 'nonaktif'])],
         ]);
 
@@ -71,7 +75,7 @@ class EmployeeController extends Controller
         }
 
         $employee->update($validated);
-        $employee->load('salaryGrade');
+        $employee->load(['salaryGrade', 'lateCategory']);
 
         return response()->json([
             'message' => 'Data karyawan berhasil diperbarui.',

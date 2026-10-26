@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Layers, Plus, Search, Edit3, Trash2, CheckCircle, XCircle, CheckCircle2, X, Loader2 } from 'lucide-react';
+import { Layers, Plus, Search, Edit3, Trash2, CheckCircle, XCircle, CheckCircle2, X, Loader2, Clock, ShieldCheck } from 'lucide-react';
 import ModalGolongan from './Components/ModalGolongan';
 import ModalKomponen from './Components/ModalKomponen';
+import ModalKategoriTerlambat from './Components/ModalKategoriTerlambat';
+import TabKategoriTerlambat from './Components/TabKategoriTerlambat';
 import api from '../../../lib/api';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
@@ -11,11 +13,15 @@ const MasterPayroll = () => {
 
     const [golonganList, setGolonganList] = useState([]);
     const [komponenList, setKomponenList] = useState([]);
+    const [lateCategories, setLateCategories] = useState([]);
+    const [exemptEmployees, setExemptEmployees] = useState([]);
+    const [allEmployees, setAllEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [notif, setNotif] = useState(null);
 
     const [modalGolongan, setModalGolongan] = useState({ isOpen: false, data: null });
     const [modalKomponen, setModalKomponen] = useState({ isOpen: false, data: null });
+    const [modalLateRule, setModalLateRule] = useState({ isOpen: false, data: null });
 
     const showNotif = (message, type = 'success') => {
         if (type === 'success') {
@@ -50,14 +56,33 @@ const MasterPayroll = () => {
         }
     }, []);
 
+    const fetchLateRules = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/late-rules');
+            setLateCategories(res.data.categories || []);
+            setExemptEmployees(res.data.exempt_employees || []);
+        } catch (err) {
+            showNotif(err.response?.data?.message || 'Gagal memuat aturan keterlambatan.', 'error');
+        }
+    }, []);
+
+    const fetchAllEmployees = useCallback(async () => {
+        try {
+            const res = await api.get('/api/admin/employees');
+            setAllEmployees(res.data.employees || []);
+        } catch (err) {
+            console.error(err);
+        }
+    }, []);
+
     useEffect(() => {
         const loadAll = async () => {
             setLoading(true);
-            await Promise.all([fetchGolongan(), fetchKomponen()]);
+            await Promise.all([fetchGolongan(), fetchKomponen(), fetchLateRules(), fetchAllEmployees()]);
             setLoading(false);
         };
         loadAll();
-    }, [fetchGolongan, fetchKomponen]);
+    }, [fetchGolongan, fetchKomponen, fetchLateRules, fetchAllEmployees]);
 
     const formatIDR = (val) => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
@@ -170,20 +195,73 @@ const MasterPayroll = () => {
         }
     };
 
+    const openModalLateRule = (data = null) => setModalLateRule({ isOpen: true, data });
+    const closeModalLateRule = () => setModalLateRule({ isOpen: false, data: null });
+
+    const handleSaveLateCategory = async (formData) => {
+        try {
+            if (formData.id) {
+                await api.put(`/api/admin/late-rules/${formData.id}`, formData);
+                showSuccess('Kategori keterlambatan berhasil diperbarui.');
+            } else {
+                await api.post('/api/admin/late-rules', formData);
+                showSuccess('Kategori keterlambatan berhasil ditambahkan.');
+            }
+            closeModalLateRule();
+            fetchLateRules();
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Gagal menyimpan kategori keterlambatan.';
+            showNotif(msg, 'error');
+        }
+    };
+
+    const handleDeleteLateCategory = async (id, nama) => {
+        const confirmed = await showConfirm({
+            title: 'Hapus Kategori Keterlambatan',
+            text: `Apakah Anda yakin ingin menghapus kategori "${nama}"?`,
+            confirmText: 'Ya, Hapus',
+            confirmColor: '#e11d48'
+        });
+        if (!confirmed) return;
+
+        try {
+            await api.delete(`/api/admin/late-rules/${id}`);
+            showSuccess('Kategori keterlambatan berhasil dihapus.');
+            fetchLateRules();
+        } catch (err) {
+            showNotif(err.response?.data?.message || 'Gagal menghapus kategori keterlambatan.', 'error');
+        }
+    };
+
+    const handleToggleExemption = async (employeeId) => {
+        try {
+            const res = await api.post(`/api/admin/late-rules/toggle-exemption/${employeeId}`);
+            showSuccess(res.data.message || 'Status pengkhususan diperbarui.');
+            fetchLateRules();
+            fetchAllEmployees();
+        } catch (err) {
+            showNotif(err.response?.data?.message || 'Gagal memperbarui status pengkhususan.', 'error');
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Master Payroll</h1>
-                    <p className="text-sm text-slate-500">Kelola master data golongan gaji dan komponen penggajian (tunjangan & potongan).</p>
+                    <h1 className="text-2xl font-bold text-slate-900">Master Payroll & Aturan</h1>
+                    <p className="text-sm text-slate-500">Kelola master golongan gaji, komponen penggajian, dan kategori sanksi keterlambatan.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => activeTab === 'golongan' ? openModalGolongan() : openModalKomponen()}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                        onClick={() => {
+                            if (activeTab === 'golongan') openModalGolongan();
+                            else if (activeTab === 'komponen') openModalKomponen();
+                            else openModalLateRule();
+                        }}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
                     >
                         <Plus className="w-4 h-4" /> 
-                        {activeTab === 'golongan' ? 'Tambah Golongan' : 'Tambah Komponen'}
+                        {activeTab === 'golongan' ? 'Tambah Golongan' : activeTab === 'komponen' ? 'Tambah Komponen' : 'Tambah Kategori Terlambat'}
                     </button>
                 </div>
             </div>
@@ -198,212 +276,201 @@ const MasterPayroll = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Golongan Aktif</span>
-                    <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalGolongan}</div>
-                    <span className="text-[11px] text-slate-500 font-medium">Kategori Level Karyawan</span>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Tambahan Aktif</span>
-                    <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalTambahan}</div>
-                    <span className="text-[11px] text-emerald-600 font-medium">Tunjangan & Insentif Global</span>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-rose-600 uppercase tracking-wider">Potongan Aktif</span>
-                    <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalPotongan}</div>
-                    <span className="text-[11px] text-rose-600 font-medium">Potongan Global Lainnya</span>
-                </div>
-            </div>
-
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex bg-slate-100 p-1 rounded-lg w-full sm:w-fit">
                     <button
                         onClick={() => setActiveTab('golongan')}
-                        className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition ${activeTab === 'golongan' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition cursor-pointer ${activeTab === 'golongan' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Golongan Gaji
                     </button>
                     <button
                         onClick={() => setActiveTab('komponen')}
-                        className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition ${activeTab === 'komponen' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition cursor-pointer ${activeTab === 'komponen' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Komponen Gaji
                     </button>
+                    <button
+                        onClick={() => setActiveTab('kategori_terlambat')}
+                        className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition cursor-pointer flex items-center justify-center gap-1.5 ${activeTab === 'kategori_terlambat' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Clock className="w-4 h-4" />
+                        <span>Kategori Terlambat</span>
+                    </button>
                 </div>
-                <div className="relative w-full sm:w-64">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Cari data..."
-                        className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-slate-50"
-                    />
-                </div>
+
+                {activeTab !== 'kategori_terlambat' && (
+                    <div className="relative w-full sm:w-64">
+                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Cari data..."
+                            className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-slate-50"
+                        />
+                    </div>
+                )}
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                    {activeTab === 'golongan' ? (
-                        <table className="w-full text-sm text-left text-slate-600">
-                            <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-                                <tr>
-                                    <th className="px-6 py-3.5 font-semibold">Kode</th>
-                                    <th className="px-6 py-3.5 font-semibold">Nama Golongan</th>
-                                    <th className="px-6 py-3.5 font-semibold">Gaji Pokok</th>
-                                    <th className="px-6 py-3.5 font-semibold">Tarif Lembur / Jam</th>
-                                    <th className="px-6 py-3.5 font-semibold">Status</th>
-                                    <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="6" className="py-12 text-center">
-                                            <div className="flex flex-col items-center gap-2">
-                                                <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                                                <p className="text-sm font-medium text-slate-500">Memuat data golongan gaji...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : filteredGolongan.length > 0 ? (
-                                    filteredGolongan.map((item) => (
-                                        <tr key={item.id} className="hover:bg-slate-50 transition">
-                                            <td className="px-6 py-4 text-xs font-mono font-medium text-slate-700 whitespace-nowrap">
-                                                {item.kode}
-                                            </td>
-                                            <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
-                                                {item.nama}
-                                            </td>
-                                            <td className="px-6 py-4 text-xs font-mono text-slate-700 whitespace-nowrap">
-                                                {formatIDR(item.gajiPokok)}
-                                            </td>
-                                            <td className="px-6 py-4 text-xs font-mono text-indigo-600 whitespace-nowrap">
-                                                {formatIDR(item.tarifLembur)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {item.status === 'aktif' ? (
-                                                    <span className="bg-emerald-100 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-md inline-flex items-center gap-1 border border-emerald-200">
-                                                        <CheckCircle className="w-3 h-3" /> Aktif
-                                                    </span>
-                                                ) : (
-                                                    <span className="bg-slate-100 text-slate-600 text-xs font-medium px-2.5 py-1 rounded-md inline-flex items-center gap-1 border border-slate-200">
-                                                        <XCircle className="w-3 h-3" /> Nonaktif
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-center whitespace-nowrap">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button onClick={() => openModalGolongan(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Edit">
-                                                        <Edit3 className="w-4 h-4" />
-                                                    </button>
-                                                    <button onClick={() => handleDeleteGolongan(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="6" className="py-12 text-center">
-                                            <div className="flex flex-col items-center gap-2">
-                                                <Layers className="w-8 h-8 text-slate-300" />
-                                                <p className="text-sm font-medium text-slate-500">Tidak ada data golongan gaji</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <div className="flex flex-col">
-                            <div className="px-6 py-3 bg-indigo-50/50 border-b border-indigo-100 text-xs text-indigo-700 flex items-center gap-2">
-                                <span className="font-semibold">Informasi:</span> Komponen aktif berlaku untuk semua golongan. Tarif lembur diatur di tab Golongan Gaji.
-                            </div>
-                            <table className="w-full text-sm text-left text-slate-600">
-                                <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
-                                    <tr>
-                                        <th className="px-6 py-3.5 font-semibold">Nama Komponen</th>
-                                        <th className="px-6 py-3.5 font-semibold">Tipe</th>
-                                        <th className="px-6 py-3.5 font-semibold">Metode & Sifat</th>
-                                        <th className="px-6 py-3.5 font-semibold">Nilai Format</th>
-                                        <th className="px-6 py-3.5 font-semibold">Status</th>
-                                        <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {loading ? (
+            {loading ? (
+                <div className="flex flex-col items-center justify-center min-h-[300px]">
+                    <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
+                    <p className="text-slate-500 text-sm font-medium">Memuat Data Master...</p>
+                </div>
+            ) : activeTab === 'kategori_terlambat' ? (
+                <TabKategoriTerlambat
+                    categories={lateCategories}
+                    exemptEmployees={exemptEmployees}
+                    allEmployees={allEmployees}
+                    onOpenModal={openModalLateRule}
+                    onDeleteCategory={handleDeleteLateCategory}
+                    onToggleExemption={handleToggleExemption}
+                />
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Golongan Aktif</span>
+                            <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalGolongan}</div>
+                            <span className="text-[11px] text-slate-500 font-medium">Kategori Level Karyawan</span>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Tambahan Aktif</span>
+                            <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalTambahan}</div>
+                            <span className="text-[11px] text-emerald-600 font-medium">Tunjangan & Insentif Global</span>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <span className="text-xs font-semibold text-rose-600 uppercase tracking-wider">Potongan Aktif</span>
+                            <div className="text-2xl font-bold text-slate-900 mt-1">{stats.totalPotongan}</div>
+                            <span className="text-[11px] text-rose-600 font-medium">Potongan Global Lainnya</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            {activeTab === 'golongan' ? (
+                                <table className="w-full text-sm text-left text-slate-600">
+                                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                                         <tr>
-                                            <td colSpan="6" className="py-12 text-center">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                                                    <p className="text-sm font-medium text-slate-500">Memuat data komponen gaji...</p>
-                                                </div>
-                                            </td>
+                                            <th className="px-6 py-3.5 font-semibold">Kode</th>
+                                            <th className="px-6 py-3.5 font-semibold">Nama Golongan</th>
+                                            <th className="px-6 py-3.5 font-semibold">Gaji Pokok</th>
+                                            <th className="px-6 py-3.5 font-semibold">Tarif Lembur / Jam</th>
+                                            <th className="px-6 py-3.5 font-semibold">Status</th>
+                                            <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
                                         </tr>
-                                    ) : filteredKomponen.length > 0 ? (
-                                        filteredKomponen.map((item) => (
-                                            <tr key={item.id} className="hover:bg-slate-50 transition">
-                                                <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
-                                                    {item.nama}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`text-xs font-medium px-2 py-1 rounded border ${item.tipe === 'tambahan' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                                                        {item.tipe === 'tambahan' ? '+ Tambahan' : '- Potongan'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`text-xs font-medium px-2 py-1 rounded border ${['nominal', 'persen'].includes(item.metode) ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                                        {['nominal', 'persen'].includes(item.metode) ? 'Tetap' : 'Variabel'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-xs font-mono whitespace-nowrap text-slate-700">
-                                                    {formatMetodeTampilan(item)}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {item.status === 'aktif' ? (
-                                                        <span className="bg-emerald-100 text-emerald-700 text-xs font-medium px-2.5 py-1 rounded-md inline-flex items-center gap-1 border border-emerald-200">
-                                                            <CheckCircle className="w-3 h-3" /> Aktif
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {filteredGolongan.length > 0 ? (
+                                            filteredGolongan.map((item) => (
+                                                <tr key={item.id} className="hover:bg-slate-50 transition">
+                                                    <td className="px-6 py-4 font-mono font-bold text-xs text-slate-900">{item.kode}</td>
+                                                    <td className="px-6 py-4 font-semibold text-slate-900">{item.nama}</td>
+                                                    <td className="px-6 py-4 font-mono font-medium text-slate-700">{formatIDR(item.gajiPokok || item.gaji_pokok)}</td>
+                                                    <td className="px-6 py-4 font-mono font-medium text-slate-700">{formatIDR(item.tarifLembur || item.tarif_lembur)}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                                                            item.status === 'aktif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'
+                                                        }`}>
+                                                            {item.status === 'aktif' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <XCircle className="w-3.5 h-3.5 text-slate-400" />}
+                                                            {item.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                                                         </span>
-                                                    ) : (
-                                                        <span className="bg-slate-100 text-slate-600 text-xs font-medium px-2.5 py-1 rounded-md inline-flex items-center gap-1 border border-slate-200">
-                                                            <XCircle className="w-3 h-3" /> Nonaktif
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-center whitespace-nowrap">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button onClick={() => openModalKomponen(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Edit">
-                                                            <Edit3 className="w-4 h-4" />
-                                                        </button>
-                                                        <button onClick={() => handleDeleteKomponen(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button onClick={() => openModalGolongan(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Ubah">
+                                                                <Edit3 className="w-4 h-4" />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteGolongan(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="6" className="py-12 text-center">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <Layers className="w-8 h-8 text-slate-300" />
+                                                        <p className="text-sm font-medium text-slate-500">Tidak ada data golongan gaji</p>
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ))
-                                    ) : (
+                                        )}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <table className="w-full text-sm text-left text-slate-600">
+                                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                                         <tr>
-                                            <td colSpan="6" className="py-12 text-center">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <Layers className="w-8 h-8 text-slate-300" />
-                                                    <p className="text-sm font-medium text-slate-500">Tidak ada data komponen gaji</p>
-                                                </div>
-                                            </td>
+                                            <th className="px-6 py-3.5 font-semibold">Nama Komponen</th>
+                                            <th className="px-6 py-3.5 font-semibold">Tipe</th>
+                                            <th className="px-6 py-3.5 font-semibold">Nilai / Formula</th>
+                                            <th className="px-6 py-3.5 font-semibold">Status</th>
+                                            <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {filteredKomponen.length > 0 ? (
+                                            filteredKomponen.map((item) => (
+                                                <tr key={item.id} className="hover:bg-slate-50 transition">
+                                                    <td className="px-6 py-4">
+                                                        <div className="font-semibold text-slate-900">{item.nama}</div>
+                                                        {item.deskripsi && <div className="text-xs text-slate-400 mt-0.5">{item.deskripsi}</div>}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${
+                                                            item.tipe === 'tambahan' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                                        }`}>
+                                                            {item.tipe === 'tambahan' ? 'Tambahan' : 'Potongan'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-medium text-slate-700">
+                                                        {formatMetodeTampilan(item)}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                                                            item.status === 'aktif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'
+                                                        }`}>
+                                                            {item.status === 'aktif' ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <XCircle className="w-3.5 h-3.5 text-slate-400" />}
+                                                            {item.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button onClick={() => openModalKomponen(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Ubah">
+                                                                <Edit3 className="w-4 h-4" />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteKomponen(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="6" className="py-12 text-center">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <Layers className="w-8 h-8 text-slate-300" />
+                                                        <p className="text-sm font-medium text-slate-500">Tidak ada data komponen gaji</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            )}
                         </div>
-                    )}
-                </div>
-            </div>
+                    </div>
+                </>
+            )}
 
             <ModalGolongan isOpen={modalGolongan.isOpen} onClose={closeModalGolongan} onSave={handleSaveGolongan} data={modalGolongan.data} />
             <ModalKomponen isOpen={modalKomponen.isOpen} onClose={closeModalKomponen} onSave={handleSaveKomponen} data={modalKomponen.data} />
+            <ModalKategoriTerlambat isOpen={modalLateRule.isOpen} onClose={closeModalLateRule} onSave={handleSaveLateCategory} data={modalLateRule.data} />
         </div>
     );
 };
