@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX, Loader2, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
 import api from '../../../lib/api';
@@ -370,20 +370,8 @@ const Attendance = () => {
                                                 {row.in && row.in !== '-' ? row.in : <span className="text-slate-300 font-normal italic">Belum tap masuk</span>}
                                             </div>
                                             {(row.status === 'late' || row.status === 'terlambat') ? (
-                                                <div className="mt-1 space-y-0.5 font-sans">
-                                                    <div className="text-[11px] font-semibold text-amber-700">
-                                                        Telat {row.minutesLate} Mnt
-                                                        {row.late_info?.tier_order ? ` • Kategori ${row.late_info.tier_order}` : ''}
-                                                    </div>
-                                                    {row.late_info?.is_exempt ? (
-                                                        <div className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded w-fit border border-amber-200">
-                                                            Bebas Sanksi
-                                                        </div>
-                                                    ) : row.late_info?.quota_text ? (
-                                                        <div className="text-[10px] text-indigo-700 font-medium">
-                                                            {row.late_info.quota_text}
-                                                        </div>
-                                                    ) : null}
+                                                <div className="mt-0.5 text-[11px] font-medium text-amber-700 font-sans">
+                                                    +{row.minutesLate} mnt
                                                 </div>
                                             ) : (
                                                 <div className="text-[10px] mt-0.5 flex items-center gap-1 text-emerald-600 font-sans">
@@ -403,25 +391,42 @@ const Attendance = () => {
                                                 </span>
                                             )}
                                             {(row.status === 'late' || row.status === 'terlambat') && (
-                                                <div className="flex flex-col gap-1 items-start">
-                                                    <span className="bg-amber-100 text-amber-900 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-200 inline-flex items-center gap-1">
-                                                        Telat {row.minutesLate} Mnt
-                                                        {row.late_info?.tier_order ? ` (Kategori ${row.late_info.tier_order})` : ''}
-                                                    </span>
-                                                    {row.late_info?.tier_order && (
-                                                        <span className="text-[10px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                                                            {row.late_info.category_name} • Kategori {row.late_info.tier_order} ({row.late_info.tier_name})
-                                                        </span>
+                                                <div className="relative group inline-block">
+                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer hover:bg-amber-200/80 transition">
+                                                        <span>Telat {row.minutesLate} Mnt</span>
+                                                        {row.late_info?.tier_order && (
+                                                            <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
+                                                                Kat {row.late_info.tier_order}
+                                                            </span>
+                                                        )}
+                                                        {row.late_info && <Info className="w-3.5 h-3.5 text-amber-700" />}
+                                                    </div>
+
+                                                    {row.late_info && (
+                                                        <div className="absolute left-0 top-full mt-1.5 hidden group-hover:flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl z-50 text-xs pointer-events-none whitespace-normal transition animate-in fade-in zoom-in-95">
+                                                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-700 mb-2">
+                                                                <span className="font-bold text-amber-400 text-[11px] uppercase tracking-wider">Detail Keterlambatan</span>
+                                                                <span className="text-[10px] text-slate-400 font-sans">{row.late_info.category_name}</span>
+                                                            </div>
+                                                            <div className="space-y-1.5 text-[11px] font-sans">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-slate-400">Durasi:</span>
+                                                                    <span className="font-medium text-slate-200">Kategori {row.late_info.tier_order} ({row.late_info.tier_name})</span>
+                                                                </div>
+                                                                <div className="pt-1.5 border-t border-slate-800">
+                                                                    <span className="text-slate-400 block mb-0.5">Status Toleransi / Denda:</span>
+                                                                    {row.late_info.is_exempt ? (
+                                                                        <span className="text-emerald-400 font-semibold">Bebas Sanksi (Staf Khusus)</span>
+                                                                    ) : (
+                                                                        <span className="text-amber-300 font-medium leading-relaxed block">
+                                                                            {row.late_info.quota_text}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="absolute left-6 -top-1 w-2 h-2 bg-slate-900/95 rotate-45"></div>
+                                                        </div>
                                                     )}
-                                                    {row.late_info?.is_exempt ? (
-                                                        <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                                                            Bebas Sanksi (Khusus)
-                                                        </span>
-                                                    ) : row.late_info?.quota_text ? (
-                                                        <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                                                            {row.late_info.quota_text}
-                                                        </span>
-                                                    ) : null}
                                                 </div>
                                             )}
                                             {row.status === 'izin' && (
