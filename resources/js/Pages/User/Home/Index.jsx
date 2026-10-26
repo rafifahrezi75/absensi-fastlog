@@ -19,6 +19,7 @@ const Home = () => {
     const [stats, setStats] = useState({ izin: 0, sakit: 0, dinas: 0, lembur: 0, absensi: 0, menunggu: 0, disetujui: 0, total: 0 });
     const [recentList, setRecentList] = useState([]);
     const [employeeData, setEmployeeData] = useState(null);
+    const [overtimeRules, setOvertimeRules] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const [now, setNow] = useState(new Date());
@@ -34,6 +35,7 @@ const Home = () => {
             setStats(res.data.stats || { izin: 0, sakit: 0, dinas: 0, menunggu: 0, disetujui: 0, total: 0 });
             setRecentList(res.data.recent || []);
             setEmployeeData(res.data.employee || null);
+            setOvertimeRules(res.data.overtime_rules || null);
         } catch (err) {
             setNotif({
                 type: 'error',
@@ -303,6 +305,8 @@ const Home = () => {
                 onClose={() => setIsModalOpen(false)}
                 type={modalType}
                 onSuccess={handleSuccessSubmission}
+                employee={employeeData}
+                overtimeRules={overtimeRules}
             />
         </div>
     );

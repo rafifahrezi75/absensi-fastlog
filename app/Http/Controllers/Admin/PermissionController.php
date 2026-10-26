@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\AttendanceAnomaly;
+use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\OvertimeLog;
 use App\Models\Permission;
 use App\Notifications\PermissionStatusUpdatedNotification;
+use App\Services\OvertimeCalculationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -219,24 +221,7 @@ class PermissionController extends Controller
         $permission->catatan_admin = $adminNote;
         $permission->save();
 
-        if (in_array($permission->category, ['izin', 'sakit', 'cuti'])) {
-            $startDate = Carbon::parse($permission->tanggal_mulai);
-            $endDate = $permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : $startDate;
-
-            $curr = $startDate->copy();
-            while ($curr->lte($endDate)) {
-                $attendance = Attendance::firstOrNew([
-                    'employee_id' => $permission->employee_id,
-                    'tanggal' => $curr->toDateString(),
-                ]);
-                if (!$attendance->exists) {
-                    $attendance->user_id = $permission->user_id;
-                    $attendance->status = 'hadir';
-                    $attendance->save();
-                }
-                $curr->addDay();
-            }
-        }
+        $this->syncApprovedPermission($permission, $adminNote);
 
         $targetUser = $permission->user ?? ($permission->employee ? $permission->employee->user : null);
         if ($targetUser) {
@@ -263,6 +248,15 @@ class PermissionController extends Controller
         $permission->status = 'ditolak';
         $permission->catatan_admin = $adminNote;
         $permission->save();
+
+        if (strtolower($permission->category ?? '') === 'lembur') {
+            $startDate = Carbon::parse($permission->tanggal_mulai)->toDateString();
+            $endDate = ($permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : Carbon::parse($permission->tanggal_mulai))->toDateString();
+            OvertimeLog::where('employee_id', $permission->employee_id)
+                ->whereDate('waktu_tap', '>=', $startDate)
+                ->whereDate('waktu_tap', '<=', $endDate)
+                ->update(['status' => 'DITOLAK']);
+        }
 
         $targetUser = $permission->user ?? ($permission->employee ? $permission->employee->user : null);
         if ($targetUser) {
@@ -395,23 +389,15 @@ class PermissionController extends Controller
             };
             $permission->status = $newStatus;
 
-            if ($newStatus === 'disetujui' && in_array($permission->category, ['izin', 'sakit', 'cuti'])) {
-                $startDate = Carbon::parse($permission->tanggal_mulai);
-                $endDate = $permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : $startDate;
-
-                $curr = $startDate->copy();
-                while ($curr->lte($endDate)) {
-                    $attendance = Attendance::firstOrNew([
-                        'employee_id' => $permission->employee_id,
-                        'tanggal' => $curr->toDateString(),
-                    ]);
-                    if (!$attendance->exists) {
-                        $attendance->user_id = $permission->user_id;
-                        $attendance->status = 'hadir';
-                        $attendance->save();
-                    }
-                    $curr->addDay();
-                }
+            if ($newStatus === 'disetujui') {
+                $this->syncApprovedPermission($permission, $validated['catatan_admin'] ?? null);
+            } elseif ($newStatus === 'ditolak' && strtolower($permission->category ?? '') === 'lembur') {
+                $startDate = Carbon::parse($permission->tanggal_mulai)->toDateString();
+                $endDate = ($permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : Carbon::parse($permission->tanggal_mulai))->toDateString();
+                OvertimeLog::where('employee_id', $permission->employee_id)
+                    ->whereDate('waktu_tap', '>=', $startDate)
+                    ->whereDate('waktu_tap', '<=', $endDate)
+                    ->update(['status' => 'DITOLAK']);
             }
         }
 
@@ -489,5 +475,172 @@ class PermissionController extends Controller
             'success' => true,
             'message' => 'Data pengajuan berhasil dihapus.',
         ]);
+    }
+
+    protected function syncApprovedPermission(Permission $permission, ?string $adminNote = null): void
+    {
+        $category = strtolower($permission->category ?? '');
+
+        if (in_array($category, ['izin', 'sakit', 'cuti', 'dispensasi_payroll'])) {
+            $startDate = Carbon::parse($permission->tanggal_mulai);
+            $endDate = $permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : $startDate;
+
+            $curr = $startDate->copy();
+            while ($curr->lte($endDate)) {
+                $attendance = Attendance::firstOrNew([
+                    'employee_id' => $permission->employee_id,
+                    'tanggal' => $curr->toDateString(),
+                ]);
+                if (!$attendance->exists) {
+                    $attendance->user_id = $permission->user_id;
+                    $attendance->status = 'hadir';
+                    $attendance->save();
+                }
+                $curr->addDay();
+            }
+            return;
+        }
+
+        if ($category === 'absensi') {
+            $dateStr = Carbon::parse($permission->tanggal_mulai)->toDateString();
+            $desc = strtolower($permission->keterangan ?? '');
+            $isTapIn = str_contains($desc, '[tap in]');
+            $isTapOut = str_contains($desc, '[tap out]');
+
+            if ($permission->jam_mulai) {
+                $tapDateTime = Carbon::parse($dateStr . ' ' . $permission->jam_mulai);
+            } elseif ($permission->created_at) {
+                $tapDateTime = Carbon::parse($permission->created_at);
+            } else {
+                $tapDateTime = Carbon::now();
+            }
+
+            $attendance = Attendance::firstOrNew([
+                'employee_id' => $permission->employee_id,
+                'tanggal' => $dateStr,
+            ]);
+
+            if (!$attendance->exists) {
+                $attendance->user_id = $permission->user_id;
+                $attendance->status = 'hadir';
+            }
+
+            if (!$isTapIn && !$isTapOut) {
+                if (!$attendance->jam_masuk) {
+                    $isTapIn = true;
+                } else {
+                    $isTapOut = true;
+                }
+            }
+
+            if ($isTapIn) {
+                $attendance->jam_masuk = $tapDateTime;
+            } else {
+                $attendance->jam_pulang = $tapDateTime;
+            }
+            $attendance->save();
+
+            $cloudId = $permission->employee?->cloud_id ?: 'MOBILE_GPS';
+            $pin = $permission->employee?->pin ?: ($permission->employee?->nik ?: (string)$permission->employee_id);
+
+            AttendanceLog::create([
+                'employee_id' => $permission->employee_id,
+                'device_id' => null,
+                'cloud_id' => $cloudId,
+                'pin' => $pin,
+                'scan_at' => $tapDateTime,
+                'verify_method' => 'mobile_gps',
+                'status_scan' => $isTapIn ? '0' : '1',
+                'raw_data' => [
+                    'source' => 'pengajuan_absensi',
+                    'permission_id' => $permission->id,
+                    'keterangan' => $permission->keterangan,
+                    'lampiran' => $permission->lampiran,
+                ],
+            ]);
+
+            if ($isTapOut && !$permission->employee?->is_exempt) {
+                $overtimeService = app(OvertimeCalculationService::class);
+                $eval = $overtimeService->evaluateOvertimeDay($permission->employee, $tapDateTime);
+                if ($eval['qualifies']) {
+                    OvertimeLog::updateOrCreate(
+                        [
+                            'employee_id' => $permission->employee_id,
+                            'attendance_id' => $attendance->id,
+                        ],
+                        [
+                            'user_id' => $permission->user_id,
+                            'waktu_tap' => $tapDateTime,
+                            'durasi_menit' => 0,
+                            'tipe_lembur' => $eval['tipe_lembur'],
+                            'kategori_staf' => $eval['staff_category'],
+                            'nominal' => $eval['nominal'],
+                            'status' => 'DISETUJUI',
+                            'catatan_admin' => $adminNote ?: 'Sinkronisasi persetujuan Absensi Luar (Tap Out)',
+                        ]
+                    );
+                }
+            }
+            return;
+        }
+
+        if ($category === 'lembur') {
+            $startDate = Carbon::parse($permission->tanggal_mulai);
+            $endDate = $permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : $startDate;
+            $overtimeService = app(OvertimeCalculationService::class);
+            $staffCategory = $overtimeService->determineStaffCategory($permission->employee);
+            $settings = $overtimeService->getSettings();
+            $catLower = strtolower($staffCategory);
+
+            $curr = $startDate->copy();
+            while ($curr->lte($endDate)) {
+                $dateStr = $curr->toDateString();
+                $eval = $overtimeService->evaluateOvertimeDay($permission->employee, $curr);
+                $tipeLembur = $permission->tipe_lembur ?: $eval['tipe_lembur'];
+
+                $nominal = match ($tipeLembur) {
+                    'HARI_BESAR' => (float)($settings['overtime_' . $catLower . '_holiday_rate'] ?? 300000),
+                    'WEEKENDS' => (float)($settings['overtime_' . $catLower . '_weekend_rate'] ?? 75000),
+                    default => (float)($settings['overtime_' . $catLower . '_daily_rate'] ?? 50000),
+                };
+
+                $defaultTime = match ($tipeLembur) {
+                    'HARI_BESAR' => '08:00:00',
+                    'WEEKENDS' => ($staffCategory === 'LAPANGAN' ? '12:01:00' : '13:00:00'),
+                    default => ($staffCategory === 'LAPANGAN' ? '16:31:00' : '17:00:00'),
+                };
+
+                $tapTime = Carbon::parse($dateStr . ' ' . ($permission->jam_mulai ?: $defaultTime));
+
+                $attendance = Attendance::firstOrNew([
+                    'employee_id' => $permission->employee_id,
+                    'tanggal' => $dateStr,
+                ]);
+                if (!$attendance->exists) {
+                    $attendance->user_id = $permission->user_id;
+                    $attendance->status = 'hadir';
+                    $attendance->save();
+                }
+
+                OvertimeLog::updateOrCreate(
+                    [
+                        'employee_id' => $permission->employee_id,
+                        'waktu_tap' => $tapTime,
+                    ],
+                    [
+                        'user_id' => $permission->user_id,
+                        'attendance_id' => $attendance->id,
+                        'durasi_menit' => 0,
+                        'tipe_lembur' => $tipeLembur,
+                        'kategori_staf' => $staffCategory,
+                        'nominal' => $nominal,
+                        'status' => 'DISETUJUI',
+                        'catatan_admin' => $adminNote ?: 'Disetujui dari Pengajuan Lembur',
+                    ]
+                );
+
+                $curr->addDay();
+            }
+        }
     }
 }

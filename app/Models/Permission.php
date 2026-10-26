@@ -14,6 +14,7 @@ class Permission extends Model
         'employee_id',
         'user_id',
         'category',
+        'tipe_lembur',
         'tanggal_mulai',
         'tanggal_selesai',
         'jam_mulai',

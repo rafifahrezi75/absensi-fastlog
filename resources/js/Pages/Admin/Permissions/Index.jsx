@@ -131,7 +131,15 @@ const Permissions = () => {
         }
         const stTime = item.jam_mulai || item.start_time;
         const enTime = item.jam_selesai || item.end_time;
-        const durationStr = item.durasi || item.duration || (stTime && enTime ? `${stTime} - ${enTime}` : '1 Hari');
+        let durationStr = item.durasi || item.duration || (stTime && enTime ? `${stTime} - ${enTime}` : '1 Hari');
+        if ((item.category || '').toLowerCase() === 'lembur' && item.tipe_lembur) {
+          const tipeLabel = item.tipe_lembur === 'HARI_BESAR' 
+            ? 'Lembur Hari Besar' 
+            : (item.tipe_lembur === 'WEEKENDS' ? 'Standby Weekends' : 'Standby Daily');
+          durationStr = `${tipeLabel} (${durationStr})`;
+        } else if ((item.category || '').toLowerCase() === 'absensi') {
+          durationStr = stTime ? `Absensi Luar (${stTime})` : 'Absensi Luar (GPS)';
+        }
         const rawStatus = (item.status || 'menunggu').toLowerCase();
         const normStatus = rawStatus === 'pending' ? 'menunggu' : (rawStatus === 'approved' ? 'disetujui' : (rawStatus === 'rejected' ? 'ditolak' : rawStatus));
 
