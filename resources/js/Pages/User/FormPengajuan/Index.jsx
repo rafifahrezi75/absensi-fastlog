@@ -18,6 +18,31 @@ const FormPengajuan = () => {
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState(null);
 
+    const [employeeData, setEmployeeData] = useState(null);
+    const [overtimeRules, setOvertimeRules] = useState(null);
+    const [tipeLembur, setTipeLembur] = useState('DAILY');
+    const [jamMulaiLembur, setJamMulaiLembur] = useState('');
+
+    const isLapangan = employeeData?.kategori_staf === 'LAPANGAN' || overtimeRules?.staff_category === 'LAPANGAN';
+    const dailyRate = overtimeRules?.daily_rate ?? 50000;
+    const weekendRate = overtimeRules?.weekend_rate ?? 75000;
+    const holidayRate = overtimeRules?.holiday_rate ?? 300000;
+    const dailyStart = overtimeRules?.daily_start ?? (isLapangan ? '16:31' : '17:00');
+    const weekendStart = overtimeRules?.weekend_start ?? (isLapangan ? '12:01' : '13:00');
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const res = await api.get('/api/user/dashboard');
+                if (res.data) {
+                    setEmployeeData(res.data.employee || null);
+                    setOvertimeRules(res.data.overtime_rules || null);
+                }
+            } catch (err) {}
+        };
+        fetchUserData();
+    }, []);
+
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
         const type = queryParams.get('type');
@@ -26,6 +51,18 @@ const FormPengajuan = () => {
             setFormType(formatted);
         }
     }, [location]);
+
+    useEffect(() => {
+        if (formType === 'Lembur' && startDate) {
+            const d = new Date(startDate + 'T00:00:00');
+            const day = d.getDay();
+            if (day === 0 || day === 6) {
+                setTipeLembur('WEEKENDS');
+            } else {
+                setTipeLembur('DAILY');
+            }
+        }
+    }, [startDate, formType]);
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
@@ -51,6 +88,13 @@ const FormPengajuan = () => {
             formData.append('tanggal_mulai', startDate);
             formData.append('tanggal_selesai', endDate);
             formData.append('keterangan', keterangan);
+
+            if (formType === 'Lembur') {
+                formData.append('tipe_lembur', tipeLembur);
+                if (jamMulaiLembur) {
+                    formData.append('jam_mulai', jamMulaiLembur);
+                }
+            }
 
             if (selectedFile) {
                 formData.append('lampiran', selectedFile);
@@ -117,6 +161,110 @@ const FormPengajuan = () => {
                             <option value="Lembur">Lembur Pekerjaan</option>
                         </select>
                     </div>
+
+                    {formType === 'Lembur' && (
+                        <div className="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 space-y-3.5">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <label className="block text-xs font-bold text-purple-900">Pilih Kategori Lembur</label>
+                                    <p className="text-[11px] text-purple-700">
+                                        Sistem Lembur Flat/Ritase ({isLapangan ? 'Staf Lapangan / Operasional' : 'Staf Kantor'})
+                                    </p>
+                                </div>
+                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-200/70 text-purple-800">
+                                    {isLapangan ? 'Operasional' : 'Kantor'}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setTipeLembur('DAILY')}
+                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
+                                        tipeLembur === 'DAILY'
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                                            : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
+                                    }`}
+                                >
+                                    <div>
+                                        <p className="text-xs font-bold">Standby Daily</p>
+                                        <p className={`text-[10px] mt-0.5 ${tipeLembur === 'DAILY' ? 'text-purple-100' : 'text-slate-500'}`}>
+                                            Senin – Jumat
+                                        </p>
+                                        <p className={`text-[10px] mt-0.5 font-medium ${tipeLembur === 'DAILY' ? 'text-purple-200' : 'text-purple-600'}`}>
+                                            Mulai {dailyStart} WIB
+                                        </p>
+                                    </div>
+                                    <p className={`text-xs font-bold mt-2.5 ${tipeLembur === 'DAILY' ? 'text-amber-300' : 'text-purple-700'}`}>
+                                        Rp {Number(dailyRate).toLocaleString('id-ID')}
+                                    </p>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setTipeLembur('WEEKENDS')}
+                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
+                                        tipeLembur === 'WEEKENDS'
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                                            : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
+                                    }`}
+                                >
+                                    <div>
+                                        <p className="text-xs font-bold">Standby Weekends</p>
+                                        <p className={`text-[10px] mt-0.5 ${tipeLembur === 'WEEKENDS' ? 'text-purple-100' : 'text-slate-500'}`}>
+                                            Sabtu / Minggu
+                                        </p>
+                                        <p className={`text-[10px] mt-0.5 font-medium ${tipeLembur === 'WEEKENDS' ? 'text-purple-200' : 'text-purple-600'}`}>
+                                            Mulai {weekendStart} WIB
+                                        </p>
+                                    </div>
+                                    <p className={`text-xs font-bold mt-2.5 ${tipeLembur === 'WEEKENDS' ? 'text-amber-300' : 'text-purple-700'}`}>
+                                        Rp {Number(weekendRate).toLocaleString('id-ID')}
+                                    </p>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setTipeLembur('HARI_BESAR')}
+                                    className={`p-3 rounded-xl text-left border-2 transition cursor-pointer flex flex-col justify-between ${
+                                        tipeLembur === 'HARI_BESAR'
+                                            ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                                            : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
+                                    }`}
+                                >
+                                    <div>
+                                        <p className="text-xs font-bold">Hari Besar</p>
+                                        <p className={`text-[10px] mt-0.5 ${tipeLembur === 'HARI_BESAR' ? 'text-purple-100' : 'text-slate-500'}`}>
+                                            Libur Nasional
+                                        </p>
+                                        <p className={`text-[10px] mt-0.5 font-medium ${tipeLembur === 'HARI_BESAR' ? 'text-purple-200' : 'text-purple-600'}`}>
+                                            Tarif Flat Harian
+                                        </p>
+                                    </div>
+                                    <p className={`text-xs font-bold mt-2.5 ${tipeLembur === 'HARI_BESAR' ? 'text-amber-300' : 'text-purple-700'}`}>
+                                        Rp {Number(holidayRate).toLocaleString('id-ID')}
+                                    </p>
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                <div>
+                                    <label className="block text-[11px] font-semibold text-purple-900 mb-1">Jam Mulai Lembur</label>
+                                    <input
+                                        type="time"
+                                        value={jamMulaiLembur}
+                                        onChange={(e) => setJamMulaiLembur(e.target.value)}
+                                        placeholder={tipeLembur === 'DAILY' ? dailyStart : tipeLembur === 'WEEKENDS' ? weekendStart : '08:00'}
+                                        className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                </div>
+                                <div className="flex flex-col justify-end text-[11px] text-purple-700 pb-1">
+                                    <span>Minimal jam: <strong className="text-purple-900">{tipeLembur === 'DAILY' ? dailyStart : tipeLembur === 'WEEKENDS' ? weekendStart : 'Fleksibel'}</strong> WIB</span>
+                                    <span>Tarif Flat: <strong className="text-purple-900 font-bold">Rp {Number(tipeLembur === 'DAILY' ? dailyRate : tipeLembur === 'WEEKENDS' ? weekendRate : holidayRate).toLocaleString('id-ID')} / hari</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>

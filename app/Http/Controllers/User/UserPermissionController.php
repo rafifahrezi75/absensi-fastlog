@@ -78,6 +78,7 @@ class UserPermissionController extends Controller
                         ? Carbon::parse($p->tanggal_mulai)->translatedFormat('l, d M Y')
                         : Carbon::parse($p->tanggal_mulai)->translatedFormat('d M Y') . ' - ' . Carbon::parse($p->tanggal_selesai)->translatedFormat('d M Y'),
                     'durasi' => $p->durasi . ' Hari',
+                    'tipe_lembur' => $p->tipe_lembur,
                     'keterangan' => $p->keterangan,
                     'status' => ucfirst($p->status),
                     'raw_status' => $p->status,
@@ -87,6 +88,11 @@ class UserPermissionController extends Controller
                 ];
             });
 
+        $overtimeService = app(\App\Services\OvertimeCalculationService::class);
+        $staffCategory = $overtimeService->determineStaffCategory($employee);
+        $overtimeSettings = $overtimeService->getSettings();
+        $catLower = strtolower($staffCategory);
+
         return response()->json([
             'employee' => [
                 'id' => $employee->id,
@@ -94,6 +100,17 @@ class UserPermissionController extends Controller
                 'nik' => $employee->nik,
                 'dept' => $employee->dept,
                 'jabatan' => $employee->jabatan,
+                'kategori_staf' => $staffCategory,
+                'is_exempt' => (bool)$employee->is_exempt,
+            ],
+            'overtime_rules' => [
+                'staff_category' => $staffCategory,
+                'category_name' => $staffCategory === 'LAPANGAN' ? 'Staf Lapangan' : 'Staf Kantor',
+                'daily_start' => $overtimeSettings['overtime_' . $catLower . '_daily_start'] ?? ($staffCategory === 'LAPANGAN' ? '16:31' : '17:00'),
+                'daily_rate' => $overtimeSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000,
+                'weekend_start' => $overtimeSettings['overtime_' . $catLower . '_weekend_start'] ?? ($staffCategory === 'LAPANGAN' ? '12:01' : '13:00'),
+                'weekend_rate' => $overtimeSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000,
+                'holiday_rate' => $overtimeSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000,
             ],
             'stats' => [
                 'izin' => $countIzin,
@@ -152,6 +169,7 @@ class UserPermissionController extends Controller
                     ? Carbon::parse($p->tanggal_mulai)->translatedFormat('l, d M Y')
                     : Carbon::parse($p->tanggal_mulai)->translatedFormat('d M Y') . ' - ' . Carbon::parse($p->tanggal_selesai)->translatedFormat('d M Y'),
                 'durasi' => $p->durasi . ' Hari',
+                'tipe_lembur' => $p->tipe_lembur,
                 'keterangan' => $p->keterangan,
                 'status' => ucfirst($p->status),
                 'raw_status' => $p->status,
@@ -171,8 +189,11 @@ class UserPermissionController extends Controller
     {
         $validated = $request->validate([
             'category' => 'required|string|in:izin,sakit,dinas,cuti,lembur,absensi,Izin,Sakit,Dinas,Cuti,Lembur,Absensi',
+            'tipe_lembur' => 'nullable|string|in:DAILY,WEEKENDS,HARI_BESAR',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+            'jam_mulai' => 'nullable|string',
+            'jam_selesai' => 'nullable|string',
             'keterangan' => 'required|string|max:1000',
             'lampiran' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
             'photo_base64' => 'nullable|string',
@@ -220,6 +241,18 @@ class UserPermissionController extends Controller
 
         $category = strtolower($validated['category']);
 
+        $tipeLembur = null;
+        if ($category === 'lembur') {
+            if (!empty($validated['tipe_lembur'])) {
+                $tipeLembur = strtoupper($validated['tipe_lembur']);
+            } else {
+                $eval = app(\App\Services\OvertimeCalculationService::class)->evaluateOvertimeDay($employee, $validated['tanggal_mulai']);
+                $tipeLembur = $eval['tipe_lembur'];
+            }
+        }
+
+        $jamMulai = $validated['jam_mulai'] ?? ($category === 'absensi' ? Carbon::now()->format('H:i:s') : null);
+
         if ($category !== 'absensi') {
             $existing = Permission::where(function ($q) use ($employee, $user) {
                     $q->where('employee_id', $employee->id)
@@ -256,8 +289,11 @@ class UserPermissionController extends Controller
             'employee_id' => $employee->id,
             'user_id' => $user->id,
             'category' => $category,
+            'tipe_lembur' => $tipeLembur,
             'tanggal_mulai' => $validated['tanggal_mulai'],
             'tanggal_selesai' => $validated['tanggal_selesai'],
+            'jam_mulai' => $jamMulai,
+            'jam_selesai' => $validated['jam_selesai'] ?? null,
             'durasi' => $duration,
             'keterangan' => $keterangan,
             'lampiran' => $attachmentName,
