@@ -11,6 +11,7 @@ use App\Models\Payroll;
 use App\Models\Permission;
 use App\Models\SalaryComponent;
 use App\Models\SystemSetting;
+use App\Services\LateCalculationService;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -138,6 +139,17 @@ class PayrollController extends Controller
             ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
             ->toArray();
 
+        $lateService = app(LateCalculationService::class);
+        $lateResult = $lateService->calculateMonth(
+            $employee,
+            $groupedByDate,
+            $dispensations,
+            $normalIn,
+            $normalTol,
+            $satIn,
+            $satTol
+        );
+
         $details = [];
         $curr = $checkLimit->copy();
 
@@ -172,23 +184,31 @@ class PayrollController extends Controller
                 ];
             } elseif (isset($groupedByDate[$dateStr])) {
                 $firstScan = $groupedByDate[$dateStr][0];
-                $schedInStr = $isSaturday ? $satIn : $normalIn;
-                $tolMin = $isSaturday ? $satTol : $normalTol;
-                $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInStr . ':00');
-                $lateThreshold = $scheduleIn->copy()->addMinutes($tolMin);
+                $dayLate = $lateResult['daily_details'][$dateStr] ?? null;
 
-                if ($firstScan->gt($lateThreshold)) {
-                    $minutesLate = (int) round($scheduleIn->diffInMinutes($firstScan));
-                    $deduction = $isDispensed ? 0 : ($minutesLate * $lateFinePerMinute);
+                if ($employee->is_exempt) {
                     $details[] = [
                         'date' => $dateStr,
                         'day_name' => $curr->translatedFormat('l'),
-                        'type' => 'Terlambat',
+                        'type' => 'Bebas Denda (Khusus)',
                         'first_scan' => $firstScan->format('H:i:s'),
-                        'minutes' => $minutesLate,
-                        'deduction' => $deduction,
+                        'minutes' => 0,
+                        'deduction' => 0,
+                        'is_dispensed' => false,
+                        'is_holiday' => false,
+                        'status_text' => 'Bebas Denda & Lembur',
+                    ];
+                } elseif ($dayLate && $dayLate['minutes_late'] > 0) {
+                    $details[] = [
+                        'date' => $dateStr,
+                        'day_name' => $curr->translatedFormat('l'),
+                        'type' => 'Terlambat (' . $dayLate['status_text'] . ')',
+                        'first_scan' => $firstScan->format('H:i:s'),
+                        'minutes' => $dayLate['minutes_late'],
+                        'deduction' => $dayLate['deduction'],
                         'is_dispensed' => $isDispensed,
                         'is_holiday' => false,
+                        'status_text' => $dayLate['status_text'],
                     ];
                 } else {
                     $details[] = [
@@ -200,6 +220,7 @@ class PayrollController extends Controller
                         'deduction' => 0,
                         'is_dispensed' => false,
                         'is_holiday' => false,
+                        'status_text' => 'Tepat Waktu',
                     ];
                 }
             } else {
@@ -628,23 +649,20 @@ class PayrollController extends Controller
                 ->toArray();
 
             $hadirCount = count($groupedByDate);
-            $totalLateMinutes = 0;
 
-            foreach ($groupedByDate as $dateStr => $scans) {
-                $firstScan = $scans[0];
-                $isSat = Carbon::parse($dateStr)->isSaturday();
-                $schedInStr = $isSat ? $satIn : $normalIn;
-                $tolMin = $isSat ? $satTol : $normalTol;
-                $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInStr . ':00');
-                $lateThreshold = $scheduleIn->copy()->addMinutes($tolMin);
+            $lateService = app(LateCalculationService::class);
+            $lateResult = $lateService->calculateMonth(
+                $employee,
+                $groupedByDate,
+                $dispensations,
+                $normalIn,
+                $normalTol,
+                $satIn,
+                $satTol
+            );
 
-                if ($firstScan->gt($lateThreshold)) {
-                    $minutesLate = (int) round($scheduleIn->diffInMinutes($firstScan));
-                    if (!in_array($dateStr, $dispensations)) {
-                        $totalLateMinutes += $minutesLate;
-                    }
-                }
-            }
+            $totalLateMinutes = $lateResult['total_late_minutes'];
+            $potonganTerlambat = $lateResult['total_deduction'];
 
             $alpaCount = 0;
             $curr = $startDate->copy();
@@ -663,14 +681,19 @@ class PayrollController extends Controller
                 $curr->addDay();
             }
 
-            $overtimeMinutes = OvertimeLog::where('employee_id', $employee->id)
-                ->whereBetween('waktu_tap', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
-                ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
-                ->sum('durasi_menit');
+            if ($employee->is_exempt) {
+                $overtimeMinutes = 0;
+                $lemburPay = 0;
+                $potonganTerlambat = 0;
+            } else {
+                $overtimeMinutes = OvertimeLog::where('employee_id', $employee->id)
+                    ->whereBetween('waktu_tap', [$startDate->format('Y-m-d 00:00:00'), $endDate->format('Y-m-d 23:59:59')])
+                    ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
+                    ->sum('durasi_menit');
 
-            $lemburPay = round(($overtimeMinutes / 60) * $tarifLembur);
+                $lemburPay = round(($overtimeMinutes / 60) * $tarifLembur);
+            }
 
-            $potonganTerlambat = $totalLateMinutes * $lateFinePerMinute;
             if ($absentComp && $absentComp->metode === 'harian') {
                 $potonganAlpa = round(($gajiPokok / 22) * $alpaCount);
             } else {
@@ -712,6 +735,17 @@ class PayrollController extends Controller
             $catatanJson = json_encode([
                 'bpjs_details' => $potonganBPJSBreakdown,
                 'tunjangan_details' => $allowancesBreakdown,
+                'late_details' => [
+                    'is_exempt' => (bool)$employee->is_exempt,
+                    'category_name' => $lateResult['category']?->nama ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
+                    'tier1_count' => $lateResult['tier1_count'] ?? 0,
+                    'tier1_tolerated' => $lateResult['tier1_tolerated_count'] ?? 0,
+                    'tier1_penalized' => $lateResult['tier1_penalized_count'] ?? 0,
+                    'tier2_count' => $lateResult['tier2_count'] ?? 0,
+                    'tier3_count' => $lateResult['tier3_count'] ?? 0,
+                    'tier4_count' => $lateResult['tier4_count'] ?? 0,
+                    'total_deduction' => $potonganTerlambat,
+                ],
             ]);
 
             $savedPayroll = Payroll::updateOrCreate([
@@ -765,6 +799,8 @@ class PayrollController extends Controller
                 'dibayar_pada' => $savedPayroll->dibayar_pada?->format('Y-m-d H:i:s'),
                 'bpjs_details' => $potonganBPJSBreakdown,
                 'tunjangan_details' => $allowancesBreakdown,
+                'is_exempt' => (bool)$employee->is_exempt,
+                'late_category' => $lateResult['category']?->nama ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
             ];
         }
 

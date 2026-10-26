@@ -10,6 +10,7 @@ use App\Models\Permission;
 use App\Models\SystemSetting;
 use App\Services\AttendanceTimeWindowService;
 use App\Services\FingerspotService;
+use App\Services\LateCalculationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -139,6 +140,27 @@ class AttendanceController extends Controller
 
         $counterId = 1;
 
+        $monthLogs = AttendanceLog::where('scan_at', '>=', $startOfMonth . ' 00:00:00')
+            ->where('scan_at', '<=', $endOfMonth . ' 23:59:59')
+            ->orderBy('scan_at', 'asc')
+            ->get(['pin', 'employee_id', 'scan_at']);
+
+        $monthGroupedByPin = [];
+        foreach ($monthLogs as $ml) {
+            $d = Carbon::parse($ml->scan_at)->format('Y-m-d');
+            $p = (string)$ml->pin;
+            if (!isset($monthGroupedByPin[$p])) {
+                $monthGroupedByPin[$p] = [];
+            }
+            if (!isset($monthGroupedByPin[$p][$d])) {
+                $monthGroupedByPin[$p][$d] = [];
+            }
+            $monthGroupedByPin[$p][$d][] = Carbon::parse($ml->scan_at);
+        }
+
+        $lateService = app(LateCalculationService::class);
+        $calculatedLateByEmp = [];
+
         foreach ($grouped as $item) {
             $emp = $item['employee'];
             $dev = $item['device'];
@@ -163,9 +185,84 @@ class AttendanceController extends Controller
 
             $isLate = $inScan->gt($lateThreshold);
             $minutesLate = $isLate ? (int) round($scheduleIn->diffInMinutes($inScan)) : 0;
-
             $status = $isLate ? 'terlambat' : 'hadir';
             $inStatus = $isLate ? ('Telat ' . $minutesLate . ' Mnt') : 'Tepat';
+            $lateInfo = null;
+
+            if ($emp) {
+                if (!isset($calculatedLateByEmp[$emp->id])) {
+                    $empPin = (string)$item['pin'];
+                    $empScans = $monthGroupedByPin[$empPin] ?? [];
+                    $dispensations = Permission::where('employee_id', $emp->id)
+                        ->where('category', 'dispensasi_payroll')
+                        ->whereIn('status', ['disetujui', 'approved'])
+                        ->whereDate('tanggal_mulai', '>=', $startOfMonth)
+                        ->whereDate('tanggal_mulai', '<=', $endOfMonth)
+                        ->pluck('tanggal_mulai')
+                        ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+                        ->toArray();
+
+                    $calculatedLateByEmp[$emp->id] = $lateService->calculateMonth(
+                        $emp,
+                        $empScans,
+                        $dispensations,
+                        $normalIn,
+                        $normalTol,
+                        $satIn,
+                        $satTol
+                    );
+                }
+
+                $empLateResult = $calculatedLateByEmp[$emp->id];
+                $dayDetail = $empLateResult['daily_details'][$item['date']] ?? null;
+
+                if ($dayDetail && $dayDetail['minutes_late'] > 0) {
+                    $isLate = true;
+                    $minutesLate = $dayDetail['minutes_late'];
+                    $status = 'terlambat';
+                    $inStatus = 'Telat ' . $minutesLate . ' Mnt';
+
+                    $lateInfo = [
+                        'is_late' => true,
+                        'minutes_late' => $minutesLate,
+                        'category_name' => $dayDetail['category_name'] ?? null,
+                        'category_code' => $dayDetail['category_code'] ?? null,
+                        'tier_order' => $dayDetail['tier_order'] ?? null,
+                        'tier_name' => $dayDetail['tier_name'] ?? null,
+                        'ada_toleransi' => $dayDetail['ada_toleransi'] ?? false,
+                        'toleransi_ke' => $dayDetail['toleransi_ke'] ?? null,
+                        'toleransi_terpakai' => $dayDetail['toleransi_terpakai'] ?? null,
+                        'toleransi_max' => $dayDetail['toleransi_max'] ?? 3,
+                        'quota_text' => $dayDetail['quota_text'] ?? null,
+                        'status_text' => $dayDetail['status_text'] ?? null,
+                        'deduction' => $dayDetail['deduction'] ?? 0,
+                        'is_exempt' => (bool)$emp->is_exempt,
+                    ];
+                } elseif ($emp->is_exempt && $inScan->gt($scheduleIn)) {
+                    $diff = (int) round($scheduleIn->diffInMinutes($inScan));
+                    if ($diff >= 1) {
+                        $isLate = true;
+                        $minutesLate = $diff;
+                        $status = 'terlambat';
+                        $inStatus = 'Telat ' . $minutesLate . ' Mnt';
+                        $lateInfo = [
+                            'is_late' => true,
+                            'minutes_late' => $minutesLate,
+                            'category_name' => 'Karyawan Khusus',
+                            'category_code' => 'EXEMPT',
+                            'tier_order' => null,
+                            'tier_name' => 'Bebas Aturan',
+                            'ada_toleransi' => false,
+                            'toleransi_ke' => null,
+                            'toleransi_max' => 3,
+                            'quota_text' => 'Bebas Denda & Lembur',
+                            'status_text' => 'Bebas Sanksi (Karyawan Khusus)',
+                            'deduction' => 0,
+                            'is_exempt' => true,
+                        ];
+                    }
+                }
+            }
 
             if ($outScan) {
                 $isEarly = $outScan->lt($scheduleOut);
@@ -239,6 +336,7 @@ class AttendanceController extends Controller
                 'inStatus' => $inStatus,
                 'outStatus' => $outStatus,
                 'locIn' => $locIn,
+                'late_info' => $lateInfo,
             ];
 
             if (!empty($filterDept) && strtolower($empDept) !== strtolower($filterDept)) {

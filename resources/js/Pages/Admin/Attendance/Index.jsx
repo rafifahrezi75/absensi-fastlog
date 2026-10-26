@@ -369,10 +369,28 @@ const Attendance = () => {
                                             <div className={`font-bold ${(row.status === 'late' || row.status === 'terlambat') ? 'text-amber-700 bg-amber-50 px-2 py-0.5 rounded w-fit' : 'text-slate-800'}`}>
                                                 {row.in && row.in !== '-' ? row.in : <span className="text-slate-300 font-normal italic">Belum tap masuk</span>}
                                             </div>
-                                            <div className={`text-[10px] mt-0.5 flex items-center gap-1 ${(row.status === 'late' || row.status === 'terlambat') ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                                {(row.status === 'ontime' || row.status === 'hadir') && <Check className="w-3 h-3" />}
-                                                {row.inStatus || '-'}
-                                            </div>
+                                            {(row.status === 'late' || row.status === 'terlambat') ? (
+                                                <div className="mt-1 space-y-0.5 font-sans">
+                                                    <div className="text-[11px] font-semibold text-amber-700">
+                                                        Telat {row.minutesLate} Mnt
+                                                        {row.late_info?.tier_order ? ` • Kategori ${row.late_info.tier_order}` : ''}
+                                                    </div>
+                                                    {row.late_info?.is_exempt ? (
+                                                        <div className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded w-fit border border-amber-200">
+                                                            Bebas Sanksi
+                                                        </div>
+                                                    ) : row.late_info?.quota_text ? (
+                                                        <div className="text-[10px] text-indigo-700 font-medium">
+                                                            {row.late_info.quota_text}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            ) : (
+                                                <div className="text-[10px] mt-0.5 flex items-center gap-1 text-emerald-600 font-sans">
+                                                    {(row.status === 'ontime' || row.status === 'hadir') && <Check className="w-3 h-3" />}
+                                                    {row.inStatus || '-'}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-xs whitespace-nowrap">
                                             <div className="font-bold text-slate-800">{row.out && row.out !== '-' ? row.out : <span className="text-slate-400 font-normal italic">Belum tap pulang</span>}</div>
@@ -385,9 +403,26 @@ const Attendance = () => {
                                                 </span>
                                             )}
                                             {(row.status === 'late' || row.status === 'terlambat') && (
-                                                <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded-full border border-amber-200">
-                                                    {row.inStatus || 'Terlambat'}
-                                                </span>
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <span className="bg-amber-100 text-amber-900 text-xs font-semibold px-2.5 py-1 rounded-full border border-amber-200 inline-flex items-center gap-1">
+                                                        Telat {row.minutesLate} Mnt
+                                                        {row.late_info?.tier_order ? ` (Kategori ${row.late_info.tier_order})` : ''}
+                                                    </span>
+                                                    {row.late_info?.tier_order && (
+                                                        <span className="text-[10px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                                            {row.late_info.category_name} • Kategori {row.late_info.tier_order} ({row.late_info.tier_name})
+                                                        </span>
+                                                    )}
+                                                    {row.late_info?.is_exempt ? (
+                                                        <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                            Bebas Sanksi (Khusus)
+                                                        </span>
+                                                    ) : row.late_info?.quota_text ? (
+                                                        <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                                                            {row.late_info.quota_text}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
                                             )}
                                             {row.status === 'izin' && (
                                                 <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-200">

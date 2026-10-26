@@ -13,6 +13,7 @@ import {
     X
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { Link } from 'react-router-dom';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Settings = () => {
@@ -319,6 +320,24 @@ const Settings = () => {
                 {activeTab === 'fines' && (
                     <div>
                         <div className="p-6 space-y-6">
+                            <div className="p-4 bg-indigo-50/80 border border-indigo-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <div className="flex items-center gap-2 font-bold text-sm text-indigo-950">
+                                        <Clock className="w-4 h-4 text-indigo-600" />
+                                        <span>Kategori & Skema Sanksi Keterlambatan</span>
+                                    </div>
+                                    <p className="text-xs text-indigo-800/80 mt-1">
+                                        Aturan keterlambatan menggunakan kategori (Staf Kantor vs Staf Lapangan) dengan 4 tingkatan (tier) denda dan toleransi 3x sebulan.
+                                    </p>
+                                </div>
+                                <Link
+                                    to="/admin/master-payroll"
+                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition shadow-sm text-center"
+                                >
+                                    Buka Kategori Terlambat &rarr;
+                                </Link>
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="block text-xs font-semibold text-slate-600">Denda Keterlambatan per Menit</label>
                                 <div className="relative rounded-lg shadow-sm max-w-md">
