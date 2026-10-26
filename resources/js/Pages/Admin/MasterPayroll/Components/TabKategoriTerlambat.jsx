@@ -11,7 +11,8 @@ import {
     AlertCircle,
     UserCheck,
     UserX,
-    Sparkles
+    Sparkles,
+    Lock
 } from 'lucide-react';
 
 const TabKategoriTerlambat = ({
@@ -144,6 +145,12 @@ const TabKategoriTerlambat = ({
                                                         Default
                                                     </span>
                                                 )}
+                                                {cat.is_locked && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                                        <Lock className="w-3 h-3" />
+                                                        Terkunci
+                                                    </span>
+                                                )}
                                             </div>
                                             <span className="text-slate-400 font-mono text-[11px]">Kode: {cat.kode}</span>
                                         </div>
@@ -157,7 +164,7 @@ const TabKategoriTerlambat = ({
                                         >
                                             <Edit3 className="w-4 h-4" />
                                         </button>
-                                        {!cat.is_default && (
+                                        {!cat.is_locked && (
                                             <button
                                                 onClick={() => onDeleteCategory(cat.id, cat.nama)}
                                                 className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition"

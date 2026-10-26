@@ -26,6 +26,7 @@ const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data }) => {
         departemen_list: [],
         jabatan_keywords_str: '',
         is_default: false,
+        is_locked: false,
         tiers: DEFAULT_TIERS
     });
 
@@ -40,6 +41,7 @@ const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data }) => {
                 departemen_list: Array.isArray(data.departemen_list) ? data.departemen_list : [],
                 jabatan_keywords_str: Array.isArray(data.jabatan_keywords) ? data.jabatan_keywords.join(', ') : '',
                 is_default: Boolean(data.is_default),
+                is_locked: Boolean(data.is_locked),
                 tiers: data.tiers && data.tiers.length > 0 ? data.tiers.map(t => ({
                     id: t.id,
                     tier_order: t.tier_order,
@@ -61,6 +63,7 @@ const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data }) => {
                 departemen_list: [],
                 jabatan_keywords_str: '',
                 is_default: false,
+                is_locked: false,
                 tiers: DEFAULT_TIERS
             });
         }
@@ -155,6 +158,7 @@ const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data }) => {
             departemen_list: formData.departemen_list,
             jabatan_keywords: keywords,
             is_default: formData.is_default,
+            is_locked: formData.is_locked,
             tiers: formData.tiers.map((t, idx) => ({
                 tier_order: idx + 1,
                 nama_tier: t.nama_tier || `Tier ${idx + 1}`,
@@ -304,6 +308,22 @@ const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data }) => {
                                 checked={formData.is_default}
                                 onChange={handleFieldChange}
                                 className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
+                        </div>
+
+                        <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg flex items-center justify-between">
+                            <div>
+                                <span className="font-semibold text-amber-900 block text-xs">Kunci Kategori (Cegah Hapus)</span>
+                                <span className="text-[11px] text-amber-700 block">
+                                    Jika dicentang, tombol hapus akan disembunyikan. Untuk menghapusnya nanti, buka menu edit dan hilangkan centang ini.
+                                </span>
+                            </div>
+                            <input
+                                type="checkbox"
+                                name="is_locked"
+                                checked={formData.is_locked}
+                                onChange={handleFieldChange}
+                                className="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                             />
                         </div>
 

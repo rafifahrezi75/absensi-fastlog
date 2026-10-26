@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\EmployeeHrActionController;
 use App\Http\Controllers\Admin\LateRuleController;
 use App\Http\Controllers\Admin\MasterPayrollController;
 use App\Http\Controllers\Admin\MasterTindakanController;
+use App\Http\Controllers\Admin\OvertimeRuleController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\ReportController;
@@ -131,6 +132,11 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::put('/late-rules/{id}', [LateRuleController::class, 'updateCategory'])->name('api.admin.late-rules.update');
     Route::delete('/late-rules/{id}', [LateRuleController::class, 'destroyCategory'])->name('api.admin.late-rules.destroy');
     Route::post('/late-rules/toggle-exemption/{employeeId}', [LateRuleController::class, 'toggleExemption'])->name('api.admin.late-rules.toggle-exemption');
+
+    Route::get('/overtime-rules', [OvertimeRuleController::class, 'index'])->name('api.admin.overtime-rules.index');
+    Route::post('/overtime-rules', [OvertimeRuleController::class, 'storeCategory'])->name('api.admin.overtime-rules.store');
+    Route::put('/overtime-rules/{id}', [OvertimeRuleController::class, 'updateCategory'])->name('api.admin.overtime-rules.update');
+    Route::delete('/overtime-rules/{id}', [OvertimeRuleController::class, 'destroyCategory'])->name('api.admin.overtime-rules.destroy');
 
     Route::get('/employee-hr-actions', [EmployeeHrActionController::class, 'index'])->name('api.admin.employee-hr-actions.index');
     Route::post('/employee-hr-actions', [EmployeeHrActionController::class, 'store'])->name('api.admin.employee-hr-actions.store');
