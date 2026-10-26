@@ -29,10 +29,8 @@ const Settings = () => {
     const [settings, setSettings] = useState({
         normal_check_in: '',
         normal_check_out: '',
-        normal_tolerance: '',
         saturday_check_in: '',
         saturday_check_out: '',
-        saturday_tolerance: '',
     });
 
     const [holidays, setHolidays] = useState([]);
@@ -372,7 +370,7 @@ const Settings = () => {
                                     <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Senin - Jumat (Hari Kerja Normal)</span>
                                     <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-semibold">5 Hari Kerja</span>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Jam Masuk</label>
                                         <input
@@ -393,17 +391,6 @@ const Settings = () => {
                                             className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Toleransi (Menit)</label>
-                                        <input
-                                            type="number"
-                                            name="normal_tolerance"
-                                            placeholder="0"
-                                            value={settings.normal_tolerance || ''}
-                                            onChange={handleChange}
-                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                                        />
-                                    </div>
                                 </div>
                             </div>
 
@@ -414,7 +401,7 @@ const Settings = () => {
                                     <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Sabtu (Setengah Hari)</span>
                                     <span className="px-2.5 py-0.5 bg-amber-50 text-amber-700 rounded text-xs font-semibold">Khusus</span>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Jam Masuk</label>
                                         <input
@@ -435,23 +422,12 @@ const Settings = () => {
                                             className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Toleransi (Menit)</label>
-                                        <input
-                                            type="number"
-                                            name="saturday_tolerance"
-                                            placeholder="0"
-                                            value={settings.saturday_tolerance || ''}
-                                            onChange={handleChange}
-                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
-                                        />
-                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
-                            <span className="text-xs text-slate-500">Nilai toleransi digunakan untuk toleransi keterlambatan scan masuk.</span>
+                            <span className="text-xs text-slate-500">Jadwal operasional jam masuk dan pulang kerja kantor.</span>
                             <button
                                 type="button"
                                 onClick={saveSettings}

@@ -134,9 +134,8 @@ class AttendanceTimeWindowService
             $attendance->user_id = $employee->user_id;
         }
 
-        $toleranceTime = SystemSetting::where('kunci', 'normal_tolerance')->value('nilai') ?? '15';
-        $toleranceMinute = (int) $toleranceTime;
-        $lateThreshold = Carbon::parse($date . ' 08:00:00')->addMinutes($toleranceMinute)->format('H:i:s');
+        $normalIn = SystemSetting::where('kunci', 'normal_check_in')->value('nilai') ?? '08:00';
+        $lateThreshold = Carbon::parse($date . ' ' . $normalIn . ':00')->format('H:i:s');
 
         $status = $timeStr <= $lateThreshold ? 'hadir' : 'terlambat';
 

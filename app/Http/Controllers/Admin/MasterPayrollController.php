@@ -22,7 +22,10 @@ class MasterPayrollController extends Controller
                 'kode' => $item->kode,
                 'nama' => $item->nama,
                 'gajiPokok' => (float)$item->gaji_pokok,
+                'gaji_pokok' => (float)$item->gaji_pokok,
                 'tarifLembur' => (float)$item->tarif_lembur,
+                'tarif_lembur' => (float)$item->tarif_lembur,
+                'tarif_lembur_per_jam' => (float)$item->tarif_lembur,
                 'keterangan' => $item->keterangan ?: '',
                 'status' => $item->status,
             ];
@@ -35,6 +38,13 @@ class MasterPayrollController extends Controller
 
     public function storeGolongan(Request $request): JsonResponse
     {
+        $gajiPokok = $request->input('gajiPokok') ?? $request->input('gaji_pokok') ?? 0;
+        $tarifLembur = $request->input('tarifLembur') ?? $request->input('tarif_lembur') ?? $request->input('tarif_lembur_per_jam') ?? 0;
+        $request->merge([
+            'gajiPokok' => $gajiPokok,
+            'tarifLembur' => $tarifLembur,
+        ]);
+
         $validated = $request->validate([
             'kode' => 'required|string|max:50|unique:salary_grades,kode',
             'nama' => 'required|string|max:100',
@@ -60,7 +70,10 @@ class MasterPayrollController extends Controller
                 'kode' => $grade->kode,
                 'nama' => $grade->nama,
                 'gajiPokok' => (float)$grade->gaji_pokok,
+                'gaji_pokok' => (float)$grade->gaji_pokok,
                 'tarifLembur' => (float)$grade->tarif_lembur,
+                'tarif_lembur' => (float)$grade->tarif_lembur,
+                'tarif_lembur_per_jam' => (float)$grade->tarif_lembur,
                 'keterangan' => $grade->keterangan ?: '',
                 'status' => $grade->status,
             ],
@@ -70,6 +83,13 @@ class MasterPayrollController extends Controller
     public function updateGolongan(Request $request, string $id): JsonResponse
     {
         $grade = SalaryGrade::findOrFail($id);
+
+        $gajiPokok = $request->input('gajiPokok') ?? $request->input('gaji_pokok') ?? $grade->gaji_pokok;
+        $tarifLembur = $request->input('tarifLembur') ?? $request->input('tarif_lembur') ?? $request->input('tarif_lembur_per_jam') ?? $grade->tarif_lembur;
+        $request->merge([
+            'gajiPokok' => $gajiPokok,
+            'tarifLembur' => $tarifLembur,
+        ]);
 
         $validated = $request->validate([
             'kode' => ['required', 'string', 'max:50', Rule::unique('salary_grades')->ignore($grade->id)],
@@ -96,7 +116,10 @@ class MasterPayrollController extends Controller
                 'kode' => $grade->kode,
                 'nama' => $grade->nama,
                 'gajiPokok' => (float)$grade->gaji_pokok,
+                'gaji_pokok' => (float)$grade->gaji_pokok,
                 'tarifLembur' => (float)$grade->tarif_lembur,
+                'tarif_lembur' => (float)$grade->tarif_lembur,
+                'tarif_lembur_per_jam' => (float)$grade->tarif_lembur,
                 'keterangan' => $grade->keterangan ?: '',
                 'status' => $grade->status,
             ],
@@ -124,7 +147,9 @@ class MasterPayrollController extends Controller
                 'nilai' => (float)$item->nilai,
                 'basis' => $item->basis,
                 'batasDasar' => $item->batas_dasar !== null ? (float)$item->batas_dasar : null,
+                'batas_dasar' => $item->batas_dasar !== null ? (float)$item->batas_dasar : null,
                 'kenaPajak' => (bool)$item->kena_pajak,
+                'kena_pajak' => (bool)$item->kena_pajak,
                 'status' => $item->status,
             ];
         });
@@ -136,6 +161,13 @@ class MasterPayrollController extends Controller
 
     public function storeKomponen(Request $request): JsonResponse
     {
+        $batasDasar = $request->input('batasDasar') ?? $request->input('batas_dasar');
+        $kenaPajak = $request->input('kenaPajak') ?? $request->input('kena_pajak') ?? false;
+        $request->merge([
+            'batasDasar' => $batasDasar,
+            'kenaPajak' => $kenaPajak,
+        ]);
+
         $validated = $request->validate([
             'nama' => 'required|string|max:100',
             'tipe' => ['required', Rule::in(['tambahan', 'potongan'])],
@@ -175,7 +207,9 @@ class MasterPayrollController extends Controller
                 'nilai' => (float)$component->nilai,
                 'basis' => $component->basis,
                 'batasDasar' => $component->batas_dasar !== null ? (float)$component->batas_dasar : null,
+                'batas_dasar' => $component->batas_dasar !== null ? (float)$component->batas_dasar : null,
                 'kenaPajak' => (bool)$component->kena_pajak,
+                'kena_pajak' => (bool)$component->kena_pajak,
                 'status' => $component->status,
             ],
         ], 201);
@@ -184,6 +218,13 @@ class MasterPayrollController extends Controller
     public function updateKomponen(Request $request, string $id): JsonResponse
     {
         $component = SalaryComponent::findOrFail($id);
+
+        $batasDasar = $request->input('batasDasar') ?? $request->input('batas_dasar');
+        $kenaPajak = $request->input('kenaPajak') ?? $request->input('kena_pajak') ?? false;
+        $request->merge([
+            'batasDasar' => $batasDasar,
+            'kenaPajak' => $kenaPajak,
+        ]);
 
         $validated = $request->validate([
             'nama' => 'required|string|max:100',
@@ -224,7 +265,9 @@ class MasterPayrollController extends Controller
                 'nilai' => (float)$component->nilai,
                 'basis' => $component->basis,
                 'batasDasar' => $component->batas_dasar !== null ? (float)$component->batas_dasar : null,
+                'batas_dasar' => $component->batas_dasar !== null ? (float)$component->batas_dasar : null,
                 'kenaPajak' => (bool)$component->kena_pajak,
+                'kena_pajak' => (bool)$component->kena_pajak,
                 'status' => $component->status,
             ],
         ]);

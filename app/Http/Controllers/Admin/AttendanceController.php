@@ -64,10 +64,10 @@ class AttendanceController extends Controller
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
         $normalOut = $settingsData['normal_check_out'] ?? '16:30';
-        $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
+        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
         $satOut = $settingsData['saturday_check_out'] ?? '12:00';
-        $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
+        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
 
         $categoriesList = ['izin', 'sakit', 'cuti', 'dinas', 'dispensasi_payroll'];
         $totalApprovedIzin = Permission::whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
@@ -146,6 +146,7 @@ class AttendanceController extends Controller
             ->get(['pin', 'employee_id', 'scan_at']);
 
         $monthGroupedByPin = [];
+        $monthGroupedByEmp = [];
         foreach ($monthLogs as $ml) {
             $d = Carbon::parse($ml->scan_at)->format('Y-m-d');
             $p = (string)$ml->pin;
@@ -156,6 +157,16 @@ class AttendanceController extends Controller
                 $monthGroupedByPin[$p][$d] = [];
             }
             $monthGroupedByPin[$p][$d][] = Carbon::parse($ml->scan_at);
+
+            if ($ml->employee_id) {
+                if (!isset($monthGroupedByEmp[$ml->employee_id])) {
+                    $monthGroupedByEmp[$ml->employee_id] = [];
+                }
+                if (!isset($monthGroupedByEmp[$ml->employee_id][$d])) {
+                    $monthGroupedByEmp[$ml->employee_id][$d] = [];
+                }
+                $monthGroupedByEmp[$ml->employee_id][$d][] = Carbon::parse($ml->scan_at);
+            }
         }
 
         $lateService = app(LateCalculationService::class);
@@ -177,14 +188,14 @@ class AttendanceController extends Controller
             $isSat = $itemDate->isSaturday();
             $schedInTime = $isSat ? $satIn : $normalIn;
             $schedOutTime = $isSat ? $satOut : $normalOut;
-            $tol = $isSat ? $satTol : $normalTol;
+            $tol = 0;
 
             $scheduleIn = Carbon::parse($item['date'] . ' ' . $schedInTime . ':00');
             $scheduleOut = Carbon::parse($item['date'] . ' ' . $schedOutTime . ':00');
-            $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
+            $lateThreshold = $scheduleIn;
 
             $isLate = $inScan->gt($lateThreshold);
-            $minutesLate = $isLate ? (int) round($scheduleIn->diffInMinutes($inScan)) : 0;
+            $minutesLate = $isLate ? (int) ceil($scheduleIn->diffInSeconds($inScan) / 60) : 0;
             $status = $isLate ? 'terlambat' : 'hadir';
             $inStatus = $isLate ? ('Telat ' . $minutesLate . ' Mnt') : 'Tepat';
             $lateInfo = null;
@@ -192,7 +203,9 @@ class AttendanceController extends Controller
             if ($emp) {
                 if (!isset($calculatedLateByEmp[$emp->id])) {
                     $empPin = (string)$item['pin'];
-                    $empScans = $monthGroupedByPin[$empPin] ?? [];
+                    $empScans = ($emp && isset($monthGroupedByEmp[$emp->id]))
+                        ? $monthGroupedByEmp[$emp->id]
+                        : ($monthGroupedByPin[$empPin] ?? []);
                     $dispensations = Permission::where('employee_id', $emp->id)
                         ->where('category', 'dispensasi_payroll')
                         ->whereIn('status', ['disetujui', 'approved'])
@@ -588,8 +601,7 @@ class AttendanceController extends Controller
                     $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
                     $isSat = Carbon::parse($tanggal)->isSaturday();
                     $schedInTime = $isSat ? ($settingsData['saturday_check_in'] ?? '08:00') : ($settingsData['normal_check_in'] ?? '08:00');
-                    $tol = (int)($isSat ? ($settingsData['saturday_tolerance'] ?? 15) : ($settingsData['normal_tolerance'] ?? 15));
-                    $lateThreshold = Carbon::parse($tanggal . ' ' . $schedInTime . ':00')->addMinutes($tol);
+                    $lateThreshold = Carbon::parse($tanggal . ' ' . $schedInTime . ':00');
                     $isLate = Carbon::parse($tanggal . ' ' . $jamMasuk)->gt($lateThreshold);
                     $attendance->status = $isLate ? 'terlambat' : 'hadir';
                 } else {
@@ -598,6 +610,9 @@ class AttendanceController extends Controller
 
                 $attendance->save();
             }
+
+            $period = Carbon::parse($tanggal)->format('Y-m');
+            app(PayrollController::class)->calculatePayrollForPeriod($period, true);
 
             DB::commit();
 
@@ -666,6 +681,9 @@ class AttendanceController extends Controller
                     ->where('tanggal', $tanggal)
                     ->delete();
             }
+
+            $period = Carbon::parse($tanggal)->format('Y-m');
+            app(PayrollController::class)->calculatePayrollForPeriod($period, true);
 
             DB::commit();
 

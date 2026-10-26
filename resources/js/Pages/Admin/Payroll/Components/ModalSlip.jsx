@@ -116,7 +116,7 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                         <div className="p-3 space-y-2">
                             <div className="flex justify-between items-center text-slate-700">
                                 <span>Gaji Pokok:</span>
-                                <span className="font-mono font-medium">{formatIDR(data?.gapok)}</span>
+                                <span className="font-mono font-medium">{formatIDR(data?.gapok ?? data?.gaji_pokok)}</span>
                             </div>
                             {data?.tunjangan_details?.length > 0 ? (
                                 data.tunjangan_details.map((t, idx) => (

@@ -76,6 +76,8 @@ class LateRuleController extends Controller
 
             DB::commit();
 
+            app(\App\Http\Controllers\Admin\PayrollController::class)->calculatePayrollForPeriod(date('Y-m'), true);
+
             return response()->json([
                 'message' => 'Kategori keterlambatan berhasil ditambahkan.',
                 'category' => $category->load('tiers'),
@@ -139,6 +141,8 @@ class LateRuleController extends Controller
 
             DB::commit();
 
+            app(\App\Http\Controllers\Admin\PayrollController::class)->calculatePayrollForPeriod(date('Y-m'), true);
+
             return response()->json([
                 'message' => 'Kategori keterlambatan berhasil diperbarui.',
                 'category' => $category->load('tiers'),
@@ -164,6 +168,8 @@ class LateRuleController extends Controller
 
         Employee::where('late_category_id', $category->id)->update(['late_category_id' => null]);
         $category->delete();
+
+        app(\App\Http\Controllers\Admin\PayrollController::class)->calculatePayrollForPeriod(date('Y-m'), true);
 
         return response()->json([
             'message' => 'Kategori keterlambatan berhasil dihapus.',

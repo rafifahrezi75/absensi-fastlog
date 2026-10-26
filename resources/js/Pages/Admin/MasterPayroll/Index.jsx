@@ -17,7 +17,6 @@ const MasterPayroll = () => {
     const [loadingEmployees, setLoadingEmployees] = useState(false);
     const [notif, setNotif] = useState(null);
 
-    const [empStaffType, setEmpStaffType] = useState('');
     const [empGrade, setEmpGrade] = useState('');
     const [empOnlyCustomized, setEmpOnlyCustomized] = useState(false);
 
@@ -120,13 +119,12 @@ const MasterPayroll = () => {
                 (emp.nik && emp.nik.toLowerCase().includes(q)) ||
                 (emp.pin && emp.pin.toString().includes(q))
             );
-            const matchesStaffType = !empStaffType || (emp.tipe_staf && emp.tipe_staf.toLowerCase() === empStaffType.toLowerCase());
             const matchesGrade = !empGrade || (emp.golongan && emp.golongan.toLowerCase() === empGrade.toLowerCase());
             const matchesCustomOnly = !empOnlyCustomized || emp.status === 'disesuaikan';
 
-            return matchesSearch && matchesStaffType && matchesGrade && matchesCustomOnly;
+            return matchesSearch && matchesGrade && matchesCustomOnly;
         });
-    }, [employeeSalaries, searchQuery, empStaffType, empGrade, empOnlyCustomized]);
+    }, [employeeSalaries, searchQuery, empGrade, empOnlyCustomized]);
 
     const stats = useMemo(() => {
         const totalGolongan = golonganList.filter(g => g.status === 'aktif').length;
@@ -364,8 +362,8 @@ const MasterPayroll = () => {
                                                         <div className="font-semibold text-slate-800">{item.nama}</div>
                                                         <div className="text-xs text-slate-400 mt-0.5">{item.keterangan || '-'}</div>
                                                     </td>
-                                                    <td className="px-6 py-4 font-medium text-slate-900">{formatIDR(item.gaji_pokok)}</td>
-                                                    <td className="px-6 py-4 font-medium text-slate-900">{formatIDR(item.tarif_lembur_per_jam)}</td>
+                                                    <td className="px-6 py-4 font-medium text-slate-900">{formatIDR(item.gaji_pokok ?? item.gajiPokok)}</td>
+                                                    <td className="px-6 py-4 font-medium text-slate-900">{formatIDR(item.tarif_lembur_per_jam ?? item.tarif_lembur ?? item.tarifLembur)}</td>
                                                     <td className="px-6 py-4">
                                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${item.status === 'aktif' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                                                             {item.status === 'aktif' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
@@ -480,15 +478,6 @@ const MasterPayroll = () => {
                                         <Filter className="w-3.5 h-3.5" />
                                         <span>Filter:</span>
                                     </div>
-                                    <select
-                                        value={empStaffType}
-                                        onChange={(e) => setEmpStaffType(e.target.value)}
-                                        className="bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                    >
-                                        <option value="">Semua Tipe Staf</option>
-                                        <option value="kantor">Kantor</option>
-                                        <option value="lapangan">Lapangan</option>
-                                    </select>
 
                                     <select
                                         value={empGrade}

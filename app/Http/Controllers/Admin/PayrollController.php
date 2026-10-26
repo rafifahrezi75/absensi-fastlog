@@ -91,9 +91,9 @@ class PayrollController extends Controller
 
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
-        $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
+        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
-        $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
+        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
 
         $activeComponents = SalaryComponent::where('status', 'aktif')->get();
         $lateFineComp = $activeComponents->first(function ($c) {
@@ -112,11 +112,16 @@ class PayrollController extends Controller
         $today = Carbon::today();
         $checkLimit = $today->lt($endDate) ? $today : $endDate;
 
-        $logs = AttendanceLog::where('employee_id', $employee->id)
-            ->whereDate('scan_at', '>=', $startDate)
-            ->whereDate('scan_at', '<=', $endDate)
-            ->orderBy('scan_at', 'asc')
-            ->get();
+        $logs = AttendanceLog::where(function ($q) use ($employee) {
+            $q->where('employee_id', $employee->id);
+            if (!empty($employee->pin)) {
+                $q->orWhere('pin', (string)$employee->pin);
+            }
+        })
+        ->whereDate('scan_at', '>=', $startDate)
+        ->whereDate('scan_at', '<=', $endDate)
+        ->orderBy('scan_at', 'asc')
+        ->get();
 
         $groupedByDate = [];
         foreach ($logs as $log) {
@@ -203,7 +208,7 @@ class PayrollController extends Controller
                     $details[] = [
                         'date' => $dateStr,
                         'day_name' => $curr->translatedFormat('l'),
-                        'type' => 'Terlambat (' . $dayLate['status_text'] . ')',
+                        'type' => 'Terlambat',
                         'first_scan' => $firstScan->format('H:i:s'),
                         'minutes' => $dayLate['minutes_late'],
                         'deduction' => $dayLate['deduction'],
@@ -429,6 +434,10 @@ class PayrollController extends Controller
     public function adminSlipDetail($id): JsonResponse
     {
         $payroll = Payroll::with('employee.salaryGrade')->findOrFail($id);
+        if ($payroll->status === 'draft') {
+            $this->calculatePayrollForPeriod($payroll->periode, true);
+            $payroll = Payroll::with('employee.salaryGrade')->findOrFail($id);
+        }
         $data = $this->prepareSlipViewData($payroll);
         return response()->json([
             'payroll' => $payroll,
@@ -443,6 +452,10 @@ class PayrollController extends Controller
     public function adminPdfStream($id)
     {
         $payroll = Payroll::with('employee')->findOrFail($id);
+        if ($payroll->status === 'draft') {
+            $this->calculatePayrollForPeriod($payroll->periode, true);
+            $payroll = Payroll::with('employee')->findOrFail($id);
+        }
         $pdf = $this->generatePdf($payroll);
         $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
         $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
@@ -452,6 +465,10 @@ class PayrollController extends Controller
     public function adminPdfDownload($id)
     {
         $payroll = Payroll::with('employee')->findOrFail($id);
+        if ($payroll->status === 'draft') {
+            $this->calculatePayrollForPeriod($payroll->periode, true);
+            $payroll = Payroll::with('employee')->findOrFail($id);
+        }
         $pdf = $this->generatePdf($payroll);
         $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
         $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
@@ -509,9 +526,9 @@ class PayrollController extends Controller
     {
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
-        $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
+        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
-        $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
+        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
 
         $activeComponents = SalaryComponent::where('status', 'aktif')->get();
         $lateFineComp = $activeComponents->first(function ($c) {
@@ -568,6 +585,7 @@ class PayrollController extends Controller
                     'jabatan' => $employee->jabatan ?: 'Staff',
                     'golongan' => ($employee->salaryGrade && $employee->salaryGrade->nama) ? $employee->salaryGrade->nama : 'Staff',
                     'gapok' => (float)$existingPayroll->gaji_pokok,
+                    'gaji_pokok' => (float)$existingPayroll->gaji_pokok,
                     'tunjangan' => (float)$existingPayroll->tunjangan,
                     'lembur' => (float)$existingPayroll->lembur,
                     'bonus' => (float)$existingPayroll->bonus,
@@ -702,11 +720,16 @@ class PayrollController extends Controller
                 }
             }
 
-            $logs = AttendanceLog::where('employee_id', $employee->id)
-                ->whereDate('scan_at', '>=', $startDate)
-                ->whereDate('scan_at', '<=', $endDate)
-                ->orderBy('scan_at', 'asc')
-                ->get();
+            $logs = AttendanceLog::where(function ($q) use ($employee) {
+                $q->where('employee_id', $employee->id);
+                if (!empty($employee->pin)) {
+                    $q->orWhere('pin', (string)$employee->pin);
+                }
+            })
+            ->whereDate('scan_at', '>=', $startDate)
+            ->whereDate('scan_at', '<=', $endDate)
+            ->orderBy('scan_at', 'asc')
+            ->get();
 
             $groupedByDate = [];
             foreach ($logs as $log) {
@@ -843,6 +866,7 @@ class PayrollController extends Controller
                 'jabatan' => $employee->jabatan ?: 'Staff',
                 'golongan' => ($employee->salaryGrade && $employee->salaryGrade->nama) ? $employee->salaryGrade->nama : 'Staff',
                 'gapok' => $gajiPokok,
+                'gaji_pokok' => $gajiPokok,
                 'tunjangan' => (float)$allowancesFixed,
                 'lembur' => (float)$lemburPay,
                 'bonus' => (float)$totalBonus,

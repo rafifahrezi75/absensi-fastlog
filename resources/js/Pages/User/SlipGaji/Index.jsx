@@ -139,7 +139,7 @@ const SlipGaji = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 font-mono text-xs text-slate-700 whitespace-nowrap">
-                                                {formatIDR(item.gapok)}
+                                                {formatIDR(item.gapok ?? item.gaji_pokok)}
                                             </td>
                                             <td className="px-6 py-4 font-mono text-xs text-emerald-600 whitespace-nowrap">
                                                 + {formatIDR(item.bonus)}

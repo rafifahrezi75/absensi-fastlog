@@ -77,7 +77,8 @@ const ModalDetails = ({ isOpen, onClose, employee, periode, onDataChanged }) => 
                         <div className="space-y-2">
                             {details.map((item) => {
                                 const isUpdating = updatingDate === item.date;
-                                const isActionable = (item.type === 'Terlambat' || item.type === 'Alpa / Tidak Hadir');
+                                const isLateType = item.type === 'Terlambat' || item.type?.startsWith('Terlambat');
+                                const isActionable = (isLateType || item.type === 'Alpa / Tidak Hadir');
 
                                 return (
                                     <div
@@ -85,7 +86,7 @@ const ModalDetails = ({ isOpen, onClose, employee, periode, onDataChanged }) => 
                                         className={`p-3 rounded-lg border text-xs flex items-center justify-between transition ${
                                             item.is_dispensed
                                                 ? 'bg-emerald-50/60 border-emerald-200'
-                                                : item.type === 'Terlambat'
+                                                : isLateType
                                                 ? 'bg-amber-50/50 border-amber-200'
                                                 : item.type === 'Alpa / Tidak Hadir'
                                                 ? 'bg-rose-50/50 border-rose-200'
@@ -100,11 +101,11 @@ const ModalDetails = ({ isOpen, onClose, employee, periode, onDataChanged }) => 
                                                 <div className="font-semibold text-slate-900">
                                                     {item.date} <span className="font-normal text-slate-500 text-[11px]">({item.day_name || '-'})</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-0.5">
+                                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
                                                         item.type === 'Tepat Waktu'
                                                             ? 'bg-emerald-100 text-emerald-800'
-                                                            : item.type === 'Terlambat'
+                                                            : isLateType
                                                             ? 'bg-amber-100 text-amber-800'
                                                             : item.type === 'Alpa / Tidak Hadir'
                                                             ? 'bg-rose-100 text-rose-800'
@@ -115,6 +116,11 @@ const ModalDetails = ({ isOpen, onClose, employee, periode, onDataChanged }) => 
                                                     {item.first_scan && (
                                                         <span className="text-[10px] text-slate-500">
                                                             Masuk: {item.first_scan} {item.minutes > 0 ? `(+${item.minutes}m)` : ''}
+                                                        </span>
+                                                    )}
+                                                    {item.status_text && isLateType && (
+                                                        <span className="text-[10px] text-amber-700 font-medium">
+                                                            {item.status_text}
                                                         </span>
                                                     )}
                                                     {item.is_dispensed && (

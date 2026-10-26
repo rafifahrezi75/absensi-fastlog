@@ -117,10 +117,10 @@ class ReportController extends Controller
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
         $normalIn = $settingsData['normal_check_in'] ?? '08:00';
         $normalOut = $settingsData['normal_check_out'] ?? '17:00';
-        $normalTol = (int)($settingsData['normal_tolerance'] ?? 15);
+        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
         $satIn = $settingsData['saturday_check_in'] ?? '08:00';
         $satOut = $settingsData['saturday_check_out'] ?? '12:00';
-        $satTol = (int)($settingsData['saturday_tolerance'] ?? 15);
+        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
         $today = Carbon::today();
         $currentTimeStr = Carbon::now()->format('H:i:s');
 

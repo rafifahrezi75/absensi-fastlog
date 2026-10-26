@@ -31,6 +31,21 @@ class LateCalculationService
             }
         }
 
+        $tipeStaf = strtolower(trim((string)$employee->tipe_staf));
+        if ($tipeStaf === 'kantor') {
+            foreach ($categories as $cat) {
+                if (strtoupper($cat->kode) === 'KANTOR' || $cat->is_default) {
+                    return $cat;
+                }
+            }
+        } elseif ($tipeStaf === 'lapangan') {
+            foreach ($categories as $cat) {
+                if (strtoupper($cat->kode) === 'LAPANGAN') {
+                    return $cat;
+                }
+            }
+        }
+
         $dept = strtolower(trim((string)$employee->dept));
         $jabatan = strtolower(trim((string)$employee->jabatan));
 
@@ -140,7 +155,7 @@ class LateCalculationService
                 continue;
             }
 
-            $minutesLate = (int) round($scheduleIn->diffInMinutes($firstScan));
+            $minutesLate = (int) ceil($scheduleIn->diffInSeconds($firstScan) / 60);
             if ($minutesLate < 1) {
                 $dailyDetails[$dateStr] = [
                     'minutes_late' => 0,

@@ -16,8 +16,8 @@ const ModalGolongan = ({ isOpen, onClose, onSave, data }) => {
             setFormData({
                 kode: data.kode || '',
                 nama: data.nama || '',
-                gajiPokok: data.gajiPokok || '',
-                tarifLembur: data.tarifLembur || '',
+                gajiPokok: data.gajiPokok ?? data.gaji_pokok ?? '',
+                tarifLembur: data.tarifLembur ?? data.tarif_lembur ?? data.tarif_lembur_per_jam ?? '',
                 keterangan: data.keterangan || '',
                 status: data.status || 'aktif'
             });
@@ -47,7 +47,9 @@ const ModalGolongan = ({ isOpen, onClose, onSave, data }) => {
             ...formData,
             id: data?.id,
             gajiPokok: Number(formData.gajiPokok),
+            gaji_pokok: Number(formData.gajiPokok),
             tarifLembur: Number(formData.tarifLembur),
+            tarif_lembur: Number(formData.tarifLembur),
         });
     };
 

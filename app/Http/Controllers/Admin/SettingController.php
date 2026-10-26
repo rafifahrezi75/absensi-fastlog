@@ -23,10 +23,10 @@ class SettingController extends Controller
         $defaultSettings = [
             'normal_check_in' => '08:00',
             'normal_check_out' => '17:00',
-            'normal_tolerance' => '15',
+            'normal_tolerance' => '0',
             'saturday_check_in' => '08:00',
             'saturday_check_out' => '12:00',
-            'saturday_tolerance' => '15',
+            'saturday_tolerance' => '0',
             'late_fine_per_minute' => '1000',
             'absent_deduction' => '50000',
             'overtime_kantor_daily_start' => '17:00',
