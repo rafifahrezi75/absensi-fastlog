@@ -180,58 +180,70 @@ class ReportController extends Controller
                 $isHoliday = isset($holidaysMap[$dateStr]);
                 $hasPermission = $permissionsMap[$emp->id . '_' . $dateStr] ?? null;
 
-                $scans = [];
-                $empKey = 'emp_' . $emp->id . '_' . $dateStr;
-                if (isset($groupedLogs[$empKey])) {
-                    $scans = $groupedLogs[$empKey];
-                } elseif (!empty($emp->pin) && isset($groupedLogs['pin_' . $emp->pin . '_' . $dateStr])) {
-                    $scans = $groupedLogs['pin_' . $emp->pin . '_' . $dateStr];
-                }
-
-                if (!empty($scans)) {
-                    sort($scans);
-                    $firstScan = Carbon::parse($scans[0]);
-                    $lastScan = count($scans) > 1 ? Carbon::parse(end($scans)) : null;
-
-                    $isSat = $current->isSaturday();
-                    $schedInTime = $isSat ? $satIn : $normalIn;
-                    $tol = $isSat ? $satTol : $normalTol;
-
-                    $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInTime . ':00');
-                    $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
-                    $isLate = $firstScan->gt($lateThreshold);
-
-                    $outBase = $isSat ? $satOut : $normalOut;
-                    $overtimeThreshold = Carbon::parse($dateStr . ' ' . $outBase . ':00')->addMinutes(30);
-
-                    $hasApprovedOt = isset($approvedOvertimes[$emp->id . '_' . $dateStr]);
-                    $hasScanOt = $lastScan && $lastScan->gt($overtimeThreshold);
-                    $hasOvertime = $hasApprovedOt || $hasScanOt;
-
-                    if ($hasOvertime && !$isLate) {
-                        $status = 'OT';
-                    } elseif ($isLate) {
-                        $status = 'T';
-                    } else {
-                        $status = 'H';
-                    }
-                } else {
+                if ($emp->is_exempt) {
                     if ($isHoliday) {
                         $status = 'LN';
                     } elseif ($isSunday) {
                         $status = 'L';
-                    } elseif ($hasPermission) {
-                        $status = $hasPermission;
-                    } elseif ($current->lt($today)) {
-                        $status = 'A';
-                    } elseif ($current->equalTo($today)) {
+                    } elseif ($current->gt($today)) {
+                        $status = '-';
+                    } else {
+                        $status = 'H';
+                    }
+                } else {
+                    $scans = [];
+                    $empKey = 'emp_' . $emp->id . '_' . $dateStr;
+                    if (isset($groupedLogs[$empKey])) {
+                        $scans = $groupedLogs[$empKey];
+                    } elseif (!empty($emp->pin) && isset($groupedLogs['pin_' . $emp->pin . '_' . $dateStr])) {
+                        $scans = $groupedLogs['pin_' . $emp->pin . '_' . $dateStr];
+                    }
+
+                    if (!empty($scans)) {
+                        sort($scans);
+                        $firstScan = Carbon::parse($scans[0]);
+                        $lastScan = count($scans) > 1 ? Carbon::parse(end($scans)) : null;
+
                         $isSat = $current->isSaturday();
                         $schedInTime = $isSat ? $satIn : $normalIn;
                         $tol = $isSat ? $satTol : $normalTol;
-                        $lateThreshold = Carbon::parse($dateStr . ' ' . $schedInTime . ':00')->addMinutes($tol)->format('H:i:s');
-                        $status = $currentTimeStr > $lateThreshold ? 'A' : '-';
+
+                        $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInTime . ':00');
+                        $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
+                        $isLate = $firstScan->gt($lateThreshold);
+
+                        $outBase = $isSat ? $satOut : $normalOut;
+                        $overtimeThreshold = Carbon::parse($dateStr . ' ' . $outBase . ':00')->addMinutes(30);
+
+                        $hasApprovedOt = isset($approvedOvertimes[$emp->id . '_' . $dateStr]);
+                        $hasScanOt = $lastScan && $lastScan->gt($overtimeThreshold);
+                        $hasOvertime = $hasApprovedOt || $hasScanOt;
+
+                        if ($hasOvertime && !$isLate) {
+                            $status = 'OT';
+                        } elseif ($isLate) {
+                            $status = 'T';
+                        } else {
+                            $status = 'H';
+                        }
                     } else {
-                        $status = '-';
+                        if ($isHoliday) {
+                            $status = 'LN';
+                        } elseif ($isSunday) {
+                            $status = 'L';
+                        } elseif ($hasPermission) {
+                            $status = $hasPermission;
+                        } elseif ($current->lt($today)) {
+                            $status = 'A';
+                        } elseif ($current->equalTo($today)) {
+                            $isSat = $current->isSaturday();
+                            $schedInTime = $isSat ? $satIn : $normalIn;
+                            $tol = $isSat ? $satTol : $normalTol;
+                            $lateThreshold = Carbon::parse($dateStr . ' ' . $schedInTime . ':00')->addMinutes($tol)->format('H:i:s');
+                            $status = $currentTimeStr > $lateThreshold ? 'A' : '-';
+                        } else {
+                            $status = '-';
+                        }
                     }
                 }
 
@@ -249,6 +261,7 @@ class ReportController extends Controller
                 'dept' => $emp->dept ?: 'Umum',
                 'deptLabel' => $emp->dept ?: 'Umum',
                 'jabatan' => $emp->jabatan ?: '-',
+                'is_exempt' => (bool)$emp->is_exempt,
                 'attendance' => $attendance,
             ];
         }

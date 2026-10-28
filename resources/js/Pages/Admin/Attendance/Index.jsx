@@ -386,9 +386,16 @@ const Attendance = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {(row.status === 'ontime' || row.status === 'hadir') && (
-                                                <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200">
-                                                    Hadir ({row.dur || '-'})
-                                                </span>
+                                                <div className="inline-flex items-center gap-1.5">
+                                                    <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200">
+                                                        Hadir ({row.dur || '-'})
+                                                    </span>
+                                                    {row.late_info?.is_exempt && (
+                                                        <span className="bg-amber-100 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-200" title="Bebas Sanksi (Karyawan Khusus)">
+                                                            Khusus
+                                                        </span>
+                                                    )}
+                                                </div>
                                             )}
                                             {(row.status === 'late' || row.status === 'terlambat') && (
                                                 <div className="relative group inline-block">
