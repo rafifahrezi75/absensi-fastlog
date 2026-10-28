@@ -807,6 +807,14 @@ class AttendanceController extends Controller
                 Attendance::where('employee_id', $employee->id)
                     ->where('tanggal', $tanggal)
                     ->delete();
+
+                Permission::where('employee_id', $employee->id)
+                    ->where('category', 'absensi')
+                    ->whereDate('tanggal_mulai', $tanggal)
+                    ->update([
+                        'status' => 'ditolak',
+                        'catatan_admin' => 'Absensi telah dihapus atau ditolak oleh admin. Mohon absensi ulang.',
+                    ]);
             }
 
             $period = Carbon::parse($tanggal)->format('Y-m');
