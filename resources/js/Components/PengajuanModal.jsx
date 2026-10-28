@@ -727,8 +727,8 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                     >
                         {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                         <span>
-                            {submitting 
-                                ? 'Mengirim...' 
+                            {submitting
+                                ? 'Mengirim...'
                                 : (type === 'Absensi' && ((tapType === 'in' && todayAttendance?.has_tap_in) || (tapType === 'out' && todayAttendance?.has_tap_out)))
                                     ? `Perbarui ${tapType === 'in' ? 'Tap In' : 'Tap Out'}`
                                     : 'Kirim Pengajuan'
