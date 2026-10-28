@@ -202,21 +202,80 @@
         .text-right {
             text-align: right;
         }
+        .cell-sub {
+            font-size: 7.5px;
+            margin-top: 2px;
+            display: block;
+        }
+        .tag-amber {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 7px;
+            font-weight: bold;
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+        .tag-green {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 7px;
+            font-weight: bold;
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .tag-rose {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 7px;
+            font-weight: bold;
+            background-color: #ffe4e6;
+            color: #9f1239;
+            border: 1px solid #fecdd3;
+        }
+        .tag-blue {
+            display: inline-block;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-size: 7px;
+            font-weight: bold;
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <table style="width: 100%;">
             <tr>
-                <td style="vertical-align: middle;">
-                    <div class="company-title">PT. FASTLOG INTERNASIONAL</div>
+                <td style="width: 60px; vertical-align: middle;">
+                    @php
+                        $logoPath = public_path('images/front-end/logo-fastlog.png');
+                        $logoExists = file_exists($logoPath);
+                        $logoSrc = '';
+                        if ($logoExists) {
+                            $logoData = base64_encode(file_get_contents($logoPath));
+                            $logoSrc = 'data:image/png;base64,' . $logoData;
+                        }
+                    @endphp
+                    @if($logoExists)
+                        <img src="{{ $logoSrc }}" style="width: 55px; height: auto;" alt="Fastlog Logo">
+                    @endif
+                </td>
+                <td style="vertical-align: middle; text-align: center;">
+                    <div class="company-title">PT. FASTLOG ERA MANDIRI</div>
                     <div class="doc-title">REKAPITULASI DETAIL PRESENSI &amp; LEMBUR KARYAWAN</div>
                     <div class="period-subtitle">Periode: {{ \Carbon\Carbon::parse($start_date)->translatedFormat('d F Y') }} s.d {{ \Carbon\Carbon::parse($end_date)->translatedFormat('d F Y') }}</div>
                 </td>
-                <td style="vertical-align: middle; text-align: right;">
-                    <div style="font-size: 9px; color: #64748b;">Dicetak pada: {{ \Carbon\Carbon::now()->translatedFormat('d F Y H:i') }}</div>
+                <td style="width: 120px; vertical-align: middle; text-align: right;">
+                    <div style="font-size: 9px; color: #64748b;">Dicetak pada:<br>{{ \Carbon\Carbon::now()->translatedFormat('d F Y H:i') }}</div>
                     @if(!empty($employee['is_exempt']))
-                        <div style="margin-top: 4px; display: inline-block; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 8.5px;">KARYAWAN KHUSUS (BEBAS ATURAN)</div>
+                        <div style="margin-top: 4px; display: inline-block; background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 8.5px;">KARYAWAN KHUSUS</div>
                     @endif
                 </td>
             </tr>
@@ -238,7 +297,9 @@
         </tr>
         <tr>
             <td class="info-label">Status Aturan</td>
-            <td class="info-value" colspan="3">: {{ !empty($employee['is_exempt']) ? 'Bebas Denda & Lembur' : 'Standar Sesuai Aturan' }}</td>
+            <td class="info-value">: {{ !empty($employee['is_exempt']) ? 'Bebas Denda & Lembur' : 'Standar Sesuai Aturan' }}</td>
+            <td class="info-label">Kategori Terlambat</td>
+            <td class="info-value">: {{ $late_breakdown['category_name'] ?? 'Umum' }}</td>
         </tr>
     </table>
 
@@ -280,11 +341,11 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 25px; text-align: center;">No</th>
-                <th style="width: 85px;">Tanggal &amp; Hari</th>
-                <th style="width: 50px; text-align: center;">Status</th>
-                <th style="width: 60px; text-align: center;">Scan Masuk</th>
-                <th style="width: 60px; text-align: center;">Scan Pulang</th>
+                <th style="width: 22px; text-align: center;">No</th>
+                <th style="width: 78px;">Tanggal &amp; Hari</th>
+                <th style="width: 40px; text-align: center;">Status</th>
+                <th style="width: 52px; text-align: center;">Scan Masuk</th>
+                <th style="width: 52px; text-align: center;">Scan Pulang</th>
                 <th style="width: 65px; text-align: center;">Terlambat</th>
                 <th style="width: 65px; text-align: center;">Lembur</th>
                 <th>Keterangan</th>
@@ -301,6 +362,27 @@
                     elseif ($r['status'] === 'A') $badgeClass = 'badge-a';
                     elseif ($r['status'] === 'L') $badgeClass = 'badge-l';
                     elseif ($r['status'] === 'LN') $badgeClass = 'badge-ln';
+
+                    $lateMnt = $r['late_minutes'] ?? 0;
+                    $otMnt = $r['overtime_minutes'] ?? 0;
+                    $tierName = $r['late_tier_name'] ?? null;
+                    $tierOrder = $r['late_tier'] ?? null;
+                    $otTypeName = $r['overtime_type_name'] ?? null;
+
+                    $otTag = 'tag-amber';
+                    $otLabel = '';
+                    if ($otTypeName) {
+                        if (str_contains($otTypeName, 'Weekend') || str_contains($otTypeName, 'Akhir Pekan')) {
+                            $otTag = 'tag-blue';
+                            $otLabel = 'Akhir Pekan';
+                        } elseif (str_contains($otTypeName, 'Besar') || str_contains($otTypeName, 'Nasional')) {
+                            $otTag = 'tag-rose';
+                            $otLabel = 'Hari Libur';
+                        } else {
+                            $otTag = 'tag-amber';
+                            $otLabel = 'Hari Kerja';
+                        }
+                    }
                 @endphp
                 <tr>
                     <td class="text-center">{{ $idx + 1 }}</td>
@@ -311,15 +393,27 @@
                     <td class="text-center">
                         <span class="badge {{ $badgeClass }}">{{ $r['status'] }}</span>
                     </td>
-                    <td class="text-center font-mono">{{ $r['first_scan'] ?? '-' }}</td>
-                    <td class="text-center font-mono">{{ $r['last_scan'] ?? '-' }}</td>
-                    <td class="text-center" style="{{ ($r['late_minutes'] ?? 0) > 0 ? 'color: #b45309; font-weight: bold;' : '' }}">
-                        {{ ($r['late_minutes'] ?? 0) > 0 ? ($r['late_minutes'] . ' mnt') : '-' }}
+                    <td class="text-center">{{ $r['first_scan'] ?? '-' }}</td>
+                    <td class="text-center">{{ $r['last_scan'] ?? '-' }}</td>
+                    <td class="text-center" style="{{ $lateMnt > 0 ? 'color: #b45309; font-weight: bold;' : '' }}">
+                        {{ $lateMnt > 0 ? $lateMnt . ' mnt' : '-' }}
                     </td>
-                    <td class="text-center" style="{{ ($r['overtime_minutes'] ?? 0) > 0 ? 'color: #be123c; font-weight: bold;' : '' }}">
-                        {{ ($r['overtime_minutes'] ?? 0) > 0 ? ($r['overtime_minutes'] . ' mnt') : '-' }}
+                    <td class="text-center" style="{{ $otMnt > 0 ? 'color: #be123c; font-weight: bold;' : '' }}">
+                        {{ $otMnt > 0 ? $otMnt . ' mnt' : '-' }}
                     </td>
-                    <td>{{ $r['note'] }}</td>
+                    <td>
+                        {{ $r['note'] }}
+                        @if($lateMnt > 0 && ($tierName || $tierOrder))
+                            <span class="cell-sub">
+                                <span class="tag-amber">{{ $tierName ?: 'Tier ' . $tierOrder }}</span>
+                            </span>
+                        @endif
+                        @if($otMnt > 0 && $otLabel)
+                            <span class="cell-sub">
+                                <span class="{{ $otTag }}">{{ $otLabel }}</span>
+                            </span>
+                        @endif
+                    </td>
                 </tr>
             @endforeach
         </tbody>
