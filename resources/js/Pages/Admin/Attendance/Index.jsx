@@ -76,9 +76,9 @@ const Attendance = () => {
     const popoverPositionStyle = useMemo(() => {
         if (!hoverPopover || !hoverPopover.rect) return {};
 
-        const { rect, type } = hoverPopover;
-        const popWidth = type === 'outdoor' ? 320 : 288;
-        const popHeight = type === 'outdoor' ? 340 : 180;
+        const { rect } = hoverPopover;
+        const popWidth = 288;
+        const popHeight = 180;
 
         const spaceBelow = window.innerHeight - rect.bottom;
         const spaceAbove = rect.top;
@@ -522,23 +522,12 @@ const Attendance = () => {
                                                         {row.late_info && <Info className="w-3.5 h-3.5 text-amber-700" />}
                                                     </div>
                                                 )}
-                                                {row.is_outdoor && (
-                                                    <div 
-                                                        onMouseEnter={(e) => handleBadgeMouseEnter('outdoor', row, e)}
-                                                        onMouseLeave={handleBadgeMouseLeave}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-900 border border-teal-200 cursor-pointer hover:bg-teal-200/80 transition"
-                                                    >
-                                                        <Navigation className="w-3.5 h-3.5 text-teal-700" />
-                                                        <span>Absen Luar</span>
-                                                        <Info className="w-3.5 h-3.5 text-teal-700" />
-                                                    </div>
-                                                )}
                                                 {row.status === 'izin' && (
                                                     <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-200">
                                                         Izin / Sakit
                                                     </span>
                                                 )}
-                                                {!row.status && !row.is_outdoor && (
+                                                {!row.status && (
                                                     <span className="text-slate-300 italic text-xs">-</span>
                                                 )}
                                             </div>
@@ -780,105 +769,38 @@ const Attendance = () => {
                     style={popoverPositionStyle}
                     className="fixed z-[9999] pointer-events-auto transition animate-in fade-in zoom-in-95 duration-100"
                 >
-                    {hoverPopover.type === 'outdoor' ? (
-                        <div className="flex flex-col w-80 p-3.5 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl border border-slate-700/60 text-xs whitespace-normal relative">
-                            <div className="flex items-center justify-between pb-2 border-b border-slate-700 mb-2">
-                                <div className="flex items-center gap-1.5">
-                                    <Navigation className="w-3.5 h-3.5 text-teal-400" />
-                                    <span className="font-bold text-teal-400 text-[11px] uppercase tracking-wider">Absensi Luar Kantor</span>
-                                </div>
-                                <span className="text-[10px] text-teal-300 bg-teal-900/60 px-2 py-0.5 rounded-full font-medium border border-teal-700/50">
-                                    {hoverPopover.row.outdoor_info?.tap_label || 'GPS'}
+                    <div className="flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl border border-slate-700/60 text-xs whitespace-normal relative">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-700 mb-2">
+                            <span className="font-bold text-amber-400 text-[11px] uppercase tracking-wider">Detail Keterlambatan</span>
+                            <span className="text-[10px] text-slate-400 font-sans">{hoverPopover.row.late_info?.category_name}</span>
+                        </div>
+                        <div className="space-y-1.5 text-[11px] font-sans">
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-400">Durasi:</span>
+                                <span className="font-medium text-slate-200">Kategori {hoverPopover.row.late_info?.tier_order} ({hoverPopover.row.late_info?.tier_name})</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-400">Potongan Denda:</span>
+                                <span className={`font-semibold ${hoverPopover.row.late_info?.deduction > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                    {hoverPopover.row.late_info?.deduction > 0 ? `Rp ${Number(hoverPopover.row.late_info.deduction).toLocaleString('id-ID')}` : 'Rp 0'}
                                 </span>
                             </div>
-
-                            {hoverPopover.row.outdoor_info?.photo && (
-                                <div className="mb-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-950">
-                                    <img 
-                                        src={hoverPopover.row.outdoor_info.photo} 
-                                        alt="Foto Absen Luar" 
-                                        className="w-full h-32 object-contain bg-slate-950" 
-                                    />
-                                </div>
-                            )}
-
-                            <div className="space-y-1.5 text-slate-300">
-                                {hoverPopover.row.outdoor_info?.address && (
-                                    <div className="flex items-start justify-between gap-1.5">
-                                        <div className="flex items-start gap-1.5 flex-1 min-w-0">
-                                            <MapPin className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
-                                            <span className="text-[11px] leading-tight text-slate-200">
-                                                {hoverPopover.row.outdoor_info.address}
-                                            </span>
-                                        </div>
-                                        <a
-                                            href={
-                                                (hoverPopover.row.outdoor_info?.lat && hoverPopover.row.outdoor_info?.lng)
-                                                    ? `https://www.google.com/maps/search/?api=1&query=${hoverPopover.row.outdoor_info.lat},${hoverPopover.row.outdoor_info.lng}`
-                                                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hoverPopover.row.outdoor_info.address)}`
-                                            }
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-[10px] text-teal-300 hover:text-teal-100 underline shrink-0 mt-0.5 inline-flex items-center gap-0.5 cursor-pointer"
-                                            title="Buka di Google Maps"
-                                        >
-                                            <span>Peta</span>
-                                            <ExternalLink className="w-2.5 h-2.5" />
-                                        </a>
-                                    </div>
-                                )}
-                                {hoverPopover.row.outdoor_info?.keterangan && hoverPopover.row.outdoor_info.keterangan.replace(/^\[Tap (?:In|Out)\]\s*/i, '').trim() && (
-                                    <div className="pt-1.5 border-t border-slate-800 text-[11px]">
-                                        <span className="text-slate-400 block mb-0.5">Keterangan:</span>
-                                        <p className="text-slate-200 whitespace-pre-line line-clamp-3">
-                                            {hoverPopover.row.outdoor_info.keterangan.replace(/^\[Tap (?:In|Out)\]\s*/i, '').trim()}
-                                        </p>
-                                    </div>
-                                )}
-                                <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px] text-teal-300">
-                                    <span>Terverifikasi GPS & Kamera</span>
-                                    <span className="text-slate-400 font-mono">Mobile GPS</span>
-                                </div>
-                            </div>
-                            <div 
-                                style={{ left: `${hoverPopover.arrowLeft || 24}px` }}
-                                className={`absolute ${hoverPopover.isAbove ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700/60`}
-                            ></div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl border border-slate-700/60 text-xs whitespace-normal relative">
-                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-700 mb-2">
-                                <span className="font-bold text-amber-400 text-[11px] uppercase tracking-wider">Detail Keterlambatan</span>
-                                <span className="text-[10px] text-slate-400 font-sans">{hoverPopover.row.late_info?.category_name}</span>
-                            </div>
-                            <div className="space-y-1.5 text-[11px] font-sans">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-400">Durasi:</span>
-                                    <span className="font-medium text-slate-200">Kategori {hoverPopover.row.late_info?.tier_order} ({hoverPopover.row.late_info?.tier_name})</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-slate-400">Potongan Denda:</span>
-                                    <span className={`font-semibold ${hoverPopover.row.late_info?.deduction > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                        {hoverPopover.row.late_info?.deduction > 0 ? `Rp ${Number(hoverPopover.row.late_info.deduction).toLocaleString('id-ID')}` : 'Rp 0'}
+                            <div className="pt-1.5 border-t border-slate-800">
+                                <span className="text-slate-400 block mb-0.5">Status Toleransi / Denda:</span>
+                                {hoverPopover.row.late_info?.is_exempt ? (
+                                    <span className="text-emerald-400 font-semibold">Bebas Sanksi (Staf Khusus)</span>
+                                ) : (
+                                    <span className="text-amber-300 font-medium leading-relaxed block">
+                                        {hoverPopover.row.late_info?.quota_text}
                                     </span>
-                                </div>
-                                <div className="pt-1.5 border-t border-slate-800">
-                                    <span className="text-slate-400 block mb-0.5">Status Toleransi / Denda:</span>
-                                    {hoverPopover.row.late_info?.is_exempt ? (
-                                        <span className="text-emerald-400 font-semibold">Bebas Sanksi (Staf Khusus)</span>
-                                    ) : (
-                                        <span className="text-amber-300 font-medium leading-relaxed block">
-                                            {hoverPopover.row.late_info?.quota_text}
-                                        </span>
-                                    )}
-                                </div>
+                                )}
                             </div>
-                            <div 
-                                style={{ left: `${hoverPopover.arrowLeft || 24}px` }}
-                                className={`absolute ${hoverPopover.isAbove ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700/60`}
-                            ></div>
                         </div>
-                    )}
+                        <div 
+                            style={{ left: `${hoverPopover.arrowLeft || 24}px` }}
+                            className={`absolute ${hoverPopover.isAbove ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700/60`}
+                        ></div>
+                    </div>
                 </div>,
                 document.body
             )}
