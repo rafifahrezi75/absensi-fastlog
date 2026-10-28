@@ -215,11 +215,11 @@ const DevicesIndex = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-6 rounded-2xl shadow-xl border border-slate-800 flex flex-col justify-between relative overflow-hidden">
+                <div className="lg:col-span-5 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-6 rounded-2xl shadow-xl border border-slate-800 flex flex-col justify-between relative overflow-hidden isolate">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
-                    <div className="relative z-10">
+                    <div className="relative">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2.5">
                                 <span className="p-2 rounded-xl bg-white/10 backdrop-blur-md">
@@ -281,7 +281,7 @@ const DevicesIndex = () => {
                         )}
                     </div>
 
-                    <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 relative z-10">
+                    <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 relative">
                         <span>Aktivitas: {deviceData?.last_activity}</span>
                         <button
                             type="button"
