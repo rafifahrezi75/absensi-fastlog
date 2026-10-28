@@ -107,30 +107,7 @@ const DeductionPopover = ({ item, lateTiers, formatIDR }) => {
                 onClick={toggleOpen}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer hover:bg-amber-200/80 transition"
             >
-                <span>
-                    {lateTiers.length > 0 && !item.potongan_alpa && !item.potongan_lainnya
-                        ? `Telat ${lateTiers.map(t => `Kat ${t.tier_order} (${t.total_kejadian}x)`).join(', ')}`
-                        : item.potongan_alpa > 0 && !item.potongan_terlambat && !item.potongan_lainnya
-                        ? `Alpa ${item.alpa || 0} Hari`
-                        : 'Detail Potongan'}
-                </span>
-                {lateTiers.length > 0 && (item.potongan_alpa > 0 || item.potongan_lainnya > 0) && (
-                    lateTiers.map((t, idx) => (
-                        <span key={idx} className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
-                            Kat {t.tier_order} ({t.total_kejadian}x)
-                        </span>
-                    ))
-                )}
-                {item.potongan_terlambat > 0 && lateTiers.length === 0 && (
-                    <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
-                        Denda Telat
-                    </span>
-                )}
-                {item.alpa > 0 && (item.potongan_terlambat > 0 || item.potongan_lainnya > 0) && (
-                    <span className="text-[10px] bg-rose-200 text-rose-900 px-1.5 py-0.2 rounded-full font-bold">
-                        {item.alpa}h
-                    </span>
-                )}
+                <span>Detail Potongan</span>
                 <Info className="w-3.5 h-3.5 text-amber-700" />
             </button>
 
