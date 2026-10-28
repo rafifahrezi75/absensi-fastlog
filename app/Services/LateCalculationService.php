@@ -260,17 +260,58 @@ class LateCalculationService
             ];
         }
 
+        $tiersBreakdown = [];
+        foreach ($tiers as $tier) {
+            $count = 0;
+            $tolerated = 0;
+            $penalized = 0;
+            $deduction = 0;
+            if ($tier->tier_order === 1) {
+                $count = $tier1Count;
+                $tolerated = $tier1ToleratedCount;
+                $penalized = $tier1PenalizedCount;
+                $deduction = $penalized * (float)$tier->nominal_denda;
+            } elseif ($tier->tier_order === 2) {
+                $count = $tier2Count;
+                $penalized = $tier2Count;
+                $deduction = $count * (float)$tier->nominal_denda;
+            } elseif ($tier->tier_order === 3) {
+                $count = $tier3Count;
+                $penalized = $tier3Count;
+                $deduction = $count * (float)$tier->nominal_denda;
+            } elseif ($tier->tier_order === 4) {
+                $count = $tier4Count;
+                $penalized = $tier4Count;
+                $deduction = $count * (float)$tier->nominal_denda;
+            }
+
+            if ($count > 0) {
+                $tiersBreakdown[] = [
+                    'tier_order' => $tier->tier_order,
+                    'nama_tier' => $tier->nama_tier,
+                    'ada_toleransi' => (bool)$tier->ada_toleransi,
+                    'nominal_denda' => (float)$tier->nominal_denda,
+                    'total_kejadian' => $count,
+                    'toleransi_count' => $tolerated,
+                    'penalized_count' => $penalized,
+                    'deduction' => $deduction,
+                ];
+            }
+        }
+
         return [
             'is_exempt' => false,
             'category' => $category,
             'total_late_minutes' => $totalLateMinutes,
             'total_deduction' => $totalDeduction,
+            'total_late_events' => $tier1Count + $tier2Count + $tier3Count + $tier4Count,
             'tier1_count' => $tier1Count,
             'tier1_tolerated_count' => $tier1ToleratedCount,
             'tier1_penalized_count' => $tier1PenalizedCount,
             'tier2_count' => $tier2Count,
             'tier3_count' => $tier3Count,
             'tier4_count' => $tier4Count,
+            'tiers_breakdown' => $tiersBreakdown,
             'daily_details' => $dailyDetails,
         ];
     }
