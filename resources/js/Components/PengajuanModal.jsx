@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Camera, MapPin, UploadCloud, Send, RefreshCw, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import api from '../lib/api';
 
-const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRules }) => {
+const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRules, todayAttendance }) => {
     const today = new Date().toISOString().split('T')[0];
     const [startDate, setStartDate] = useState(today);
     const [endDate, setEndDate] = useState(today);
@@ -61,9 +61,14 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
             setKeterangan('');
         } else if (isOpen && type === 'Absensi') {
             getLocation();
+            if (todayAttendance?.has_tap_in && !todayAttendance?.has_tap_out) {
+                setTapType('out');
+            } else {
+                setTapType('in');
+            }
             setKeterangan(prev => prev ? prev : "Alasan tidak bisa tap di kantor:\nLokasi Kerja: ");
         }
-    }, [isOpen, type]);
+    }, [isOpen, type, todayAttendance]);
 
     useEffect(() => {
         if (type === 'Lembur' && startDate) {
@@ -252,6 +257,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
             let finalKeterangan = keterangan;
             if (type === 'Absensi') {
                 finalKeterangan = `[Tap ${tapType === 'in' ? 'In' : 'Out'}]\n${keterangan}`;
+                formData.append('tap_type', tapType);
             }
             formData.append('keterangan', finalKeterangan);
 
@@ -367,32 +373,55 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                         )}
 
                         {type === 'Absensi' && (
-                            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3.5">
-                                <label className="block text-xs font-semibold text-gray-700 mb-2.5">Jenis Absensi</label>
+                            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3.5 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="block text-xs font-semibold text-gray-700">Jenis Absensi Luar</label>
+                                    <span className="text-[10px] text-teal-800 bg-teal-100 font-semibold px-2 py-0.5 rounded-full border border-teal-200">
+                                        1x Tap In & 1x Tap Out / hari
+                                    </span>
+                                </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setTapType('in')}
-                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${tapType === 'in'
+                                        className={`py-2.5 px-3 rounded-lg text-xs font-semibold border-2 transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${tapType === 'in'
                                             ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
-                                            : 'bg-white border-teal-200 text-teal-600 hover:border-teal-400'
+                                            : 'bg-white border-teal-200 text-teal-700 hover:border-teal-400'
                                             }`}
                                     >
-                                        Tap In (Masuk)
+                                        <span>Tap In (Masuk)</span>
+                                        {todayAttendance?.has_tap_in && (
+                                            <span className={`text-[10px] ${tapType === 'in' ? 'text-teal-100' : 'text-teal-600'} font-normal`}>
+                                                Sudah tercatat ({todayAttendance.tap_in?.time})
+                                            </span>
+                                        )}
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setTapType('out')}
-                                        className={`py-2.5 px-4 rounded-lg text-xs font-semibold border-2 transition cursor-pointer ${tapType === 'out'
+                                        className={`py-2.5 px-3 rounded-lg text-xs font-semibold border-2 transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${tapType === 'out'
                                             ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
-                                            : 'bg-white border-teal-200 text-teal-600 hover:border-teal-400'
+                                            : 'bg-white border-teal-200 text-teal-700 hover:border-teal-400'
                                             }`}
                                     >
-                                        Tap Out (Pulang)
+                                        <span>Tap Out (Pulang)</span>
+                                        {todayAttendance?.has_tap_out && (
+                                            <span className={`text-[10px] ${tapType === 'out' ? 'text-teal-100' : 'text-teal-600'} font-normal`}>
+                                                Sudah tercatat ({todayAttendance.tap_out?.time})
+                                            </span>
+                                        )}
                                     </button>
                                 </div>
-                                <p className="text-[11px] text-teal-700 mt-2 font-medium">
-                                    Pilih sesuai jenis absensi yang ingin diajukan. Foto GPS wajib disertakan.
+
+                                {((tapType === 'in' && todayAttendance?.has_tap_in) || (tapType === 'out' && todayAttendance?.has_tap_out)) && (
+                                    <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-amber-800 text-[11px] leading-relaxed">
+                                        <span className="font-bold block text-amber-900 mb-0.5">Mode Koreksi / Edit:</span>
+                                        Anda telah mengirim {tapType === 'in' ? 'Tap In' : 'Tap Out'} hari ini. Ambil foto GPS baru dan tuliskan keterangan jika Anda ingin memperbaiki data yang keliru.
+                                    </div>
+                                )}
+
+                                <p className="text-[11px] text-teal-700 font-medium">
+                                    Data absensi luar langsung dicatat ke Log Absensi tanpa masuk lembur. Foto selfie GPS wajib disertakan.
                                 </p>
                             </div>
                         )}
@@ -663,7 +692,14 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                         className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm shadow-orange-500/20 cursor-pointer disabled:opacity-60"
                     >
                         {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                        <span>{submitting ? 'Mengirim...' : 'Kirim Pengajuan'}</span>
+                        <span>
+                            {submitting 
+                                ? 'Mengirim...' 
+                                : (type === 'Absensi' && ((tapType === 'in' && todayAttendance?.has_tap_in) || (tapType === 'out' && todayAttendance?.has_tap_out)))
+                                    ? `Perbarui ${tapType === 'in' ? 'Tap In' : 'Tap Out'}`
+                                    : 'Kirim Pengajuan'
+                            }
+                        </span>
                     </button>
                 </div>
             </div>

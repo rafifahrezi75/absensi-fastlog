@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
+use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\Permission;
 use App\Models\User;
@@ -95,6 +97,43 @@ class UserPermissionController extends Controller
         $overtimeSettings = $overtimeService->getSettings();
         $catLower = strtolower($staffCategory);
 
+        $todayDate = date('Y-m-d');
+        $todayLogs = AttendanceLog::where('employee_id', $employee->id)
+            ->whereDate('scan_at', $todayDate)
+            ->where('verify_method', 'mobile_gps')
+            ->orderBy('scan_at', 'asc')
+            ->get();
+
+        $todayAttendance = [
+            'has_tap_in' => false,
+            'has_tap_out' => false,
+            'tap_in' => null,
+            'tap_out' => null,
+        ];
+
+        foreach ($todayLogs as $tl) {
+            $raw = $tl->raw_data ?: [];
+            if ($tl->status_scan === '0') {
+                $todayAttendance['has_tap_in'] = true;
+                $todayAttendance['tap_in'] = [
+                    'id' => $tl->id,
+                    'time' => substr($tl->getRawOriginal('scan_at'), 11, 5),
+                    'keterangan' => $raw['keterangan'] ?? '',
+                    'photo' => !empty($raw['lampiran']) ? '/uploads/permissions/' . $raw['lampiran'] : null,
+                    'address' => $raw['location_address'] ?? '',
+                ];
+            } elseif ($tl->status_scan === '1') {
+                $todayAttendance['has_tap_out'] = true;
+                $todayAttendance['tap_out'] = [
+                    'id' => $tl->id,
+                    'time' => substr($tl->getRawOriginal('scan_at'), 11, 5),
+                    'keterangan' => $raw['keterangan'] ?? '',
+                    'photo' => !empty($raw['lampiran']) ? '/uploads/permissions/' . $raw['lampiran'] : null,
+                    'address' => $raw['location_address'] ?? '',
+                ];
+            }
+        }
+
         return response()->json([
             'employee' => [
                 'id' => $employee->id,
@@ -126,6 +165,7 @@ class UserPermissionController extends Controller
                 'total' => $countIzin + $countSakit + $countDinas + $countLembur + $countAbsensi,
             ],
             'recent' => $recentPermissions,
+            'today_attendance' => $todayAttendance,
         ]);
     }
 
@@ -191,6 +231,7 @@ class UserPermissionController extends Controller
     {
         $validated = $request->validate([
             'category' => 'required|string|in:izin,sakit,dinas,cuti,lembur,absensi,Izin,Sakit,Dinas,Cuti,Lembur,Absensi',
+            'tap_type' => 'nullable|string|in:in,out',
             'tipe_lembur' => 'nullable|string|in:DAILY,WEEKENDS,HARI_BESAR',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
@@ -243,6 +284,155 @@ class UserPermissionController extends Controller
 
         $category = strtolower($validated['category']);
 
+        if ($category === 'absensi') {
+            $tapType = $request->input('tap_type');
+            $isTapIn = ($tapType === 'in') || str_contains(strtolower($validated['keterangan']), '[tap in]');
+            $statusScan = $isTapIn ? '0' : '1';
+            $scanDate = $validated['tanggal_mulai'];
+            $tapDateTime = Carbon::now();
+
+            $existingLog = AttendanceLog::where('employee_id', $employee->id)
+                ->whereDate('scan_at', $scanDate)
+                ->where('verify_method', 'mobile_gps')
+                ->where('status_scan', $statusScan)
+                ->first();
+
+            $attendance = Attendance::firstOrNew([
+                'employee_id' => $employee->id,
+                'tanggal' => $scanDate,
+            ]);
+            if (!$attendance->exists) {
+                $attendance->user_id = $user->id;
+                $attendance->status = 'hadir';
+            }
+            if ($isTapIn) {
+                $attendance->jam_masuk = $tapDateTime;
+            } else {
+                $attendance->jam_pulang = $tapDateTime;
+            }
+            $attendance->save();
+
+            if ($existingLog) {
+                if ($attachmentName && !empty($existingLog->raw_data['lampiran'])) {
+                    $oldFile = public_path('uploads/permissions/' . $existingLog->raw_data['lampiran']);
+                    if (File::exists($oldFile)) {
+                        @unlink($oldFile);
+                    }
+                }
+
+                $cloudId = $employee->cloud_id ?: 'MOBILE_GPS';
+                $pin = $employee->pin ?: ($employee->nik ?: (string)$employee->id);
+
+                while (AttendanceLog::where('cloud_id', $cloudId)
+                    ->where('pin', $pin)
+                    ->where('scan_at', $tapDateTime)
+                    ->where('id', '!=', $existingLog->id)
+                    ->exists()) {
+                    $tapDateTime = $tapDateTime->copy()->addSecond();
+                }
+
+                $prevRaw = $existingLog->raw_data ?: [];
+                $existingLog->scan_at = $tapDateTime;
+                $existingLog->raw_data = [
+                    'source' => 'absen_luar',
+                    'tap_type' => $isTapIn ? 'in' : 'out',
+                    'keterangan' => $keterangan,
+                    'lampiran' => $attachmentName ?: ($prevRaw['lampiran'] ?? null),
+                    'latitude' => $validated['latitude'] ?? ($prevRaw['latitude'] ?? null),
+                    'longitude' => $validated['longitude'] ?? ($prevRaw['longitude'] ?? null),
+                    'location_address' => $validated['location_address'] ?? ($prevRaw['location_address'] ?? null),
+                ];
+                $existingLog->save();
+
+                $permTag = $isTapIn ? '%[Tap In]%' : '%[Tap Out]%';
+                $existingPerm = Permission::where('employee_id', $employee->id)
+                    ->where('category', 'absensi')
+                    ->whereDate('tanggal_mulai', $scanDate)
+                    ->where('keterangan', 'like', $permTag)
+                    ->first();
+
+                if ($existingPerm) {
+                    if ($attachmentName && $existingPerm->lampiran && $existingPerm->lampiran !== $attachmentName) {
+                        $oldPermFile = public_path('uploads/permissions/' . $existingPerm->lampiran);
+                        if (File::exists($oldPermFile)) {
+                            @unlink($oldPermFile);
+                        }
+                    }
+                    $existingPerm->update([
+                        'keterangan' => $keterangan,
+                        'jam_mulai' => $tapDateTime->format('H:i:s'),
+                        'lampiran' => $attachmentName ?: $existingPerm->lampiran,
+                        'status' => 'disetujui',
+                    ]);
+                } else {
+                    Permission::create([
+                        'employee_id' => $employee->id,
+                        'user_id' => $user->id,
+                        'category' => 'absensi',
+                        'tanggal_mulai' => $scanDate,
+                        'tanggal_selesai' => $scanDate,
+                        'jam_mulai' => $tapDateTime->format('H:i:s'),
+                        'durasi' => 1,
+                        'keterangan' => $keterangan,
+                        'lampiran' => $attachmentName,
+                        'status' => 'disetujui',
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Absensi ' . ($isTapIn ? 'Tap In (Masuk)' : 'Tap Out (Pulang)') . ' luar berhasil diperbarui.',
+                    'log' => $existingLog,
+                ]);
+            }
+
+            $cloudId = $employee->cloud_id ?: 'MOBILE_GPS';
+            $pin = $employee->pin ?: ($employee->nik ?: (string)$employee->id);
+
+            while (AttendanceLog::where('cloud_id', $cloudId)->where('pin', $pin)->where('scan_at', $tapDateTime)->exists()) {
+                $tapDateTime = $tapDateTime->copy()->addSecond();
+            }
+
+            $log = AttendanceLog::create([
+                'employee_id' => $employee->id,
+                'device_id' => null,
+                'cloud_id' => $cloudId,
+                'pin' => $pin,
+                'scan_at' => $tapDateTime,
+                'verify_method' => 'mobile_gps',
+                'status_scan' => $statusScan,
+                'raw_data' => [
+                    'source' => 'absen_luar',
+                    'tap_type' => $isTapIn ? 'in' : 'out',
+                    'keterangan' => $keterangan,
+                    'lampiran' => $attachmentName,
+                    'latitude' => $validated['latitude'] ?? null,
+                    'longitude' => $validated['longitude'] ?? null,
+                    'location_address' => $validated['location_address'] ?? null,
+                ],
+            ]);
+
+            $permission = Permission::create([
+                'employee_id' => $employee->id,
+                'user_id' => $user->id,
+                'category' => 'absensi',
+                'tanggal_mulai' => $scanDate,
+                'tanggal_selesai' => $scanDate,
+                'jam_mulai' => $tapDateTime->format('H:i:s'),
+                'durasi' => 1,
+                'keterangan' => $keterangan,
+                'lampiran' => $attachmentName,
+                'status' => 'disetujui',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Absensi ' . ($isTapIn ? 'Tap In (Masuk)' : 'Tap Out (Pulang)') . ' luar berhasil dicatat ke log absensi.',
+                'log' => $log,
+                'permission' => $permission,
+            ], 201);
+        }
+
         $tipeLembur = null;
         if ($category === 'lembur') {
             if (!empty($validated['tipe_lembur'])) {
@@ -253,38 +443,36 @@ class UserPermissionController extends Controller
             }
         }
 
-        $jamMulai = $validated['jam_mulai'] ?? ($category === 'absensi' ? Carbon::now()->format('H:i:s') : null);
+        $jamMulai = $validated['jam_mulai'] ?? null;
 
-        if ($category !== 'absensi') {
-            $existing = Permission::where(function ($q) use ($employee, $user) {
-                    $q->where('employee_id', $employee->id)
-                      ->orWhere('user_id', $user->id);
-                })
-                ->whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending', 'disetujui', 'approved'])
-                ->where(function ($q) use ($validated) {
-                    $q->whereDate('tanggal_mulai', '<=', $validated['tanggal_selesai'])
-                      ->where(function ($sub) use ($validated) {
-                          $sub->where(function ($s1) use ($validated) {
-                              $s1->whereNotNull('tanggal_selesai')
-                                 ->where('tanggal_selesai', '!=', '')
-                                 ->whereDate('tanggal_selesai', '>=', $validated['tanggal_mulai']);
-                          })->orWhere(function ($s2) use ($validated) {
-                              $s2->where(function ($s3) {
-                                  $s3->whereNull('tanggal_selesai')
-                                     ->orWhere('tanggal_selesai', '');
-                              })->whereDate('tanggal_mulai', '>=', $validated['tanggal_mulai']);
-                          });
+        $existing = Permission::where(function ($q) use ($employee, $user) {
+                $q->where('employee_id', $employee->id)
+                  ->orWhere('user_id', $user->id);
+            })
+            ->whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending', 'disetujui', 'approved'])
+            ->where(function ($q) use ($validated) {
+                $q->whereDate('tanggal_mulai', '<=', $validated['tanggal_selesai'])
+                  ->where(function ($sub) use ($validated) {
+                      $sub->where(function ($s1) use ($validated) {
+                          $s1->whereNotNull('tanggal_selesai')
+                             ->where('tanggal_selesai', '!=', '')
+                             ->whereDate('tanggal_selesai', '>=', $validated['tanggal_mulai']);
+                      })->orWhere(function ($s2) use ($validated) {
+                          $s2->where(function ($s3) {
+                              $s3->whereNull('tanggal_selesai')
+                                 ->orWhere('tanggal_selesai', '');
+                          })->whereDate('tanggal_mulai', '>=', $validated['tanggal_mulai']);
                       });
-                })
-                ->first();
+                  });
+            })
+            ->first();
 
-            if ($existing) {
-                $existingCat = ucfirst($existing->category);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Anda sudah memiliki pengajuan ' . $existingCat . ' pada rentang tanggal tersebut yang berstatus menunggu atau disetujui.',
-                ], 422);
-            }
+        if ($existing) {
+            $existingCat = ucfirst($existing->category);
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda sudah memiliki pengajuan ' . $existingCat . ' pada rentang tanggal tersebut yang berstatus menunggu atau disetujui.',
+            ], 422);
         }
 
         $permission = Permission::create([

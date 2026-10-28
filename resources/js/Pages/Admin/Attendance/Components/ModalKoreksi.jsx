@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, Calendar, User, FileText, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { X, Clock, Calendar, User, FileText, Trash2, Loader2, AlertCircle, Camera, MapPin, ExternalLink, Navigation } from 'lucide-react';
 import api from '../../../../lib/api';
 import { showConfirm } from '../../../../lib/swal';
 
@@ -153,6 +153,44 @@ const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
                             <span className="text-slate-800 font-semibold">{data?.tanggalDisplay || data?.tanggal || '-'}</span>
                         </div>
                     </div>
+
+                    {(data?.foto || data?.outdoor_info?.photo) && (
+                        <div className="p-3.5 bg-teal-50/70 rounded-xl border border-teal-200/80 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-teal-900 flex items-center gap-1.5">
+                                    <Camera className="w-3.5 h-3.5 text-teal-600" />
+                                    Foto Bukti Absensi Luar (GPS)
+                                </span>
+                                <a 
+                                    href={data.foto || data.outdoor_info?.photo} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    className="text-[11px] font-semibold text-teal-700 hover:text-teal-900 flex items-center gap-1 transition"
+                                >
+                                    Lihat Penuh <ExternalLink className="w-3 h-3" />
+                                </a>
+                            </div>
+                            <div className="rounded-lg overflow-hidden border border-teal-200 bg-slate-900 max-h-56 flex items-center justify-center">
+                                <img 
+                                    src={data.foto || data.outdoor_info?.photo} 
+                                    alt="Bukti Absensi Luar" 
+                                    className="w-full max-h-56 object-contain bg-slate-950" 
+                                />
+                            </div>
+                            {(data.address || data.outdoor_info?.address) && (
+                                <p className="text-[11px] text-teal-800 flex items-start gap-1">
+                                    <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
+                                    <span>{data.address || data.outdoor_info?.address}</span>
+                                </p>
+                            )}
+                            {(data.keterangan || data.outdoor_info?.keterangan) && (
+                                <div className="text-[11px] text-slate-700 bg-white/80 p-2 rounded-lg border border-teal-100 whitespace-pre-line">
+                                    <span className="font-semibold text-slate-800 block mb-0.5">Keterangan / Alasan:</span>
+                                    {data.keterangan || data.outdoor_info?.keterangan}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
