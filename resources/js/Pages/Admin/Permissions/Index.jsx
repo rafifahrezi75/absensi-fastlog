@@ -12,7 +12,6 @@ import {
   Inbox,
   CheckCircle2,
   AlertCircle,
-  Play,
   RefreshCw,
   Loader2,
   Plus,
@@ -62,15 +61,6 @@ const Permissions = () => {
     item: null,
     status: 'disetujui',
     note: '',
-    loading: false
-  });
-
-  const [simulatorModal, setSimulatorModal] = useState({
-    isOpen: false,
-    employeeId: '',
-    tapTime: '',
-    reason: '',
-    result: null,
     loading: false
   });
 
@@ -161,57 +151,7 @@ const Permissions = () => {
         };
       });
 
-      const dbDiLuarJadwal = (res.data.anomalies || []).map(item => {
-        const tapTime = item.waktu_tap || item.tap_time;
-        const rawStatus = (item.status || 'MENUNGGU').toLowerCase();
-        const normStatus = rawStatus === 'pending' ? 'menunggu' : (rawStatus === 'approved' ? 'disetujui' : (rawStatus === 'rejected' ? 'ditolak' : rawStatus));
-
-        return {
-          id: `db_dl_${item.id}`,
-          rawId: item.id,
-          source: 'anomaly',
-          name: item.employee?.nama || 'Karyawan',
-          department: item.employee?.dept || 'Umum',
-          avatar: getInitials(item.employee?.nama),
-          category: 'di_luar_jadwal',
-          date: formatDate(tapTime),
-          duration: `Tap Mesin (${formatTime(tapTime)})`,
-          description: item.alasan || item.reason || '',
-          attachment: null,
-          status: normStatus,
-          sortTime: tapTime
-        };
-      });
-
-      const dbLembur = (res.data.overtime || []).map(item => {
-        const tapTime = item.waktu_tap || item.tap_time;
-        const durationMin = item.durasi_menit ?? item.duration_minutes ?? 0;
-        const rawStatus = (item.status || 'MENUNGGU').toLowerCase();
-        const normStatus = rawStatus === 'pending' ? 'menunggu' : (rawStatus === 'approved' ? 'disetujui' : (rawStatus === 'rejected' ? 'ditolak' : rawStatus));
-
-        const tipeLemburLabel = item.tipe_lembur === 'HARI_BESAR' 
-          ? 'Lembur Hari Besar' 
-          : (item.tipe_lembur === 'WEEKENDS' ? 'Lembur Standby Weekends' : 'Lembur Standby Daily');
-        const nominalStr = item.nominal ? `Rp ${Number(item.nominal).toLocaleString('id-ID')}` : (durationMin > 0 ? `${durationMin} Menit` : 'Flat');
-
-        return {
-          id: `db_lembur_${item.id}`,
-          rawId: item.id,
-          source: 'overtime',
-          name: item.employee?.nama || 'Karyawan',
-          department: item.employee?.dept || 'Umum',
-          avatar: getInitials(item.employee?.nama),
-          category: 'lembur',
-          date: formatDate(tapTime),
-          duration: `${tipeLemburLabel} (${nominalStr})`,
-          description: item.catatan_admin || item.admin_note || `Tap lembur mesin ${item.kategori_staf ? `[${item.kategori_staf}]` : ''} jam ${formatTime(tapTime)}`,
-          attachment: null,
-          status: normStatus,
-          sortTime: tapTime
-        };
-      });
-
-      const unified = [...dbPermissions, ...dbDiLuarJadwal, ...dbLembur].sort((a, b) => {
+      const unified = [...dbPermissions].sort((a, b) => {
         return new Date(b.sortTime) - new Date(a.sortTime);
       });
 
@@ -222,10 +162,9 @@ const Permissions = () => {
       } else {
         setStats({
           pending: unified.filter(p => p.status === 'menunggu' || p.status === 'pending').length,
-          di_luar_jadwal: dbDiLuarJadwal.length,
           izin_sakit: dbPermissions.filter(p => ['izin', 'sakit', 'cuti', 'dispensasi_payroll'].includes((p.category || '').toLowerCase())).length,
-          izin_cuti: dbPermissions.filter(p => ['izin', 'sakit', 'cuti', 'dispensasi_payroll'].includes((p.category || '').toLowerCase())).length,
-          lembur_dinas: dbLembur.length + dbPermissions.filter(p => ['lembur', 'dinas'].includes((p.category || '').toLowerCase())).length
+          dinas: dbPermissions.filter(p => (p.category || '').toLowerCase() === 'dinas').length,
+          lembur_disetujui: '0 Hari'
         });
       }
     } catch (err) {
@@ -450,62 +389,6 @@ const Permissions = () => {
     }
   };
 
-  const handleOpenSimulator = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const defaultTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-    setSimulatorModal({
-      isOpen: true,
-      employeeId: employees.length > 0 ? String(employees[0].id) : '',
-      tapTime: defaultTime,
-      reason: '',
-      result: null,
-      loading: false
-    });
-  };
-
-  const setQuickTime = (timeStr) => {
-    const today = new Date().toISOString().split('T')[0];
-    setSimulatorModal(prev => ({
-      ...prev,
-      tapTime: `${today}T${timeStr}`
-    }));
-  };
-
-  const handleSendSimulatedTap = async (e) => {
-    e.preventDefault();
-    try {
-      setSimulatorModal(prev => ({ ...prev, loading: true, result: null }));
-      const payload = {
-        employee_id: simulatorModal.employeeId,
-        tap_time: simulatorModal.tapTime.replace('T', ' ') + ':00',
-        reason: simulatorModal.reason || undefined
-      };
-
-      const res = await api.post('/api/attendance/tap', payload);
-      setSimulatorModal(prev => ({
-        ...prev,
-        result: { success: true, data: res.data },
-        loading: false
-      }));
-      await loadData();
-    } catch (err) {
-      setSimulatorModal(prev => ({
-        ...prev,
-        result: {
-          success: false,
-          message: err.response?.data?.message || 'Gagal mengirim tap.'
-        },
-        loading: false
-      }));
-    }
-  };
-
   const filteredPermissions = useMemo(() => {
     return permissions.filter(item => {
       const searchLower = searchTerm.toLowerCase().trim();
@@ -527,12 +410,6 @@ const Permissions = () => {
 
   const renderCategoryBadge = (category) => {
     switch (category) {
-      case 'di_luar_jadwal':
-        return (
-          <span className="bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" /> Di Luar Jadwal
-          </span>
-        );
       case 'sakit':
         return (
           <span className="bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
@@ -625,7 +502,7 @@ const Permissions = () => {
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-500">Tinjau dan kelola seluruh pencatatan tap di luar jadwal, lembur mesin, serta pengajuan izin, cuti, dan sakit karyawan.</p>
+          <p className="text-sm text-slate-500">Tinjau dan kelola seluruh pengajuan izin, sakit, cuti, dinas luar, serta kerja lembur karyawan.</p>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
@@ -656,39 +533,39 @@ const Permissions = () => {
             <div className="p-1.5 bg-amber-50 rounded-lg"><Clock className="w-4 h-4 text-amber-600" /></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">
-            {stats.pending}
+            {stats.pending ?? 0}
           </div>
           <span className="text-[11px] text-slate-400">Perlu tinjauan admin</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Di Luar Jadwal</span>
-            <div className="p-1.5 bg-amber-50 rounded-lg"><Clock className="w-4 h-4 text-amber-700" /></div>
-          </div>
-          <div className="text-2xl font-bold text-slate-900">
-            {stats.di_luar_jadwal}
-          </div>
-          <span className="text-[11px] text-slate-400">Tap jam kerja mesin</span>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Izin &amp; Sakit</span>
+            <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Izin, Sakit &amp; Cuti</span>
             <div className="p-1.5 bg-emerald-50 rounded-lg"><FileCheck2 className="w-4 h-4 text-emerald-600" /></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">
-            {stats.izin_sakit ?? stats.izin_cuti ?? 0}
+            {stats.izin_sakit ?? 0}
           </div>
           <span className="text-[11px] text-slate-400">Total data tercatat</span>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Dinas &amp; Lembur</span>
-            <div className="p-1.5 bg-indigo-50 rounded-lg"><Briefcase className="w-4 h-4 text-indigo-600" /></div>
+            <span className="text-xs font-semibold text-orange-600 uppercase tracking-wider">Dinas Luar</span>
+            <div className="p-1.5 bg-orange-50 rounded-lg"><Briefcase className="w-4 h-4 text-orange-600" /></div>
           </div>
           <div className="text-2xl font-bold text-slate-900">
-            {stats.lembur_dinas ?? 0}
+            {stats.dinas ?? 0}
           </div>
-          <span className="text-[11px] text-slate-400">Total data tercatat</span>
+          <span className="text-[11px] text-slate-400">Total penugasan dinas</span>
+        </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Total Lembur Disetujui</span>
+            <div className="p-1.5 bg-indigo-50 rounded-lg"><Clock className="w-4 h-4 text-indigo-600" /></div>
+          </div>
+          <div className="text-2xl font-bold text-slate-900">
+            {stats.lembur_disetujui ?? '0 Hari'}
+          </div>
+          <span className="text-[11px] text-slate-400">Durasi lembur di-approve</span>
         </div>
       </div>
 
@@ -709,7 +586,6 @@ const Permissions = () => {
           className="border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-600 cursor-pointer"
         >
           <option value="">Semua Kategori</option>
-          <option value="di_luar_jadwal">Di Luar Jadwal</option>
           <option value="lembur">Lembur</option>
           <option value="izin">Izin</option>
           <option value="sakit">Sakit</option>
@@ -1153,149 +1029,6 @@ const Permissions = () => {
                 <span>Hapus Sekarang</span>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {simulatorModal.isOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200">
-                  <Play className="w-4 h-4" />
-                </span>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">
-                    Simulator Tap Mesin Absensi
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Uji coba tap di luar jadwal atau lembur langsung ke sistem.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSimulatorModal(p => ({ ...p, isOpen: false }))}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSendSimulatedTap} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Pilih Karyawan:
-                </label>
-                <select
-                  value={simulatorModal.employeeId}
-                  onChange={(e) => setSimulatorModal(p => ({ ...p, employeeId: e.target.value }))}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                  required
-                >
-                  <option value="" disabled hidden>-- Pilih Karyawan --</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.nama} (ID: {emp.pin || emp.id}) - {emp.dept || 'Umum'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-slate-700">
-                    Waktu Tap:
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setQuickTime('08:10')}
-                      className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-                    >
-                      08:10 (Masuk)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuickTime('10:30')}
-                      className="text-[10px] px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 text-amber-700 transition border border-amber-200 cursor-pointer"
-                    >
-                      10:30 (Di Luar Jadwal)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuickTime('16:45')}
-                      className="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-                    >
-                      16:45 (Pulang)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQuickTime('19:15')}
-                      className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition border border-indigo-200 cursor-pointer"
-                    >
-                      19:15 (Lembur)
-                    </button>
-                  </div>
-                </div>
-                <input
-                  type="datetime-local"
-                  value={simulatorModal.tapTime}
-                  onChange={(e) => setSimulatorModal(p => ({ ...p, tapTime: e.target.value }))}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer font-mono"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Keterangan / Alasan (Opsional):
-                </label>
-                <input
-                  type="text"
-                  placeholder="Kosongkan jika log otomatis mesin..."
-                  value={simulatorModal.reason}
-                  onChange={(e) => setSimulatorModal(p => ({ ...p, reason: e.target.value }))}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              {simulatorModal.result && (
-                <div className={`p-3 rounded-xl border text-xs ${
-                  simulatorModal.result.success
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : 'bg-rose-50 text-rose-800 border-rose-200'
-                }`}>
-                  <div className="font-semibold mb-0.5">
-                    {simulatorModal.result.success ? 'Hasil Simulasi Tap:' : 'Gagal:'}
-                  </div>
-                  <p className="text-[11px]">
-                    {simulatorModal.result.success
-                      ? simulatorModal.result.data?.message
-                      : simulatorModal.result.message}
-                  </p>
-                </div>
-              )}
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSimulatorModal(p => ({ ...p, isOpen: false }))}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-                >
-                  Tutup
-                </button>
-                <button
-                  type="submit"
-                  disabled={simulatorModal.loading}
-                  className="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm"
-                >
-                  {simulatorModal.loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Kirim Tap Simulasi</span>
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

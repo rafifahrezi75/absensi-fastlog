@@ -129,6 +129,15 @@ const Riwayat = () => {
                 </div>
             )}
 
+            {riwayat.some(r => r.raw_kategori === 'absensi' && r.raw_status === 'ditolak') && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2.5 shadow-xs">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span className="font-medium">
+                        Terdapat absensi luar yang telah dihapus atau ditolak oleh admin. Mohon lakukan absensi ulang dari menu Beranda.
+                    </span>
+                </div>
+            )}
+
             <div>
                 <h2 className="text-xl font-bold text-gray-900">Riwayat Pengajuan</h2>
                 <p className="text-sm text-gray-500">Daftar semua pengajuan izin, sakit, dinas, cuti, dan lembur Anda</p>
@@ -251,8 +260,13 @@ const Riwayat = () => {
                                             <p className="text-xs text-gray-600 leading-relaxed max-w-xl">{item.keterangan}</p>
                                             
                                             {item.catatan_admin && (
-                                                <div className="mt-1 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1 inline-block">
-                                                    <span className="font-semibold">Catatan Admin: </span>{item.catatan_admin}
+                                                <div className={`mt-1.5 text-[11px] rounded-lg px-2.5 py-1.5 inline-flex items-center gap-1.5 ${
+                                                    item.raw_status === 'ditolak'
+                                                        ? 'text-rose-800 bg-rose-50 border border-rose-200 font-medium'
+                                                        : 'text-amber-800 bg-amber-50 border border-amber-200'
+                                                }`}>
+                                                    {item.raw_status === 'ditolak' && <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
+                                                    <span><span className="font-semibold">{item.raw_status === 'ditolak' ? 'Pemberitahuan: ' : 'Catatan Admin: '}</span>{item.catatan_admin}</span>
                                                 </div>
                                             )}
 

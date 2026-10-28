@@ -104,11 +104,20 @@ class UserPermissionController extends Controller
             ->orderBy('scan_at', 'asc')
             ->get();
 
+        $rejectedToday = Permission::where('employee_id', $employee->id)
+            ->where('category', 'absensi')
+            ->whereDate('tanggal_mulai', $todayDate)
+            ->where('status', 'ditolak')
+            ->latest('updated_at')
+            ->first();
+
         $todayAttendance = [
             'has_tap_in' => false,
             'has_tap_out' => false,
             'tap_in' => null,
             'tap_out' => null,
+            'has_rejected' => !empty($rejectedToday),
+            'rejected_message' => $rejectedToday ? ($rejectedToday->catatan_admin ?: 'Absensi telah dihapus atau ditolak, mohon absensi ulang.') : null,
         ];
 
         foreach ($todayLogs as $tl) {
@@ -201,23 +210,29 @@ class UserPermissionController extends Controller
         }
 
         $items = $query->get()->map(function ($p) {
+            $isAbsensi = strtolower($p->category) === 'absensi';
+            $catatan = $p->catatan_admin;
+            if ($isAbsensi && strtolower($p->status) === 'ditolak' && empty($catatan)) {
+                $catatan = 'Absensi telah dihapus atau ditolak, mohon absensi ulang.';
+            }
+
             return [
                 'id' => $p->id,
-                'kategori' => ucfirst($p->category),
+                'kategori' => $isAbsensi ? 'Absensi Luar' : ucfirst($p->category),
                 'raw_kategori' => $p->category,
                 'tanggal_mulai' => Carbon::parse($p->tanggal_mulai)->format('Y-m-d'),
                 'tanggal_selesai' => Carbon::parse($p->tanggal_selesai)->format('Y-m-d'),
                 'tanggal_format' => Carbon::parse($p->tanggal_mulai)->isSameDay(Carbon::parse($p->tanggal_selesai))
                     ? Carbon::parse($p->tanggal_mulai)->translatedFormat('l, d M Y')
                     : Carbon::parse($p->tanggal_mulai)->translatedFormat('d M Y') . ' - ' . Carbon::parse($p->tanggal_selesai)->translatedFormat('d M Y'),
-                'durasi' => $p->durasi . ' Hari',
+                'durasi' => $isAbsensi ? ($p->jam_mulai ? 'Pukul ' . substr($p->jam_mulai, 0, 5) : 'Tap GPS') : ($p->durasi . ' Hari'),
                 'tipe_lembur' => $p->tipe_lembur,
                 'keterangan' => $p->keterangan,
                 'status' => ucfirst($p->status),
                 'raw_status' => $p->status,
                 'lampiran' => $p->lampiran ? '/uploads/permissions/' . $p->lampiran : null,
                 'lampiran_nama' => $p->lampiran,
-                'catatan_admin' => $p->catatan_admin,
+                'catatan_admin' => $catatan,
                 'created_at' => Carbon::parse($p->created_at)->translatedFormat('d M Y H:i'),
             ];
         });
@@ -232,6 +247,7 @@ class UserPermissionController extends Controller
         $validated = $request->validate([
             'category' => 'required|string|in:izin,sakit,dinas,cuti,lembur,absensi,Izin,Sakit,Dinas,Cuti,Lembur,Absensi',
             'tap_type' => 'nullable|string|in:in,out',
+            'tap_time' => 'nullable|string',
             'tipe_lembur' => 'nullable|string|in:DAILY,WEEKENDS,HARI_BESAR',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
@@ -288,8 +304,14 @@ class UserPermissionController extends Controller
             $tapType = $request->input('tap_type');
             $isTapIn = ($tapType === 'in') || str_contains(strtolower($validated['keterangan']), '[tap in]');
             $statusScan = $isTapIn ? '0' : '1';
-            $scanDate = $validated['tanggal_mulai'];
+
             $tapDateTime = Carbon::now();
+            if (!empty($request->input('tap_time'))) {
+                try {
+                    $tapDateTime = Carbon::parse($request->input('tap_time'));
+                } catch (\Throwable $e) {}
+            }
+            $scanDate = $tapDateTime->format('Y-m-d');
 
             $existingLog = AttendanceLog::where('employee_id', $employee->id)
                 ->whereDate('scan_at', $scanDate)
@@ -363,6 +385,7 @@ class UserPermissionController extends Controller
                         'jam_mulai' => $tapDateTime->format('H:i:s'),
                         'lampiran' => $attachmentName ?: $existingPerm->lampiran,
                         'status' => 'disetujui',
+                        'catatan_admin' => null,
                     ]);
                 } else {
                     Permission::create([

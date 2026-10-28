@@ -156,6 +156,25 @@ const Home = () => {
                 </div>
             </div>
 
+            {todayAttendance?.has_rejected && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-start gap-3 shadow-xs">
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                        <p className="text-xs font-bold text-rose-900">Pemberitahuan Absensi Hari Ini</p>
+                        <p className="text-[11px] text-rose-700 mt-0.5">
+                            {todayAttendance.rejected_message || 'Absensi Anda hari ini telah dihapus atau ditolak oleh admin. Mohon lakukan absensi ulang.'}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => openForm('Absensi')}
+                        className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition shadow-xs"
+                    >
+                        Absen Ulang
+                    </button>
+                </div>
+            )}
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-white rounded-xl border border-gray-100 p-4 flex items-center justify-between shadow-sm">
                     <div>
