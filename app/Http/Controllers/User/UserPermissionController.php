@@ -111,13 +111,35 @@ class UserPermissionController extends Controller
             ->latest('updated_at')
             ->first();
 
+        $isResubmitted = false;
+        if ($rejectedToday) {
+            $hasNewLog = AttendanceLog::where('employee_id', $employee->id)
+                ->whereDate('scan_at', $todayDate)
+                ->where('verify_method', 'mobile_gps')
+                ->where('created_at', '>=', $rejectedToday->updated_at)
+                ->exists();
+
+            $hasNewPerm = Permission::where('employee_id', $employee->id)
+                ->where('category', 'absensi')
+                ->whereDate('tanggal_mulai', $todayDate)
+                ->where('status', '!=', 'ditolak')
+                ->where('id', '>', $rejectedToday->id)
+                ->exists();
+
+            if ($hasNewLog || $hasNewPerm || $todayLogs->isNotEmpty()) {
+                $isResubmitted = true;
+            }
+        }
+
+        $hasRejected = (!empty($rejectedToday) && !$isResubmitted);
+
         $todayAttendance = [
             'has_tap_in' => false,
             'has_tap_out' => false,
             'tap_in' => null,
             'tap_out' => null,
-            'has_rejected' => !empty($rejectedToday),
-            'rejected_message' => $rejectedToday ? ($rejectedToday->catatan_admin ?: 'Absensi telah dihapus atau ditolak, mohon absensi ulang.') : null,
+            'has_rejected' => $hasRejected,
+            'rejected_message' => $hasRejected ? ($rejectedToday->catatan_admin ?: 'Absensi telah dihapus atau ditolak, mohon absensi ulang.') : null,
         ];
 
         foreach ($todayLogs as $tl) {
@@ -370,7 +392,10 @@ class UserPermissionController extends Controller
                 $existingPerm = Permission::where('employee_id', $employee->id)
                     ->where('category', 'absensi')
                     ->whereDate('tanggal_mulai', $scanDate)
-                    ->where('keterangan', 'like', $permTag)
+                    ->where(function ($q) use ($isTapIn, $permTag) {
+                        $q->where('tipe_lembur', $isTapIn ? 'tap_in' : 'tap_out')
+                          ->orWhere('keterangan', 'like', $permTag);
+                    })
                     ->first();
 
                 if ($existingPerm) {
@@ -382,6 +407,7 @@ class UserPermissionController extends Controller
                     }
                     $existingPerm->update([
                         'keterangan' => $keterangan,
+                        'tipe_lembur' => $isTapIn ? 'tap_in' : 'tap_out',
                         'jam_mulai' => $tapDateTime->format('H:i:s'),
                         'lampiran' => $attachmentName ?: $existingPerm->lampiran,
                         'status' => 'disetujui',
@@ -392,6 +418,7 @@ class UserPermissionController extends Controller
                         'employee_id' => $employee->id,
                         'user_id' => $user->id,
                         'category' => 'absensi',
+                        'tipe_lembur' => $isTapIn ? 'tap_in' : 'tap_out',
                         'tanggal_mulai' => $scanDate,
                         'tanggal_selesai' => $scanDate,
                         'jam_mulai' => $tapDateTime->format('H:i:s'),
@@ -439,6 +466,7 @@ class UserPermissionController extends Controller
                 'employee_id' => $employee->id,
                 'user_id' => $user->id,
                 'category' => 'absensi',
+                'tipe_lembur' => $isTapIn ? 'tap_in' : 'tap_out',
                 'tanggal_mulai' => $scanDate,
                 'tanggal_selesai' => $scanDate,
                 'jam_mulai' => $tapDateTime->format('H:i:s'),

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX, Loader2, CheckCircle2, AlertCircle, Info, MapPin, Navigation, Camera } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX, Loader2, CheckCircle2, AlertCircle, Info, MapPin, Navigation, Camera, ExternalLink } from 'lucide-react';
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
 import api from '../../../lib/api';
@@ -35,6 +36,73 @@ const Attendance = () => {
     const itemsPerPage = 15;
     const abortControllerRef = useRef(null);
 
+    const [hoverPopover, setHoverPopover] = useState(null);
+    const hoverTimerRef = useRef(null);
+
+    const handleBadgeMouseEnter = useCallback((type, row, e) => {
+        if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+        }
+        const rect = e.currentTarget.getBoundingClientRect();
+        setHoverPopover({ type, row, rect });
+    }, []);
+
+    const handleBadgeMouseLeave = useCallback(() => {
+        hoverTimerRef.current = setTimeout(() => {
+            setHoverPopover(null);
+        }, 150);
+    }, []);
+
+    const handlePopoverMouseEnter = useCallback(() => {
+        if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current);
+        }
+    }, []);
+
+    const handlePopoverMouseLeave = useCallback(() => {
+        hoverTimerRef.current = setTimeout(() => {
+            setHoverPopover(null);
+        }, 150);
+    }, []);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (hoverPopover) setHoverPopover(null);
+        };
+        window.addEventListener('scroll', handleScroll, true);
+        return () => window.removeEventListener('scroll', handleScroll, true);
+    }, [hoverPopover]);
+
+    const popoverPositionStyle = useMemo(() => {
+        if (!hoverPopover || !hoverPopover.rect) return {};
+
+        const { rect, type } = hoverPopover;
+        const popWidth = type === 'outdoor' ? 320 : 288;
+        const popHeight = type === 'outdoor' ? 340 : 180;
+
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const isAbove = spaceBelow < popHeight && spaceAbove > spaceBelow;
+
+        let left = rect.left;
+        if (left + popWidth > window.innerWidth - 16) {
+            left = window.innerWidth - popWidth - 16;
+        }
+        if (left < 16) left = 16;
+
+        const arrowLeft = Math.max(16, Math.min(popWidth - 24, rect.left - left + rect.width / 2 - 4));
+        hoverPopover.isAbove = isAbove;
+        hoverPopover.arrowLeft = arrowLeft;
+
+        return {
+            position: 'fixed',
+            left: `${left}px`,
+            top: isAbove ? `${rect.top - 8}px` : `${rect.bottom + 8}px`,
+            transform: isAbove ? 'translateY(-100%)' : 'none',
+            width: `${popWidth}px`,
+        };
+    }, [hoverPopover]);
+
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearch(searchQuery);
@@ -59,6 +127,8 @@ const Attendance = () => {
             foto: row.foto || row.outdoor_info?.photo || null,
             keterangan: row.outdoor_info?.keterangan || null,
             address: row.outdoor_info?.address || null,
+            lat: row.outdoor_info?.lat || null,
+            lng: row.outdoor_info?.lng || null,
         });
     }, []);
 
@@ -390,14 +460,7 @@ const Attendance = () => {
                                     </td>
                                 </tr>
                             ) : paginatedData.length > 0 ? (
-                                paginatedData.map((row, index) => {
-                                    const isBottomRow = paginatedData.length >= 5
-                                        ? index >= paginatedData.length - 3
-                                        : (paginatedData.length > 2
-                                            ? index >= paginatedData.length - 2
-                                            : (paginatedData.length > 1 && index === paginatedData.length - 1));
-
-                                    return (
+                                paginatedData.map((row) => (
                                     <tr key={row.id} className="hover:bg-slate-50 transition">
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
@@ -435,7 +498,7 @@ const Attendance = () => {
                                                 {(row.status === 'ontime' || row.status === 'hadir') && (
                                                     <div className="inline-flex items-center gap-1.5">
                                                         <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200">
-                                                            Hadir ({row.dur || '-'})
+                                                             Hadir ({row.dur || '-'})
                                                         </span>
                                                         {row.late_info?.is_exempt && (
                                                             <span className="bg-amber-100 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-200" title="Bebas Sanksi (Karyawan Khusus)">
@@ -445,103 +508,29 @@ const Attendance = () => {
                                                     </div>
                                                 )}
                                                 {(row.status === 'late' || row.status === 'terlambat') && (
-                                                    <div className="relative group inline-block">
-                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer hover:bg-amber-200/80 transition">
-                                                            <span>Telat {row.minutesLate} Mnt</span>
-                                                            {row.late_info?.tier_order && (
-                                                                <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
-                                                                    Kat {row.late_info.tier_order}
-                                                                </span>
-                                                            )}
-                                                            {row.late_info && <Info className="w-3.5 h-3.5 text-amber-700" />}
-                                                        </div>
-
-                                                        {row.late_info && (
-                                                            <div className={`absolute left-0 ${isBottomRow ? 'bottom-full mb-1.5 origin-bottom-left' : 'top-full mt-1.5 origin-top-left'} hidden group-hover:flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl z-50 text-xs pointer-events-none whitespace-normal transition animate-in fade-in zoom-in-95`}>
-                                                                <div className="flex items-center justify-between pb-1.5 border-b border-slate-700 mb-2">
-                                                                    <span className="font-bold text-amber-400 text-[11px] uppercase tracking-wider">Detail Keterlambatan</span>
-                                                                    <span className="text-[10px] text-slate-400 font-sans">{row.late_info.category_name}</span>
-                                                                </div>
-                                                                <div className="space-y-1.5 text-[11px] font-sans">
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="text-slate-400">Durasi:</span>
-                                                                        <span className="font-medium text-slate-200">Kategori {row.late_info.tier_order} ({row.late_info.tier_name})</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between items-center">
-                                                                        <span className="text-slate-400">Potongan Denda:</span>
-                                                                        <span className={`font-semibold ${row.late_info.deduction > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                                                            {row.late_info.deduction > 0 ? `Rp ${Number(row.late_info.deduction).toLocaleString('id-ID')}` : 'Rp 0'}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="pt-1.5 border-t border-slate-800">
-                                                                        <span className="text-slate-400 block mb-0.5">Status Toleransi / Denda:</span>
-                                                                        {row.late_info.is_exempt ? (
-                                                                            <span className="text-emerald-400 font-semibold">Bebas Sanksi (Staf Khusus)</span>
-                                                                        ) : (
-                                                                            <span className="text-amber-300 font-medium leading-relaxed block">
-                                                                                {row.late_info.quota_text}
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                <div className={`absolute left-6 ${isBottomRow ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900/95 rotate-45`}></div>
-                                                            </div>
+                                                    <div 
+                                                        onMouseEnter={(e) => handleBadgeMouseEnter('late', row, e)}
+                                                        onMouseLeave={handleBadgeMouseLeave}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer hover:bg-amber-200/80 transition"
+                                                    >
+                                                        <span>Telat {row.minutesLate} Mnt</span>
+                                                        {row.late_info?.tier_order && (
+                                                            <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
+                                                                Kat {row.late_info.tier_order}
+                                                            </span>
                                                         )}
+                                                        {row.late_info && <Info className="w-3.5 h-3.5 text-amber-700" />}
                                                     </div>
                                                 )}
                                                 {row.is_outdoor && (
-                                                    <div className="relative group inline-block">
-                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-900 border border-teal-200 cursor-pointer hover:bg-teal-200/80 transition">
-                                                            <Navigation className="w-3.5 h-3.5 text-teal-700" />
-                                                            <span>Absen Luar ({row.outdoor_info?.tap_label || 'GPS'})</span>
-                                                            <Info className="w-3.5 h-3.5 text-teal-700" />
-                                                        </div>
-
-                                                        <div className={`absolute left-0 ${isBottomRow ? 'bottom-full mb-1.5 origin-bottom-left' : 'top-full mt-1.5 origin-top-left'} hidden group-hover:flex flex-col w-80 p-3.5 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl z-50 text-xs pointer-events-none whitespace-normal transition animate-in fade-in zoom-in-95`}>
-                                                            <div className="flex items-center justify-between pb-2 border-b border-slate-700 mb-2">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <Navigation className="w-3.5 h-3.5 text-teal-400" />
-                                                                    <span className="font-bold text-teal-400 text-[11px] uppercase tracking-wider">Absensi Luar Kantor</span>
-                                                                </div>
-                                                                <span className="text-[10px] text-teal-300 bg-teal-900/60 px-2 py-0.5 rounded-full font-medium border border-teal-700/50">
-                                                                    {row.outdoor_info?.tap_label}
-                                                                </span>
-                                                            </div>
-
-                                                            {row.outdoor_info?.photo && (
-                                                                <div className="mb-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-950">
-                                                                    <img 
-                                                                        src={row.outdoor_info.photo} 
-                                                                        alt="Foto Absen Luar" 
-                                                                        className="w-full h-32 object-contain bg-slate-950" 
-                                                                    />
-                                                                </div>
-                                                            )}
-
-                                                            <div className="space-y-1.5 text-slate-300">
-                                                                {row.outdoor_info?.address && (
-                                                                    <div className="flex items-start gap-1.5">
-                                                                        <MapPin className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
-                                                                        <span className="text-[11px] leading-tight text-slate-200">
-                                                                            {row.outdoor_info.address}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                                {row.outdoor_info?.keterangan && (
-                                                                    <div className="pt-1.5 border-t border-slate-800 text-[11px]">
-                                                                        <span className="text-slate-400 block mb-0.5">Keterangan:</span>
-                                                                        <p className="text-slate-200 whitespace-pre-line line-clamp-3">
-                                                                            {row.outdoor_info.keterangan}
-                                                                        </p>
-                                                                    </div>
-                                                                )}
-                                                                <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px] text-teal-300">
-                                                                    <span>Terverifikasi GPS & Kamera</span>
-                                                                    <span className="text-slate-400 font-mono">Mobile GPS</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className={`absolute left-6 ${isBottomRow ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900/95 rotate-45`}></div>
-                                                        </div>
+                                                    <div 
+                                                        onMouseEnter={(e) => handleBadgeMouseEnter('outdoor', row, e)}
+                                                        onMouseLeave={handleBadgeMouseLeave}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-900 border border-teal-200 cursor-pointer hover:bg-teal-200/80 transition"
+                                                    >
+                                                        <Navigation className="w-3.5 h-3.5 text-teal-700" />
+                                                        <span>Absen Luar</span>
+                                                        <Info className="w-3.5 h-3.5 text-teal-700" />
                                                     </div>
                                                 )}
                                                 {row.status === 'izin' && (
@@ -574,8 +563,7 @@ const Attendance = () => {
                                             </button>
                                         </td>
                                     </tr>
-                                    );
-                                })
+                                ))
                             ) : (
                                 <tr>
                                     <td colSpan="7" className="py-16 text-center">
@@ -783,6 +771,116 @@ const Attendance = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {hoverPopover && createPortal(
+                <div
+                    onMouseEnter={handlePopoverMouseEnter}
+                    onMouseLeave={handlePopoverMouseLeave}
+                    style={popoverPositionStyle}
+                    className="fixed z-[9999] pointer-events-auto transition animate-in fade-in zoom-in-95 duration-100"
+                >
+                    {hoverPopover.type === 'outdoor' ? (
+                        <div className="flex flex-col w-80 p-3.5 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl border border-slate-700/60 text-xs whitespace-normal relative">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-700 mb-2">
+                                <div className="flex items-center gap-1.5">
+                                    <Navigation className="w-3.5 h-3.5 text-teal-400" />
+                                    <span className="font-bold text-teal-400 text-[11px] uppercase tracking-wider">Absensi Luar Kantor</span>
+                                </div>
+                                <span className="text-[10px] text-teal-300 bg-teal-900/60 px-2 py-0.5 rounded-full font-medium border border-teal-700/50">
+                                    {hoverPopover.row.outdoor_info?.tap_label || 'GPS'}
+                                </span>
+                            </div>
+
+                            {hoverPopover.row.outdoor_info?.photo && (
+                                <div className="mb-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-950">
+                                    <img 
+                                        src={hoverPopover.row.outdoor_info.photo} 
+                                        alt="Foto Absen Luar" 
+                                        className="w-full h-32 object-contain bg-slate-950" 
+                                    />
+                                </div>
+                            )}
+
+                            <div className="space-y-1.5 text-slate-300">
+                                {hoverPopover.row.outdoor_info?.address && (
+                                    <div className="flex items-start justify-between gap-1.5">
+                                        <div className="flex items-start gap-1.5 flex-1 min-w-0">
+                                            <MapPin className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
+                                            <span className="text-[11px] leading-tight text-slate-200">
+                                                {hoverPopover.row.outdoor_info.address}
+                                            </span>
+                                        </div>
+                                        <a
+                                            href={
+                                                (hoverPopover.row.outdoor_info?.lat && hoverPopover.row.outdoor_info?.lng)
+                                                    ? `https://www.google.com/maps/search/?api=1&query=${hoverPopover.row.outdoor_info.lat},${hoverPopover.row.outdoor_info.lng}`
+                                                    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hoverPopover.row.outdoor_info.address)}`
+                                            }
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-[10px] text-teal-300 hover:text-teal-100 underline shrink-0 mt-0.5 inline-flex items-center gap-0.5 cursor-pointer"
+                                            title="Buka di Google Maps"
+                                        >
+                                            <span>Peta</span>
+                                            <ExternalLink className="w-2.5 h-2.5" />
+                                        </a>
+                                    </div>
+                                )}
+                                {hoverPopover.row.outdoor_info?.keterangan && hoverPopover.row.outdoor_info.keterangan.replace(/^\[Tap (?:In|Out)\]\s*/i, '').trim() && (
+                                    <div className="pt-1.5 border-t border-slate-800 text-[11px]">
+                                        <span className="text-slate-400 block mb-0.5">Keterangan:</span>
+                                        <p className="text-slate-200 whitespace-pre-line line-clamp-3">
+                                            {hoverPopover.row.outdoor_info.keterangan.replace(/^\[Tap (?:In|Out)\]\s*/i, '').trim()}
+                                        </p>
+                                    </div>
+                                )}
+                                <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px] text-teal-300">
+                                    <span>Terverifikasi GPS & Kamera</span>
+                                    <span className="text-slate-400 font-mono">Mobile GPS</span>
+                                </div>
+                            </div>
+                            <div 
+                                style={{ left: `${hoverPopover.arrowLeft || 24}px` }}
+                                className={`absolute ${hoverPopover.isAbove ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700/60`}
+                            ></div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl border border-slate-700/60 text-xs whitespace-normal relative">
+                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-700 mb-2">
+                                <span className="font-bold text-amber-400 text-[11px] uppercase tracking-wider">Detail Keterlambatan</span>
+                                <span className="text-[10px] text-slate-400 font-sans">{hoverPopover.row.late_info?.category_name}</span>
+                            </div>
+                            <div className="space-y-1.5 text-[11px] font-sans">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-400">Durasi:</span>
+                                    <span className="font-medium text-slate-200">Kategori {hoverPopover.row.late_info?.tier_order} ({hoverPopover.row.late_info?.tier_name})</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-400">Potongan Denda:</span>
+                                    <span className={`font-semibold ${hoverPopover.row.late_info?.deduction > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                        {hoverPopover.row.late_info?.deduction > 0 ? `Rp ${Number(hoverPopover.row.late_info.deduction).toLocaleString('id-ID')}` : 'Rp 0'}
+                                    </span>
+                                </div>
+                                <div className="pt-1.5 border-t border-slate-800">
+                                    <span className="text-slate-400 block mb-0.5">Status Toleransi / Denda:</span>
+                                    {hoverPopover.row.late_info?.is_exempt ? (
+                                        <span className="text-emerald-400 font-semibold">Bebas Sanksi (Staf Khusus)</span>
+                                    ) : (
+                                        <span className="text-amber-300 font-medium leading-relaxed block">
+                                            {hoverPopover.row.late_info?.quota_text}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <div 
+                                style={{ left: `${hoverPopover.arrowLeft || 24}px` }}
+                                className={`absolute ${hoverPopover.isAbove ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700/60`}
+                            ></div>
+                        </div>
+                    )}
+                </div>,
+                document.body
             )}
         </div>
     );

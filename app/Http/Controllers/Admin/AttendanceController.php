@@ -92,7 +92,7 @@ class AttendanceController extends Controller
                     'address' => $raw['location_address'] ?? null,
                     'lat' => $raw['latitude'] ?? null,
                     'lng' => $raw['longitude'] ?? null,
-                    'keterangan' => $raw['keterangan'] ?? null,
+                    'keterangan' => !empty($raw['keterangan']) ? trim(preg_replace('/^\[Tap (?:In|Out)\]\s*/i', '', $raw['keterangan'])) : null,
                 ];
             }
         }
@@ -465,10 +465,14 @@ class AttendanceController extends Controller
 
                 $latestPhoto = null;
                 $latestAddress = null;
+                $latestLat = null;
+                $latestLng = null;
                 $latestKeterangan = null;
                 foreach ($details as $d) {
                     if (!empty($d['photo'])) $latestPhoto = $d['photo'];
                     if (!empty($d['address'])) $latestAddress = $d['address'];
+                    if (!empty($d['lat'])) $latestLat = $d['lat'];
+                    if (!empty($d['lng'])) $latestLng = $d['lng'];
                     if (!empty($d['keterangan'])) $latestKeterangan = $d['keterangan'];
                 }
 
@@ -478,6 +482,8 @@ class AttendanceController extends Controller
                     'taps' => $details,
                     'photo' => $latestPhoto,
                     'address' => $latestAddress,
+                    'lat' => $latestLat,
+                    'lng' => $latestLng,
                     'keterangan' => $latestKeterangan,
                 ];
             }
