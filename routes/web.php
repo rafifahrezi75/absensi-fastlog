@@ -91,6 +91,9 @@ Route::middleware(['auth', 'admin'])->prefix('api/admin')->group(function () {
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('api.admin.employees.destroy');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('api.admin.reports.index');
+    Route::get('/reports/pdf', [ReportController::class, 'rekapPdf'])->name('api.admin.reports.pdf');
+    Route::get('/reports/employee/{id}', [ReportController::class, 'employeeDetail'])->name('api.admin.reports.employee.detail');
+    Route::get('/reports/employee/{id}/pdf', [ReportController::class, 'employeePdf'])->name('api.admin.reports.employee.pdf');
 
     Route::get('/settings', [SettingController::class, 'index'])->name('api.admin.settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('api.admin.settings.update');

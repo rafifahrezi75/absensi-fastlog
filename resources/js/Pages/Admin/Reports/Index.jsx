@@ -1,10 +1,12 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { FileSpreadsheet, Printer, Search, TableProperties, Loader2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FileSpreadsheet, Printer, Search, TableProperties, Loader2, ChevronRight, Download, ExternalLink, X, FileText } from 'lucide-react';
 import api from '../../../lib/api';
 
 const dayNamesIndo = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 const Reports = () => {
+    const navigate = useNavigate();
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         const y = d.getFullYear();
@@ -24,6 +26,11 @@ const Reports = () => {
     const [departments, setDepartments] = useState([]);
     const [holidays, setHolidays] = useState({});
     const [loading, setLoading] = useState(true);
+    const [showPdfModal, setShowPdfModal] = useState(false);
+    const pdfIframeRef = useRef(null);
+
+    const rekapPdfUrl = `/api/admin/reports/pdf?start_date=${startDate}&end_date=${endDate}${selectedDept ? `&dept=${encodeURIComponent(selectedDept)}` : ''}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
+    const rekapPdfDownloadUrl = `${rekapPdfUrl}&download=1`;
 
     const loadReports = useCallback(async () => {
         try {
@@ -246,10 +253,10 @@ const Reports = () => {
                         <FileSpreadsheet className="w-4 h-4" /> Export Excel
                     </button>
                     <button
-                        onClick={handlePrintPDF}
+                        onClick={() => setShowPdfModal(true)}
                         className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
                     >
-                        <Printer className="w-4 h-4" /> Cetak PDF
+                        <Printer className="w-4 h-4" /> Pratinjau &amp; Cetak PDF
                     </button>
                 </div>
             </div>
@@ -387,15 +394,23 @@ const Reports = () => {
                                     let countH = 0, countT = 0, countOT = 0, countIS = 0, countA = 0;
 
                                     return (
-                                        <tr key={emp.id} className="hover:bg-slate-100/60 transition">
-                                            <td className="px-4 py-2 text-left font-semibold border-r border-slate-200 sticky left-0 bg-white z-[5] shadow-sm">
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="text-slate-900 font-bold leading-tight">{emp.nama}</div>
-                                                    {emp.is_exempt && (
-                                                        <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 shrink-0" title="Bebas Denda & Lembur (Karyawan Khusus)">
-                                                            Khusus
-                                                        </span>
-                                                    )}
+                                        <tr
+                                            key={emp.id}
+                                            onClick={() => navigate(`/admin/reports/${emp.id}?start_date=${startDate}&end_date=${endDate}`)}
+                                            className="hover:bg-indigo-50/60 cursor-pointer transition group"
+                                            title="Klik untuk melihat detail laporan presensi karyawan ini"
+                                        >
+                                            <td className="px-4 py-2 text-left font-semibold border-r border-slate-200 sticky left-0 bg-white group-hover:bg-indigo-50/90 z-[5] shadow-sm transition">
+                                                <div className="flex items-center justify-between gap-1.5">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <div className="text-slate-900 group-hover:text-indigo-600 font-bold leading-tight truncate transition">{emp.nama}</div>
+                                                        {emp.is_exempt && (
+                                                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 shrink-0" title="Bebas Denda & Lembur (Karyawan Khusus)">
+                                                                Khusus
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition shrink-0" />
                                                 </div>
                                                 <div className="text-[10px] font-normal text-slate-400">{emp.deptLabel}</div>
                                             </td>
@@ -464,6 +479,68 @@ const Reports = () => {
                     </table>
                 </div>
             </div>
+
+            {showPdfModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5">
+                    <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col h-[90vh] overflow-hidden border border-slate-200">
+                        <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+                                    <FileText className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-900">
+                                        Pratinjau Dokumen Rekap Presensi &amp; Overtime (PDF)
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500">
+                                        Periode: {startDate} s.d {endDate} {selectedDept ? `• Dept: ${selectedDept}` : ''}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => window.open(rekapPdfUrl, '_blank')}
+                                    className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 border border-slate-300 shadow-xs"
+                                    title="Buka PDF di Tab Baru"
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" /> Buka Tab Baru
+                                </button>
+                                <button
+                                    onClick={() => pdfIframeRef.current?.contentWindow?.print()}
+                                    className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 border border-slate-300 shadow-xs"
+                                    title="Cetak PDF"
+                                >
+                                    <Printer className="w-3.5 h-3.5" /> Cetak
+                                </button>
+                                <button
+                                    onClick={() => { window.location.href = rekapPdfDownloadUrl; }}
+                                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-xs"
+                                    title="Unduh PDF"
+                                >
+                                    <Download className="w-3.5 h-3.5" /> Unduh PDF
+                                </button>
+                                <button
+                                    onClick={() => setShowPdfModal(false)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
+                                    title="Tutup Pratinjau"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 bg-slate-100/70 p-3 sm:p-4 overflow-hidden flex justify-center">
+                            <iframe
+                                ref={pdfIframeRef}
+                                src={`${rekapPdfUrl}#view=FitH`}
+                                title="Pratinjau Rekap Presensi PDF"
+                                className="w-full h-full bg-white rounded-xl border border-slate-300 shadow-md"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

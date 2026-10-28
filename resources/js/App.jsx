@@ -14,6 +14,7 @@ import MasterAkun from './Pages/Admin/MasterAkun/Index';
 import MasterPayroll from './Pages/Admin/MasterPayroll/Index';
 import Settings from './Pages/Admin/Settings/Index';
 import Devices from './Pages/Admin/Devices/Index';
+import EmployeeReportDetail from './Pages/Admin/Reports/Detail';
 
 
 // User Layout & Pages
@@ -126,6 +127,7 @@ function App() {
                         <Route path="payroll/:id" element={<PayrollDetail />} />
                         <Route path="master-payroll" element={<MasterPayroll />} />
                         <Route path="reports" element={<Reports />} />
+                        <Route path="reports/:employeeId" element={<EmployeeReportDetail />} />
                         <Route path="master-akun" element={<MasterAkun />} />
                         <Route path="devices" element={<Devices />} />
                         <Route path="settings" element={<Settings />} />
