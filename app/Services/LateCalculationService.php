@@ -231,11 +231,11 @@ class LateCalculationService
                 elseif ($matchedTier->tier_order === 4) $tier4Count++;
 
                 $deduction = (float)$matchedTier->nominal_denda;
-                $quotaText = "Jatah toleransi: {$tier1Count}/{$toleransiBulanan} (Tidak terpotong, sanksi langsung)";
+                $quotaText = "Tanpa toleransi (Potongan Rp " . number_format($deduction, 0, ',', '.') . ")";
                 $statusText = "Kategori {$matchedTier->tier_order} (Potongan Rp " . number_format($deduction, 0, ',', '.') . ")";
             } else {
                 $deduction = 30000;
-                $quotaText = "Jatah toleransi: {$tier1Count}/{$toleransiBulanan} (Langsung denda)";
+                $quotaText = "Tanpa toleransi (Potongan Rp " . number_format($deduction, 0, ',', '.') . ")";
                 $statusText = 'Terlambat (Potongan Rp 30.000)';
             }
 

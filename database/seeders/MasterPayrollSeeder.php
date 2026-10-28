@@ -104,16 +104,6 @@ class MasterPayrollSeeder extends Seeder
                 'status' => 'aktif',
             ],
             [
-                'nama' => 'Denda Keterlambatan',
-                'tipe' => 'potongan',
-                'metode' => 'per_satuan',
-                'nilai' => 1000,
-                'basis' => 'menit_telat',
-                'batas_dasar' => null,
-                'kena_pajak' => false,
-                'status' => 'aktif',
-            ],
-            [
                 'nama' => 'Potongan Alpha',
                 'tipe' => 'potongan',
                 'metode' => 'per_satuan',

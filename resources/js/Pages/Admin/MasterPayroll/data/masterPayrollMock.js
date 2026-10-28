@@ -11,7 +11,6 @@ export const INITIAL_KOMPONEN = [
     { id: 3, nama: 'BPJS Kesehatan', tipe: 'potongan', metode: 'persen', nilai: 1, basis: null, batasDasar: 12000000, kenaPajak: false, status: 'aktif' },
     { id: 4, nama: 'BPJS JHT', tipe: 'potongan', metode: 'persen', nilai: 2, basis: null, batasDasar: null, kenaPajak: false, status: 'aktif' },
     { id: 5, nama: 'BPJS JP', tipe: 'potongan', metode: 'persen', nilai: 1, basis: null, batasDasar: 10000000, kenaPajak: false, status: 'aktif' }, // verifikasi batas upah JP terbaru
-    { id: 6, nama: 'Denda Keterlambatan', tipe: 'potongan', metode: 'per_satuan', nilai: 25000, basis: 'kejadian_telat', batasDasar: null, kenaPajak: false, status: 'aktif' },
     { id: 7, nama: 'Potongan Alpha', tipe: 'potongan', metode: 'harian', nilai: 0, basis: 'hari_alpha', batasDasar: null, kenaPajak: false, status: 'aktif' },
 ];
 

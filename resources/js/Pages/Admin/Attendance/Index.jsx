@@ -351,7 +351,14 @@ const Attendance = () => {
                                     </td>
                                 </tr>
                             ) : paginatedData.length > 0 ? (
-                                paginatedData.map((row) => (
+                                paginatedData.map((row, index) => {
+                                    const isBottomRow = paginatedData.length >= 5
+                                        ? index >= paginatedData.length - 3
+                                        : (paginatedData.length > 2
+                                            ? index >= paginatedData.length - 2
+                                            : (paginatedData.length > 1 && index === paginatedData.length - 1));
+
+                                    return (
                                     <tr key={row.id} className="hover:bg-slate-50 transition">
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
@@ -403,7 +410,7 @@ const Attendance = () => {
                                                     </div>
 
                                                     {row.late_info && (
-                                                        <div className="absolute left-0 top-full mt-1.5 hidden group-hover:flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl z-50 text-xs pointer-events-none whitespace-normal transition animate-in fade-in zoom-in-95">
+                                                        <div className={`absolute left-0 ${isBottomRow ? 'bottom-full mb-1.5 origin-bottom-left' : 'top-full mt-1.5 origin-top-left'} hidden group-hover:flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl z-50 text-xs pointer-events-none whitespace-normal transition animate-in fade-in zoom-in-95`}>
                                                             <div className="flex items-center justify-between pb-1.5 border-b border-slate-700 mb-2">
                                                                 <span className="font-bold text-amber-400 text-[11px] uppercase tracking-wider">Detail Keterlambatan</span>
                                                                 <span className="text-[10px] text-slate-400 font-sans">{row.late_info.category_name}</span>
@@ -412,6 +419,12 @@ const Attendance = () => {
                                                                 <div className="flex justify-between items-center">
                                                                     <span className="text-slate-400">Durasi:</span>
                                                                     <span className="font-medium text-slate-200">Kategori {row.late_info.tier_order} ({row.late_info.tier_name})</span>
+                                                                </div>
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-slate-400">Potongan Denda:</span>
+                                                                    <span className={`font-semibold ${row.late_info.deduction > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                                                        {row.late_info.deduction > 0 ? `Rp ${Number(row.late_info.deduction).toLocaleString('id-ID')}` : 'Rp 0'}
+                                                                    </span>
                                                                 </div>
                                                                 <div className="pt-1.5 border-t border-slate-800">
                                                                     <span className="text-slate-400 block mb-0.5">Status Toleransi / Denda:</span>
@@ -424,7 +437,7 @@ const Attendance = () => {
                                                                     )}
                                                                 </div>
                                                             </div>
-                                                            <div className="absolute left-6 -top-1 w-2 h-2 bg-slate-900/95 rotate-45"></div>
+                                                            <div className={`absolute left-6 ${isBottomRow ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900/95 rotate-45`}></div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -458,7 +471,8 @@ const Attendance = () => {
                                             </button>
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan="7" className="py-16 text-center">
