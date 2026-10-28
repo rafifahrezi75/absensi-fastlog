@@ -604,6 +604,36 @@ class PayrollController extends Controller
                 $bpjsDetails = $savedCatatan['bpjs_details'] ?? [];
                 $tunjanganDetails = $savedCatatan['tunjangan_details'] ?? [];
                 $lateDetails = $savedCatatan['late_details'] ?? null;
+                $overtimeBreakdown = $savedCatatan['overtime_breakdown'] ?? null;
+
+                if (!$overtimeBreakdown) {
+                    $overtimeService = app(OvertimeCalculationService::class);
+                    $otCat = $overtimeService->getCategoryForEmployee($employee);
+                    $staffCategory = $otCat ? strtoupper($otCat->kode) : $overtimeService->determineStaffCategory($employee);
+                    $categoryName = $otCat ? $otCat->nama : ($staffCategory === 'LAPANGAN' ? 'Staf Lapangan (Operasional)' : 'Staf Kantor');
+                    $catLower = strtolower($staffCategory);
+                    $otSettings = $overtimeService->getSettings();
+                    $dailyRate = $otCat ? (float)$otCat->daily_rate : ($otSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000);
+                    $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000);
+                    $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000);
+
+                    $otDetails = $savedCatatan['overtime_details'] ?? [];
+                    $overtimeBreakdown = [
+                        'is_exempt' => (bool)$employee->is_exempt,
+                        'category_name' => $categoryName,
+                        'daily_days' => (int)($otDetails['daily_days'] ?? 0),
+                        'daily_rate' => $dailyRate,
+                        'daily_total' => (int)($otDetails['daily_days'] ?? 0) * $dailyRate,
+                        'weekend_days' => (int)($otDetails['weekend_days'] ?? 0),
+                        'weekend_rate' => $weekendRate,
+                        'weekend_total' => (int)($otDetails['weekend_days'] ?? 0) * $weekendRate,
+                        'holiday_days' => (int)($otDetails['holiday_days'] ?? 0),
+                        'holiday_rate' => $holidayRate,
+                        'holiday_total' => (int)($otDetails['holiday_days'] ?? 0) * $holidayRate,
+                        'total_days' => (int)($otDetails['total_days'] ?? 0),
+                        'total_pay' => (float)$existingPayroll->lembur,
+                    ];
+                }
 
                 $resultList[] = [
                     'id' => $employee->id,
@@ -633,6 +663,7 @@ class PayrollController extends Controller
                     'dibayar_pada' => $existingPayroll->dibayar_pada?->format('Y-m-d H:i:s'),
                     'bpjs_details' => $bpjsDetails,
                     'tunjangan_details' => $tunjanganDetails,
+                    'overtime_breakdown' => $overtimeBreakdown,
                     'late_details' => $lateDetails,
                     'late_category' => $lateDetails['category_name'] ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
                     'is_exempt' => (bool)$employee->is_exempt,
@@ -865,11 +896,38 @@ class PayrollController extends Controller
                 'total_deduction' => $potonganTerlambat,
             ];
 
+            $overtimeService = app(OvertimeCalculationService::class);
+            $otCat = $overtimeService->getCategoryForEmployee($employee);
+            $staffCategory = $otCat ? strtoupper($otCat->kode) : $overtimeService->determineStaffCategory($employee);
+            $categoryName = $otCat ? $otCat->nama : ($staffCategory === 'LAPANGAN' ? 'Staf Lapangan (Operasional)' : 'Staf Kantor');
+            $catLower = strtolower($staffCategory);
+            $otSettings = $overtimeService->getSettings();
+            $dailyRate = $otCat ? (float)$otCat->daily_rate : ($otSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000);
+            $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000);
+            $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000);
+
+            $overtimeBreakdown = [
+                'is_exempt' => (bool)$employee->is_exempt,
+                'category_name' => $categoryName,
+                'daily_days' => (int)($overtimeResult['daily_days'] ?? 0),
+                'daily_rate' => $dailyRate,
+                'daily_total' => (int)($overtimeResult['daily_days'] ?? 0) * $dailyRate,
+                'weekend_days' => (int)($overtimeResult['weekend_days'] ?? 0),
+                'weekend_rate' => $weekendRate,
+                'weekend_total' => (int)($overtimeResult['weekend_days'] ?? 0) * $weekendRate,
+                'holiday_days' => (int)($overtimeResult['holiday_days'] ?? 0),
+                'holiday_rate' => $holidayRate,
+                'holiday_total' => (int)($overtimeResult['holiday_days'] ?? 0) * $holidayRate,
+                'total_days' => (int)($overtimeResult['total_days'] ?? 0),
+                'total_pay' => (float)$lemburPay,
+            ];
+
             $catatanJson = json_encode([
                 'bpjs_details' => $potonganBPJSBreakdown,
                 'tunjangan_details' => $allowancesBreakdown,
                 'late_details' => $lateDetails,
                 'overtime_details' => $overtimeResult,
+                'overtime_breakdown' => $overtimeBreakdown,
             ]);
 
             $savedPayroll = Payroll::updateOrCreate([
@@ -926,6 +984,7 @@ class PayrollController extends Controller
                 'dibayar_pada' => $savedPayroll->dibayar_pada?->format('Y-m-d H:i:s'),
                 'bpjs_details' => $potonganBPJSBreakdown,
                 'tunjangan_details' => $allowancesBreakdown,
+                'overtime_breakdown' => $overtimeBreakdown,
                 'is_exempt' => (bool)$employee->is_exempt,
                 'late_details' => $lateDetails,
                 'late_category' => $lateResult['category']?->nama ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
