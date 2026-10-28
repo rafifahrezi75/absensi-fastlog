@@ -24,7 +24,9 @@ class PermissionController extends Controller
         $status = $request->query('status');
         $search = $request->query('search') ?? $request->query('cari');
 
-        $query = Permission::with('employee')->latest('created_at');
+        $query = Permission::with('employee')
+            ->where('category', '!=', 'absensi')
+            ->latest('created_at');
 
         if (!empty($category)) {
             $query->where('category', $category);
@@ -53,7 +55,6 @@ class PermissionController extends Controller
 
         $permissions = $query->get();
 
-        $anomaliesQuery = AttendanceAnomaly::with('employee')->latest('waktu_tap');
         $overtimeQuery = OvertimeLog::with('employee')->latest('waktu_tap');
 
         if (!empty($status) && $status !== 'all') {
@@ -63,18 +64,10 @@ class PermissionController extends Controller
                 'REJECTED', 'DITOLAK' => 'DITOLAK',
                 default => strtoupper($status),
             };
-            $anomaliesQuery->where('status', $statusUpper);
             $overtimeQuery->where('status', $statusUpper);
         }
 
         if (!empty($search)) {
-            $anomaliesQuery->where(function ($q) use ($search) {
-                $q->where('alasan', 'like', "%{$search}%")
-                  ->orWhereHas('employee', function ($eq) use ($search) {
-                      $eq->where('nama', 'like', "%{$search}%")
-                         ->orWhere('nik', 'like', "%{$search}%");
-                  });
-            });
             $overtimeQuery->where(function ($q) use ($search) {
                 $q->where('catatan_admin', 'like', "%{$search}%")
                   ->orWhereHas('employee', function ($eq) use ($search) {
@@ -84,27 +77,70 @@ class PermissionController extends Controller
             });
         }
 
-        $anomalies = $anomaliesQuery->get();
         $overtimes = $overtimeQuery->get();
 
-        $pendingPermissionsCount = Permission::whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending'])->count();
-        $pendingAnomaliesCount = AttendanceAnomaly::whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending'])->count();
-        $pendingOvertimeCount = OvertimeLog::whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending'])->count();
+        $pendingPermissionsCount = Permission::whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending'])
+            ->where('category', '!=', 'absensi')
+            ->count();
+
+        $approvedLemburs = Permission::where(DB::raw('LOWER(category)'), 'lembur')
+            ->whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
+            ->get();
+
+        $totalMinutes = 0;
+        $totalDays = 0;
+        foreach ($approvedLemburs as $p) {
+            if (!empty($p->jam_mulai) && !empty($p->jam_selesai)) {
+                try {
+                    $st = Carbon::parse($p->jam_mulai);
+                    $en = Carbon::parse($p->jam_selesai);
+                    if ($en->greaterThan($st)) {
+                        $totalMinutes += $st->diffInMinutes($en);
+                        continue;
+                    }
+                } catch (\Throwable $e) {}
+            }
+
+            $d = 1;
+            if (!empty($p->durasi) && is_numeric($p->durasi)) {
+                $d = (int)$p->durasi;
+            } elseif (!empty($p->tanggal_mulai) && !empty($p->tanggal_selesai)) {
+                $d = Carbon::parse($p->tanggal_mulai)->diffInDays(Carbon::parse($p->tanggal_selesai)) + 1;
+            }
+            $totalDays += $d;
+        }
+
+        if ($totalMinutes > 0 && $totalDays > 0) {
+            $hours = floor($totalMinutes / 60);
+            $mins = $totalMinutes % 60;
+            $timeStr = $hours > 0 ? "{$hours} Jam" : '';
+            if ($mins > 0) $timeStr .= ($timeStr ? " " : "") . "{$mins} Menit";
+            $lemburDisetujuiDisplay = "{$totalDays} Hari (" . trim($timeStr) . ")";
+        } elseif ($totalMinutes > 0) {
+            $hours = floor($totalMinutes / 60);
+            $mins = $totalMinutes % 60;
+            $timeStr = $hours > 0 ? "{$hours} Jam" : '';
+            if ($mins > 0) $timeStr .= ($timeStr ? " " : "") . "{$mins} Menit";
+            $lemburDisetujuiDisplay = trim($timeStr);
+        } else {
+            $lemburDisetujuiDisplay = "{$totalDays} Hari";
+        }
 
         $stats = [
-            'pending' => $pendingPermissionsCount + $pendingAnomaliesCount + $pendingOvertimeCount,
-            'menunggu' => $pendingPermissionsCount + $pendingAnomaliesCount + $pendingOvertimeCount,
-            'di_luar_jadwal' => AttendanceAnomaly::count(),
+            'pending' => $pendingPermissionsCount,
+            'menunggu' => $pendingPermissionsCount,
+            'di_luar_jadwal' => 0,
             'izin_sakit' => Permission::whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dispensasi_payroll'])->count(),
-            'izin_cuti' => Permission::whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dispensasi_payroll'])->count(),
+            'dinas' => Permission::where(DB::raw('LOWER(category)'), 'dinas')->count(),
+            'lembur_disetujui' => $lemburDisetujuiDisplay,
+            'lembur_dinas' => $lemburDisetujuiDisplay,
             'sakit' => Permission::where(DB::raw('LOWER(category)'), 'sakit')->count(),
-            'lembur_dinas' => Permission::whereIn(DB::raw('LOWER(category)'), ['lembur', 'dinas'])->count() + OvertimeLog::count(),
         ];
 
         return response()->json([
             'success' => true,
             'permissions' => $permissions,
-            'anomalies' => $anomalies,
+            'anomalies' => [],
             'overtime' => $overtimes,
             'stats' => $stats,
         ]);

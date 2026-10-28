@@ -17,6 +17,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
     const [cameraActive, setCameraActive] = useState(false);
     const [mediaStream, setMediaStream] = useState(null);
     const [photoData, setPhotoData] = useState(null);
+    const [photoTime, setPhotoTime] = useState(null);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
 
@@ -41,6 +42,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
         if (!isOpen) {
             stopCamera();
             setPhotoData(null);
+            setPhotoTime(null);
             setAddress('');
             setLocation(null);
             setFileName('');
@@ -196,7 +198,9 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
             ctx.fillText(coordStr, 22, yStart + 70);
 
             const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            const timeFormatted = now.toTimeString().substring(0, 8);
             setPhotoData(dataUrl);
+            setPhotoTime(timeFormatted);
             stopCamera();
         }
     };
@@ -216,6 +220,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
 
     const retakePhoto = () => {
         setPhotoData(null);
+        setPhotoTime(null);
         startCamera();
     };
 
@@ -258,6 +263,8 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
             if (type === 'Absensi') {
                 finalKeterangan = `[Tap ${tapType === 'in' ? 'In' : 'Out'}]\n${keterangan}`;
                 formData.append('tap_type', tapType);
+                const chosenTime = photoTime || new Date().toTimeString().substring(0, 8);
+                formData.append('tap_time', `${today} ${chosenTime}`);
             }
             formData.append('keterangan', finalKeterangan);
 
@@ -413,6 +420,16 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                     </button>
                                 </div>
 
+                                {todayAttendance?.has_rejected && (
+                                    <div className="p-2.5 bg-rose-50 rounded-lg border border-rose-200 text-rose-800 text-[11px] leading-relaxed flex items-start gap-2">
+                                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                        <div>
+                                            <span className="font-bold block text-rose-900 mb-0.5">Absensi Dihapus / Ditolak:</span>
+                                            {todayAttendance.rejected_message || 'Absensi Anda sebelumnya telah dihapus atau ditolak oleh admin. Mohon lakukan absensi ulang dengan foto GPS terbaru.'}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {((tapType === 'in' && todayAttendance?.has_tap_in) || (tapType === 'out' && todayAttendance?.has_tap_out)) && (
                                     <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-amber-800 text-[11px] leading-relaxed">
                                         <span className="font-bold block text-amber-900 mb-0.5">Mode Koreksi / Edit:</span>
@@ -527,29 +544,46 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1">Tanggal Mulai</label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
-                                />
+                        {type === 'Absensi' ? (
+                            <div className="bg-teal-50/70 border border-teal-200 rounded-xl p-3 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] text-teal-700 font-semibold uppercase tracking-wider">Tanggal &amp; Waktu Scan</p>
+                                    <p className="text-xs font-bold text-slate-800 mt-0.5">
+                                        {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[11px] px-2.5 py-1 rounded-md bg-teal-600 text-white font-bold inline-block">
+                                        {photoTime ? `Waktu Foto: ${photoTime} WIB` : `Waktu Saat Ini: ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`}
+                                    </span>
+                                    <p className="text-[10px] text-teal-600 mt-0.5">Default jam otomatis saat difoto</p>
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-700 mb-1">Tanggal Selesai</label>
-                                <input
-                                    type="date"
-                                    required
-                                    value={endDate}
-                                    min={startDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
-                                />
+                        ) : (
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Tanggal Mulai</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Tanggal Selesai</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={endDate}
+                                        min={startDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div>
                             <div className="flex items-center justify-between mb-1">
