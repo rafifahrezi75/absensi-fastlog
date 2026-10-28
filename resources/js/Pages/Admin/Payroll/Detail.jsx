@@ -6,6 +6,65 @@ import {
 } from 'lucide-react';
 import api from '../../../lib/api';
 
+const getLateTiers = (input, fallbackPotongan = 0) => {
+    const details = input?.tiers_breakdown || input?.tier1_count !== undefined ? input : (input?.late_details || input?.lateDetails || input);
+    const deductionVal = input?.potongan_terlambat !== undefined ? input.potongan_terlambat : fallbackPotongan;
+    if (details?.tiers_breakdown && details.tiers_breakdown.length > 0) {
+        return details.tiers_breakdown;
+    }
+    const list = [];
+    if (details?.tier1_count > 0) {
+        const penalized = details.tier1_penalized || 0;
+        list.push({
+            tier_order: 1,
+            nama_tier: 'Kategori 1 (1 – 30 Menit)',
+            ada_toleransi: true,
+            total_kejadian: details.tier1_count,
+            toleransi_count: details.tier1_tolerated || 0,
+            penalized_count: penalized,
+            nominal_denda: penalized > 0 && deductionVal > 0 ? Math.round(deductionVal / penalized) : 10000,
+            deduction: deductionVal || 0,
+        });
+    }
+    if (details?.tier2_count > 0) {
+        list.push({
+            tier_order: 2,
+            nama_tier: 'Kategori 2 (31 – 60 Menit)',
+            ada_toleransi: false,
+            total_kejadian: details.tier2_count,
+            toleransi_count: 0,
+            penalized_count: details.tier2_count,
+            nominal_denda: 15000,
+            deduction: details.tier2_count * 15000,
+        });
+    }
+    if (details?.tier3_count > 0) {
+        list.push({
+            tier_order: 3,
+            nama_tier: 'Kategori 3 (61 – 90 Menit)',
+            ada_toleransi: false,
+            total_kejadian: details.tier3_count,
+            toleransi_count: 0,
+            penalized_count: details.tier3_count,
+            nominal_denda: 20000,
+            deduction: details.tier3_count * 20000,
+        });
+    }
+    if (details?.tier4_count > 0) {
+        list.push({
+            tier_order: 4,
+            nama_tier: 'Kategori 4 (> 90 Menit)',
+            ada_toleransi: false,
+            total_kejadian: details.tier4_count,
+            toleransi_count: 0,
+            penalized_count: details.tier4_count,
+            nominal_denda: 30000,
+            deduction: details.tier4_count * 30000,
+        });
+    }
+    return list;
+};
+
 const PayrollDetail = ({ isAdmin = true }) => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -117,7 +176,9 @@ const PayrollDetail = ({ isAdmin = true }) => {
         );
     }
 
-    const { payroll, employee, periodeLabel, deptLabel, bpjsDetails, tunjanganDetails } = detailData;
+    const { payroll, employee, periodeLabel, deptLabel, bpjsDetails, tunjanganDetails, lateDetails, lateCategory, isExempt } = detailData;
+    const exemptUser = isExempt ?? employee?.is_exempt ?? false;
+    const lateTiers = getLateTiers(lateDetails, payroll?.potongan_terlambat || 0);
 
     return (
         <div className="space-y-6 pb-16 overflow-y-auto">
@@ -310,21 +371,93 @@ const PayrollDetail = ({ isAdmin = true }) => {
                                     <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700 border-b border-slate-100 pb-2">
                                         Komponen Potongan (Deductions)
                                     </h4>
-                                    <div className="space-y-2 text-xs">
-                                        <div className="flex justify-between items-center text-rose-600">
-                                            <span>Denda Keterlambatan ({payroll.terlambat_menit || 0} Menit):</span>
-                                            <span className="font-mono font-medium">- {formatIDR(payroll.potongan_terlambat)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-rose-600">
-                                            <span>Potongan Alpa ({payroll.alpa_hari || 0} Hari):</span>
-                                            <span className="font-mono font-medium">- {formatIDR(payroll.potongan_alpa)}</span>
-                                        </div>
-                                        {bpjsDetails?.map((b, idx) => (
-                                            <div key={idx} className="flex justify-between items-center text-rose-600">
-                                                <span>{b.nama}{b.persen ? ` (${b.persen}%)` : ''}:</span>
-                                                <span className="font-mono font-medium">- {formatIDR(b.nominal)}</span>
+                                    <div className="space-y-2.5 text-xs">
+                                        {exemptUser ? (
+                                            <>
+                                                <div className="flex justify-between items-center text-slate-600">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span>Denda Keterlambatan:</span>
+                                                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium">Bebas Sanksi (Khusus)</span>
+                                                    </div>
+                                                    <span className="font-mono font-medium text-emerald-600">Rp 0</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-slate-600">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span>Potongan Alpa:</span>
+                                                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-medium">Bebas Potongan (Khusus)</span>
+                                                    </div>
+                                                    <span className="font-mono font-medium text-emerald-600">Rp 0</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="space-y-1">
+                                                    <div className="flex justify-between items-center text-rose-600">
+                                                        <span>
+                                                            Denda Keterlambatan{payroll.terlambat_menit > 0 ? ` (${payroll.terlambat_menit} Menit)` : ''}
+                                                            {lateCategory ? ` - ${lateCategory}` : ''}:
+                                                        </span>
+                                                        <span className="font-mono font-medium">
+                                                            {payroll.potongan_terlambat > 0 ? `- ${formatIDR(payroll.potongan_terlambat)}` : <span className="text-emerald-600">Rp 0</span>}
+                                                        </span>
+                                                    </div>
+                                                    {lateTiers.length > 0 && (
+                                                        <div className="pl-2.5 border-l-2 border-amber-300 space-y-1.5 my-1 text-[11px]">
+                                                            {lateTiers.map((tier, idx) => (
+                                                                <div key={idx} className="space-y-0.5">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-slate-700 font-medium">
+                                                                            Kategori {tier.tier_order} ({tier.total_kejadian}x kejadian):
+                                                                        </span>
+                                                                        <span className="font-medium font-mono text-rose-600">
+                                                                            {tier.deduction > 0 ? `- ${formatIDR(tier.deduction)}` : (tier.penalized_count === 0 ? <span className="text-emerald-600 font-sans">Bebas Denda</span> : `- ${formatIDR(tier.nominal_denda * tier.penalized_count)}`)}
+                                                                        </span>
+                                                                    </div>
+                                                                    {tier.ada_toleransi ? (
+                                                                        <div className="text-[10px] text-slate-500 pl-2 space-y-0.5">
+                                                                            {tier.toleransi_count > 0 && (
+                                                                                <div>Toleransi terpakai: <span className="text-emerald-600 font-medium">{tier.toleransi_count}x (Bebas Denda)</span></div>
+                                                                            )}
+                                                                            {tier.penalized_count > 0 ? (
+                                                                                <div>Denda kejadian: <span className="text-amber-800 font-medium">{tier.penalized_count}x (@ {formatIDR(tier.nominal_denda)})</span></div>
+                                                                            ) : (
+                                                                                <div className="text-emerald-600">Semua kejadian masih dalam batas toleransi</div>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-[10px] text-slate-500 pl-2">
+                                                                            Denda per kejadian: <span className="text-amber-800 font-medium">{tier.penalized_count}x (@ {formatIDR(tier.nominal_denda)})</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex justify-between items-center text-rose-600">
+                                                    <span>Potongan Alpa{payroll.alpa_hari > 0 ? ` (${payroll.alpa_hari} Hari)` : ''}:</span>
+                                                    <span className="font-mono font-medium">
+                                                        {payroll.potongan_alpa > 0 ? `- ${formatIDR(payroll.potongan_alpa)}` : <span className="text-emerald-600">Rp 0</span>}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
+                                        {bpjsDetails?.length > 0 ? (
+                                            <div className="space-y-1 pt-1 border-t border-slate-100">
+                                                <div className="text-[11px] font-semibold text-slate-500">Potongan BPJS:</div>
+                                                {bpjsDetails.map((b, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center text-rose-600 pl-2">
+                                                        <span>{b.nama}{b.persen ? ` (${b.persen}%)` : ''}:</span>
+                                                        <span className="font-mono font-medium">- {formatIDR(b.nominal)}</span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
+                                        ) : payroll.potongan_lainnya > 0 ? (
+                                            <div className="flex justify-between items-center text-rose-600">
+                                                <span>Potongan BPJS & Komponen:</span>
+                                                <span className="font-mono font-medium">- {formatIDR(payroll.potongan_lainnya)}</span>
+                                            </div>
+                                        ) : null}
                                         <div className="pt-2 border-t border-slate-100 flex justify-between items-center font-bold text-rose-800">
                                             <span>Total Potongan:</span>
                                             <span className="font-mono">- {formatIDR(payroll.total_potongan)}</span>

@@ -332,12 +332,46 @@
                     <div class="section-header">Potongan (Deductions)</div>
                     <table class="comp-table">
                         <tr>
-                            <td class="comp-name">Denda Terlambat ({{ $payroll->terlambat_menit ?? 0 }} Menit)</td>
-                            <td class="comp-val val-minus">- Rp {{ number_format($payroll->potongan_terlambat ?? 0, 0, ',', '.') }}</td>
+                            <td class="comp-name">
+                                Denda Terlambat ({{ $payroll->terlambat_menit ?? 0 }} Menit)
+                                @if(!empty($isExempt))
+                                    <br><small style="color: #059669; font-size: 8.5px;">Bebas Sanksi (Karyawan Khusus)</small>
+                                @elseif(!empty($lateDetails['tiers_breakdown']))
+                                    @foreach($lateDetails['tiers_breakdown'] as $tb)
+                                        <br><small style="color: #64748b; font-size: 8px; padding-left: 4px;">
+                                            • Kat {{ $tb['tier_order'] }} ({{ $tb['total_kejadian'] }}x): 
+                                            @if($tb['ada_toleransi'] && ($tb['toleransi_count'] ?? 0) > 0)
+                                                {{ $tb['toleransi_count'] }}x bebas denda
+                                            @endif
+                                            @if(($tb['penalized_count'] ?? 0) > 0)
+                                                {{ $tb['penalized_count'] }}x denda (@ Rp {{ number_format($tb['nominal_denda'], 0, ',', '.') }})
+                                            @endif
+                                        </small>
+                                    @endforeach
+                                @endif
+                            </td>
+                            <td class="comp-val val-minus">
+                                @if(($payroll->potongan_terlambat ?? 0) > 0)
+                                    - Rp {{ number_format($payroll->potongan_terlambat, 0, ',', '.') }}
+                                @else
+                                    Rp 0
+                                @endif
+                            </td>
                         </tr>
                         <tr>
-                            <td class="comp-name">Potongan Alpa ({{ $payroll->alpa_hari ?? 0 }} Hari)</td>
-                            <td class="comp-val val-minus">- Rp {{ number_format($payroll->potongan_alpa ?? 0, 0, ',', '.') }}</td>
+                            <td class="comp-name">
+                                Potongan Alpa ({{ $payroll->alpa_hari ?? 0 }} Hari)
+                                @if(!empty($isExempt))
+                                    <br><small style="color: #059669; font-size: 8.5px;">Bebas Sanksi (Karyawan Khusus)</small>
+                                @endif
+                            </td>
+                            <td class="comp-val val-minus">
+                                @if(($payroll->potongan_alpa ?? 0) > 0)
+                                    - Rp {{ number_format($payroll->potongan_alpa, 0, ',', '.') }}
+                                @else
+                                    Rp 0
+                                @endif
+                            </td>
                         </tr>
                         @if(!empty($bpjsDetails))
                             @foreach($bpjsDetails as $bpjs)

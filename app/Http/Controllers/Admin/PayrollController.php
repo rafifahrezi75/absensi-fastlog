@@ -230,22 +230,37 @@ class PayrollController extends Controller
                     ];
                 }
             } else {
-                if ($absentComp && $absentComp->metode === 'harian') {
-                    $dailyRate = round((($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000) / 22);
+                if ($employee->is_exempt) {
+                    $details[] = [
+                        'date' => $dateStr,
+                        'day_name' => $curr->translatedFormat('l'),
+                        'type' => 'Bebas Alpha (Khusus)',
+                        'first_scan' => null,
+                        'minutes' => 0,
+                        'deduction' => 0,
+                        'is_dispensed' => false,
+                        'is_holiday' => false,
+                        'status_text' => 'Bebas Sanksi Alpha (Karyawan Khusus)',
+                    ];
                 } else {
-                    $dailyRate = $absentDeduction;
+                    if ($absentComp && $absentComp->metode === 'harian') {
+                        $dailyRate = round((($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000) / 22);
+                    } else {
+                        $dailyRate = $absentDeduction;
+                    }
+                    $deduction = $isDispensed ? 0 : $dailyRate;
+                    $details[] = [
+                        'date' => $dateStr,
+                        'day_name' => $curr->translatedFormat('l'),
+                        'type' => 'Alpa / Tidak Hadir',
+                        'first_scan' => null,
+                        'minutes' => 0,
+                        'deduction' => $deduction,
+                        'is_dispensed' => $isDispensed,
+                        'is_holiday' => false,
+                        'status_text' => $isDispensed ? 'Dispensasi Disetujui (Rp 0)' : ('Potongan Rp ' . number_format($deduction, 0, ',', '.')),
+                    ];
                 }
-                $deduction = $isDispensed ? 0 : $dailyRate;
-                $details[] = [
-                    'date' => $dateStr,
-                    'day_name' => $curr->translatedFormat('l'),
-                    'type' => 'Alpa / Tidak Hadir',
-                    'first_scan' => null,
-                    'minutes' => 0,
-                    'deduction' => $deduction,
-                    'is_dispensed' => $isDispensed,
-                    'is_holiday' => false,
-                ];
             }
 
             $curr->subDay();
@@ -393,6 +408,8 @@ class PayrollController extends Controller
         $catatan = $payroll->catatan ? json_decode($payroll->catatan, true) : [];
         $bpjsDetails = $catatan['bpjs_details'] ?? [];
         $tunjanganDetails = $catatan['tunjangan_details'] ?? [];
+        $lateDetails = $catatan['late_details'] ?? [];
+        $overtimeDetails = $catatan['overtime_details'] ?? [];
 
         if (empty($bpjsDetails) || empty($tunjanganDetails)) {
             $activeComponents = SalaryComponent::where('status', 'aktif')->get();
@@ -424,6 +441,10 @@ class PayrollController extends Controller
             'deptLabel' => $deptLabels[$employee->dept] ?? ($employee->dept ?: 'Umum'),
             'bpjsDetails' => $bpjsDetails,
             'tunjanganDetails' => $tunjanganDetails,
+            'lateDetails' => $lateDetails,
+            'overtimeDetails' => $overtimeDetails,
+            'isExempt' => (bool)$employee->is_exempt,
+            'lateCategory' => $lateDetails['category_name'] ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
         ];
     }
 
@@ -448,6 +469,9 @@ class PayrollController extends Controller
             'deptLabel' => $data['deptLabel'],
             'bpjsDetails' => $data['bpjsDetails'],
             'tunjanganDetails' => $data['tunjanganDetails'],
+            'lateDetails' => $data['lateDetails'],
+            'lateCategory' => $data['lateCategory'],
+            'isExempt' => $data['isExempt'],
         ]);
     }
 
@@ -493,6 +517,9 @@ class PayrollController extends Controller
             'deptLabel' => $data['deptLabel'],
             'bpjsDetails' => $data['bpjsDetails'],
             'tunjanganDetails' => $data['tunjanganDetails'],
+            'lateDetails' => $data['lateDetails'],
+            'lateCategory' => $data['lateCategory'],
+            'isExempt' => $data['isExempt'],
         ]);
     }
 
@@ -792,6 +819,8 @@ class PayrollController extends Controller
                 $overtimeDays = 0;
                 $lemburPay = 0;
                 $potonganTerlambat = 0;
+                $potonganAlpa = 0;
+                $alpaCount = 0;
                 $overtimeResult = [
                     'is_exempt' => true,
                     'total_days' => 0,
@@ -806,12 +835,12 @@ class PayrollController extends Controller
                 $overtimeResult = $overtimeService->calculateMonthOvertime($employee, $startDate, $endDate);
                 $lemburPay = $overtimeResult['total_pay'];
                 $overtimeDays = $overtimeResult['total_days'];
-            }
 
-            if ($absentComp && $absentComp->metode === 'harian') {
-                $potonganAlpa = round(($gajiPokok / 22) * $alpaCount);
-            } else {
-                $potonganAlpa = $alpaCount * $absentDeduction;
+                if ($absentComp && $absentComp->metode === 'harian') {
+                    $potonganAlpa = round(($gajiPokok / 22) * $alpaCount);
+                } else {
+                    $potonganAlpa = $alpaCount * $absentDeduction;
+                }
             }
 
             $totalPotongan = $potonganTerlambat + $potonganAlpa + $potonganLainnya;
