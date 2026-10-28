@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft, Calendar, Clock, Download, Printer, FileSpreadsheet,
@@ -12,7 +12,6 @@ const EmployeeReportDetail = () => {
     const { employeeId } = useParams();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const iframeRef = useRef(null);
 
     const initialStart = searchParams.get('start_date') || (() => {
         const d = new Date();
@@ -32,7 +31,6 @@ const EmployeeReportDetail = () => {
     const [startDate, setStartDate] = useState(initialStart);
     const [endDate, setEndDate] = useState(initialEnd);
     const [statusFilter, setStatusFilter] = useState('ALL');
-    const [activeTab, setActiveTab] = useState('breakdown');
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -99,8 +97,7 @@ const EmployeeReportDetail = () => {
             ['PT. FASTLOG INTERNASIONAL'],
             [''],
             ['Nama Karyawan', `"${emp.nama || '-'}"`],
-            ['ID / PIN', `"${emp.pin || '-'}"`],
-            ['NIK', `"${emp.nik || '-'}"`],
+            ['ID Karyawan', `"${emp.pin || emp.id || '-'}"`],
             ['Departemen', `"${emp.dept || 'Umum'}"`],
             ['Jabatan', `"${emp.jabatan || 'Staff'}"`],
             ['Status Aturan', emp.is_exempt ? '"Bebas Denda & Lembur (Khusus)"' : '"Standar Aturan"'],
@@ -148,25 +145,6 @@ const EmployeeReportDetail = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
-
-    const pdfUrl = `/api/admin/reports/employee/${employeeId}/pdf?start_date=${startDate}&end_date=${endDate}`;
-    const pdfDownloadUrl = `/api/admin/reports/employee/${employeeId}/pdf?start_date=${startDate}&end_date=${endDate}&download=1`;
-
-    const handlePrintIframe = () => {
-        if (iframeRef.current) {
-            iframeRef.current.contentWindow?.print();
-        } else {
-            window.open(pdfUrl, '_blank');
-        }
-    };
-
-    const handleOpenNewTab = () => {
-        window.open(pdfUrl, '_blank');
-    };
-
-    const handleDownloadPDF = () => {
-        window.location.href = pdfDownloadUrl;
     };
 
     const filteredRecords = useMemo(() => {
@@ -280,7 +258,7 @@ const EmployeeReportDetail = () => {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-0.5">
                         <span className="inline-flex items-center gap-1">
                             <User className="w-3.5 h-3.5 text-slate-400" />
-                            PIN: {employee?.pin || '-'} {employee?.nik ? `• NIK: ${employee.nik}` : ''}
+                            ID: {employee?.pin || employee?.id || '-'}
                         </span>
                         <span className="inline-flex items-center gap-1">
                             <Building2 className="w-3.5 h-3.5 text-slate-400" />
@@ -307,28 +285,17 @@ const EmployeeReportDetail = () => {
                         <span>Export Excel</span>
                     </button>
                     <button
-                        onClick={handleOpenNewTab}
-                        className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
-                        title="Buka PDF di Tab Baru"
-                    >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Buka Tab Baru</span>
-                    </button>
-                    <button
-                        onClick={handlePrintIframe}
-                        className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
-                        title="Cetak Laporan Presensi"
-                    >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>Cetak</span>
-                    </button>
-                    <button
-                        onClick={handleDownloadPDF}
+                        onClick={() => {
+                            const params = new URLSearchParams();
+                            if (startDate) params.set('start_date', startDate);
+                            if (endDate) params.set('end_date', endDate);
+                            navigate(`/admin/reports/${employeeId}/preview?${params.toString()}`);
+                        }}
                         className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
-                        title="Unduh Berkas PDF Laporan"
+                        title="Pratinjau &amp; Cetak PDF Laporan Presensi"
                     >
-                        <Download className="w-4 h-4" />
-                        <span>Unduh PDF</span>
+                        <Printer className="w-4 h-4" />
+                        <span>Cetak</span>
                     </button>
                 </div>
             </div>
@@ -387,47 +354,12 @@ const EmployeeReportDetail = () => {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setActiveTab('breakdown')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 ${
-                                activeTab === 'breakdown'
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
-                            }`}
-                        >
-                            <Eye className="w-3.5 h-3.5" /> Rincian Presensi & Analisis
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('pdf')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 ${
-                                activeTab === 'pdf'
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
-                            }`}
-                        >
-                            <FileText className="w-3.5 h-3.5" /> Pratinjau Dokumen PDF
-                        </button>
-                    </div>
-
-                    <div className="text-[11px] text-slate-500 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-                        <span>Dompdf Engine Ready</span>
+                        <Eye className="w-4 h-4 text-indigo-600" />
+                        <h2 className="text-sm font-bold text-slate-800">Rincian Presensi &amp; Analisis Karyawan</h2>
                     </div>
                 </div>
 
-                {activeTab === 'pdf' ? (
-                    <div className="p-4 sm:p-6 bg-slate-100/60 overflow-y-auto">
-                        <div className="w-full flex justify-center">
-                            <iframe
-                                ref={iframeRef}
-                                src={`${pdfUrl}#view=FitH`}
-                                title="Pratinjau Dokumen Laporan Presensi"
-                                className="w-full max-w-4xl h-[850px] md:h-[950px] bg-white rounded-xl border border-slate-300 shadow-md"
-                            />
-                        </div>
-                    </div>
-                ) : (
-                    <div className="p-4 sm:p-6 space-y-6">
+                <div className="p-4 sm:p-6 space-y-6">
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                             <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
                                 <div className="flex items-center justify-between">
@@ -887,9 +819,8 @@ const EmployeeReportDetail = () => {
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
-        </div>
     );
 };
 

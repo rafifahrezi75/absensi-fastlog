@@ -164,7 +164,8 @@ const Payroll = () => {
         return payrollList.filter(item => {
             const matchesPeriode = periode ? item.periode === periode : true;
             const matchesSearch = (item.nama || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (item.nik || '').toLowerCase().includes(searchQuery.toLowerCase());
+                (item.pin || '').toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.id || '').toString().toLowerCase().includes(searchQuery.toLowerCase());
             const matchesDept = selectedDept ? (item.dept || '').toLowerCase() === selectedDept.toLowerCase() : true;
             const matchesStatus = selectedStatus ? item.status === selectedStatus : true;
 
@@ -242,11 +243,11 @@ const Payroll = () => {
             return;
         }
 
-        const headers = ['NIK', 'Nama', 'Departemen', 'Jabatan', 'Golongan', 'Periode', 'Gaji Pokok', 'Tunjangan', 'Lembur', 'Potongan Terlambat', 'Potongan Alpa', 'Potongan Lainnya', 'Total Potongan', 'Total THP', 'Status'];
+        const headers = ['ID', 'Nama', 'Departemen', 'Jabatan', 'Golongan', 'Periode', 'Gaji Pokok', 'Tunjangan', 'Lembur', 'Potongan Terlambat', 'Potongan Alpa', 'Potongan Lainnya', 'Total Potongan', 'Total THP', 'Status'];
         const csvRows = [
             headers.join(','),
             ...filteredPayroll.map(item => [
-                `"${item.nik || '-'}"`,
+                `"${item.pin || item.id || '-'}"`,
                 `"${item.nama || '-'}"`,
                 `"${item.deptLabel || item.dept || '-'}"`,
                 `"${item.jabatan || '-'}"`,
@@ -363,7 +364,7 @@ const Payroll = () => {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Nama / NIK..."
+                                placeholder="Nama / ID..."
                                 className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                             />
                             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />

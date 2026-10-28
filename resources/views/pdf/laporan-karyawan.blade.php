@@ -231,16 +231,14 @@
             <td class="info-value">: {{ $employee['dept'] ?? 'Umum' }}</td>
         </tr>
         <tr>
-            <td class="info-label">ID / PIN</td>
-            <td class="info-value">: {{ $employee['pin'] ?? '-' }}</td>
+            <td class="info-label">ID Karyawan</td>
+            <td class="info-value">: {{ !empty($employee['pin']) ? $employee['pin'] : ($employee['id'] ?? '-') }}</td>
             <td class="info-label">Jabatan</td>
             <td class="info-value">: {{ $employee['jabatan'] ?? 'Staff' }}</td>
         </tr>
         <tr>
-            <td class="info-label">NIK</td>
-            <td class="info-value">: {{ $employee['nik'] ?? '-' }}</td>
             <td class="info-label">Status Aturan</td>
-            <td class="info-value">: {{ !empty($employee['is_exempt']) ? 'Bebas Denda & Lembur' : 'Standar Sesuai Aturan' }}</td>
+            <td class="info-value" colspan="3">: {{ !empty($employee['is_exempt']) ? 'Bebas Denda & Lembur' : 'Standar Sesuai Aturan' }}</td>
         </tr>
     </table>
 

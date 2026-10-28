@@ -305,7 +305,7 @@ const Attendance = () => {
                                 type="text" 
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Nama, NIK, atau PIN..." 
+                                placeholder="Nama atau ID / PIN..." 
                                 className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
                             />
                             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2 pointer-events-none" />

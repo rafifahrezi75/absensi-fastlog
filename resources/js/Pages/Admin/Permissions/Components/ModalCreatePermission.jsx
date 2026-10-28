@@ -175,7 +175,7 @@ const ModalCreatePermission = ({ isOpen, onClose, onSuccess, employees = [] }) =
               <option value="" disabled hidden>-- Pilih Karyawan --</option>
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
-                  {emp.nama} ({emp.nik || `PIN: ${emp.pin}`}) - {emp.dept || 'Umum'}
+                  {emp.nama} (ID: {emp.pin || emp.id}) - {emp.dept || 'Umum'}
                 </option>
               ))}
             </select>
