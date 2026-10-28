@@ -140,7 +140,10 @@ const SlipGaji = () => {
             lembur_menit: item.lembur_menit,
             periode: formattedPeriode,
             bpjs_details: item.bpjs_details,
-            tunjangan_details: item.tunjangan_details
+            tunjangan_details: item.tunjangan_details,
+            late_details: item.late_details,
+            late_category: item.late_category,
+            is_exempt: item.is_exempt,
         });
     };
 
