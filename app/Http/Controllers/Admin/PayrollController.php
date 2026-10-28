@@ -359,6 +359,8 @@ class PayrollController extends Controller
                     'dibayar_pada' => $p->dibayar_pada?->format('Y-m-d H:i:s'),
                     'bpjs_details' => $bpjsDetails,
                     'tunjangan_details' => $tunjanganDetails,
+                    'late_details' => $savedCatatan['late_details'] ?? null,
+                    'late_category' => $savedCatatan['late_details']['category_name'] ?? null,
                 ];
             });
 
@@ -574,6 +576,7 @@ class PayrollController extends Controller
                 $savedCatatan = $existingPayroll->catatan ? json_decode($existingPayroll->catatan, true) : null;
                 $bpjsDetails = $savedCatatan['bpjs_details'] ?? [];
                 $tunjanganDetails = $savedCatatan['tunjangan_details'] ?? [];
+                $lateDetails = $savedCatatan['late_details'] ?? null;
 
                 $resultList[] = [
                     'id' => $employee->id,
@@ -603,6 +606,9 @@ class PayrollController extends Controller
                     'dibayar_pada' => $existingPayroll->dibayar_pada?->format('Y-m-d H:i:s'),
                     'bpjs_details' => $bpjsDetails,
                     'tunjangan_details' => $tunjanganDetails,
+                    'late_details' => $lateDetails,
+                    'late_category' => $lateDetails['category_name'] ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
+                    'is_exempt' => (bool)$employee->is_exempt,
                 ];
                 continue;
             }
@@ -815,20 +821,25 @@ class PayrollController extends Controller
             $currentStatus = $existingPayroll ? $existingPayroll->status : 'draft';
             $paidAt = $existingPayroll ? $existingPayroll->dibayar_pada : null;
 
+            $lateDetails = [
+                'is_exempt' => (bool)$employee->is_exempt,
+                'category_name' => $lateResult['category']?->nama ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
+                'toleransi_bulanan' => (int)($lateResult['category']?->toleransi_bulanan ?? 3),
+                'total_late_events' => $lateResult['total_late_events'] ?? (($lateResult['tier1_count'] ?? 0) + ($lateResult['tier2_count'] ?? 0) + ($lateResult['tier3_count'] ?? 0) + ($lateResult['tier4_count'] ?? 0)),
+                'tier1_count' => $lateResult['tier1_count'] ?? 0,
+                'tier1_tolerated' => $lateResult['tier1_tolerated_count'] ?? 0,
+                'tier1_penalized' => $lateResult['tier1_penalized_count'] ?? 0,
+                'tier2_count' => $lateResult['tier2_count'] ?? 0,
+                'tier3_count' => $lateResult['tier3_count'] ?? 0,
+                'tier4_count' => $lateResult['tier4_count'] ?? 0,
+                'tiers_breakdown' => $lateResult['tiers_breakdown'] ?? [],
+                'total_deduction' => $potonganTerlambat,
+            ];
+
             $catatanJson = json_encode([
                 'bpjs_details' => $potonganBPJSBreakdown,
                 'tunjangan_details' => $allowancesBreakdown,
-                'late_details' => [
-                    'is_exempt' => (bool)$employee->is_exempt,
-                    'category_name' => $lateResult['category']?->nama ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
-                    'tier1_count' => $lateResult['tier1_count'] ?? 0,
-                    'tier1_tolerated' => $lateResult['tier1_tolerated_count'] ?? 0,
-                    'tier1_penalized' => $lateResult['tier1_penalized_count'] ?? 0,
-                    'tier2_count' => $lateResult['tier2_count'] ?? 0,
-                    'tier3_count' => $lateResult['tier3_count'] ?? 0,
-                    'tier4_count' => $lateResult['tier4_count'] ?? 0,
-                    'total_deduction' => $potonganTerlambat,
-                ],
+                'late_details' => $lateDetails,
                 'overtime_details' => $overtimeResult,
             ]);
 
@@ -887,6 +898,7 @@ class PayrollController extends Controller
                 'bpjs_details' => $potonganBPJSBreakdown,
                 'tunjangan_details' => $allowancesBreakdown,
                 'is_exempt' => (bool)$employee->is_exempt,
+                'late_details' => $lateDetails,
                 'late_category' => $lateResult['category']?->nama ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
             ];
         }
