@@ -57,6 +57,11 @@ const Reports = () => {
         return () => clearTimeout(timer);
     }, [loadReports]);
 
+    const todayStr = useMemo(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }, []);
+
     const daysInPeriod = useMemo(() => {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -183,7 +188,18 @@ const Reports = () => {
 
             const dailyStatus = daysInPeriod.map(d => {
                 const defaultSt = d.isHoliday ? 'LN' : (d.isSunday ? 'L' : '-');
-                const st = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || defaultSt;
+                let st = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || defaultSt;
+                if (emp.is_exempt) {
+                    if (d.isHoliday) {
+                        st = 'LN';
+                    } else if (d.isSunday) {
+                        st = 'L';
+                    } else if (d.fullDate > todayStr) {
+                        st = '-';
+                    } else {
+                        st = 'H';
+                    }
+                }
                 if (st === 'H') countH++;
                 if (st === 'T') countT++;
                 if (st === 'OT') countOT++;
@@ -345,9 +361,8 @@ const Reports = () => {
                                     <th
                                         key={d.fullDate || d.dayNum}
                                         title={d.holidayName || (d.isSunday ? 'Hari Minggu' : '')}
-                                        className={`px-1 py-1.5 border-r border-slate-700 min-w-[30px] ${
-                                            d.isSunday || d.isHoliday ? 'bg-rose-950/40 text-rose-300' : ''
-                                        }`}
+                                        className={`px-1 py-1.5 border-r border-slate-700 min-w-[30px] ${d.isSunday || d.isHoliday ? 'bg-rose-950/40 text-rose-300' : ''
+                                            }`}
                                     >
                                         <div className="font-bold text-xs">{d.dayNum}</div>
                                         <div className={`text-[9px] font-normal ${d.isSunday || d.isHoliday ? 'text-rose-300' : 'text-slate-400'}`}>
@@ -374,13 +389,31 @@ const Reports = () => {
                                     return (
                                         <tr key={emp.id} className="hover:bg-slate-100/60 transition">
                                             <td className="px-4 py-2 text-left font-semibold border-r border-slate-200 sticky left-0 bg-white z-[5] shadow-sm">
-                                                <div className="text-slate-900 font-bold leading-tight">{emp.nama}</div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="text-slate-900 font-bold leading-tight">{emp.nama}</div>
+                                                    {emp.is_exempt && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 shrink-0" title="Bebas Denda & Lembur (Karyawan Khusus)">
+                                                            Khusus
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="text-[10px] font-normal text-slate-400">{emp.deptLabel}</div>
                                             </td>
 
                                             {daysInPeriod.map((d) => {
                                                 const defaultSt = d.isHoliday ? 'LN' : (d.isSunday ? 'L' : '-');
-                                                const status = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || defaultSt;
+                                                let status = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || defaultSt;
+                                                if (emp.is_exempt) {
+                                                    if (d.isHoliday) {
+                                                        status = 'LN';
+                                                    } else if (d.isSunday) {
+                                                        status = 'L';
+                                                    } else if (d.fullDate > todayStr) {
+                                                        status = '-';
+                                                    } else {
+                                                        status = 'H';
+                                                    }
+                                                }
 
                                                 if (status === 'H') countH++;
                                                 if (status === 'T') countT++;

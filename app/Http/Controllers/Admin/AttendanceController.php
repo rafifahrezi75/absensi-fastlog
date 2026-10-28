@@ -229,7 +229,27 @@ class AttendanceController extends Controller
                 $empLateResult = $calculatedLateByEmp[$emp->id];
                 $dayDetail = $empLateResult['daily_details'][$item['date']] ?? null;
 
-                if ($dayDetail && $dayDetail['minutes_late'] > 0) {
+                if ($emp->is_exempt) {
+                    $isLate = false;
+                    $minutesLate = 0;
+                    $status = 'hadir';
+                    $inStatus = 'Tepat Waktu';
+                    $lateInfo = [
+                        'is_late' => false,
+                        'minutes_late' => 0,
+                        'category_name' => 'Karyawan Khusus',
+                        'category_code' => 'EXEMPT',
+                        'tier_order' => null,
+                        'tier_name' => 'Bebas Aturan',
+                        'ada_toleransi' => false,
+                        'toleransi_ke' => null,
+                        'toleransi_max' => 3,
+                        'quota_text' => 'Bebas Denda & Lembur',
+                        'status_text' => 'Bebas Sanksi (Karyawan Khusus)',
+                        'deduction' => 0,
+                        'is_exempt' => true,
+                    ];
+                } elseif ($dayDetail && $dayDetail['minutes_late'] > 0) {
                     $isLate = true;
                     $minutesLate = $dayDetail['minutes_late'];
                     $status = 'terlambat';
@@ -249,31 +269,8 @@ class AttendanceController extends Controller
                         'quota_text' => $dayDetail['quota_text'] ?? null,
                         'status_text' => $dayDetail['status_text'] ?? null,
                         'deduction' => $dayDetail['deduction'] ?? 0,
-                        'is_exempt' => (bool)$emp->is_exempt,
+                        'is_exempt' => false,
                     ];
-                } elseif ($emp->is_exempt && $inScan->gt($scheduleIn)) {
-                    $diff = (int) round($scheduleIn->diffInMinutes($inScan));
-                    if ($diff >= 1) {
-                        $isLate = true;
-                        $minutesLate = $diff;
-                        $status = 'terlambat';
-                        $inStatus = 'Telat ' . $minutesLate . ' Mnt';
-                        $lateInfo = [
-                            'is_late' => true,
-                            'minutes_late' => $minutesLate,
-                            'category_name' => 'Karyawan Khusus',
-                            'category_code' => 'EXEMPT',
-                            'tier_order' => null,
-                            'tier_name' => 'Bebas Aturan',
-                            'ada_toleransi' => false,
-                            'toleransi_ke' => null,
-                            'toleransi_max' => 3,
-                            'quota_text' => 'Bebas Denda & Lembur',
-                            'status_text' => 'Bebas Sanksi (Karyawan Khusus)',
-                            'deduction' => 0,
-                            'is_exempt' => true,
-                        ];
-                    }
                 }
             }
 
@@ -634,9 +631,9 @@ class AttendanceController extends Controller
                     $schedInTime = $isSat ? ($settingsData['saturday_check_in'] ?? '08:00') : ($settingsData['normal_check_in'] ?? '08:00');
                     $lateThreshold = Carbon::parse($tanggal . ' ' . $schedInTime . ':00');
                     $isLate = Carbon::parse($tanggal . ' ' . $jamMasuk)->gt($lateThreshold);
-                    $attendance->status = $isLate ? 'terlambat' : 'hadir';
+                    $attendance->status = $employee->is_exempt ? 'hadir' : ($isLate ? 'terlambat' : 'hadir');
                 } else {
-                    $attendance->status = 'alpa';
+                    $attendance->status = $employee->is_exempt ? 'hadir' : 'alpa';
                 }
 
                 $attendance->save();
