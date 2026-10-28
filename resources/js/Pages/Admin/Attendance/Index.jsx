@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX, Loader2, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX, Loader2, CheckCircle2, AlertCircle, Info, MapPin, Navigation, Camera } from 'lucide-react';
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
 import api from '../../../lib/api';
@@ -30,8 +30,17 @@ const Attendance = () => {
     const [filterDept, setFilterDept] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
+    const abortControllerRef = useRef(null);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+        }, 300);
+        return () => clearTimeout(handler);
+    }, [searchQuery]);
 
     const openModalKoreksi = useCallback((row) => {
         setModalData({
@@ -45,6 +54,11 @@ const Attendance = () => {
             tanggalDisplay: row.tglDisplay || '',
             masuk: row.in && row.in !== '-' ? row.in : '',
             keluar: row.out && row.out !== '-' ? row.out : '',
+            is_outdoor: Boolean(row.is_outdoor),
+            outdoor_info: row.outdoor_info || null,
+            foto: row.foto || row.outdoor_info?.photo || null,
+            keterangan: row.outdoor_info?.keterangan || null,
+            address: row.outdoor_info?.address || null,
         });
     }, []);
 
@@ -53,33 +67,46 @@ const Attendance = () => {
     }, []);
 
     const loadAttendance = useCallback(async (silent = false) => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
             if (!silent) setLoading(true);
             const params = {};
             if (filterTanggal) params.tanggal = filterTanggal;
             if (filterDept) params.dept = filterDept;
             if (filterStatus) params.status = filterStatus;
-            if (searchQuery) params.search = searchQuery;
+            if (debouncedSearch) params.search = debouncedSearch;
 
-            const res = await api.get('/api/admin/attendance', { params });
+            const res = await api.get('/api/admin/attendance', {
+                params,
+                signal: controller.signal,
+            });
             setAttendanceData(res.data.attendance || []);
             if (res.data.stats) {
                 setStats(res.data.stats);
             }
         } catch (err) {
+            if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+                return;
+            }
             setNotif({
                 type: 'error',
                 message: err.response?.data?.message || 'Gagal memuat data absensi.',
             });
         } finally {
-            if (!silent) setLoading(false);
+            if (!silent && abortControllerRef.current === controller) {
+                setLoading(false);
+            }
         }
-    }, [filterTanggal, filterDept, filterStatus, searchQuery]);
+    }, [filterTanggal, filterDept, filterStatus, debouncedSearch]);
 
-    // Reset page to 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [filterTanggal, filterDept, filterStatus, searchQuery]);
+    }, [filterTanggal, filterDept, filterStatus, debouncedSearch]);
 
     useEffect(() => {
         loadAttendance();
@@ -131,7 +158,7 @@ const Attendance = () => {
             setFetchingCloud(true);
             pollTimer = setInterval(() => {
                 loadAttendance(true);
-            }, 1000);
+            }, 2500);
 
             const payload = {
                 start_date: syncStart,
@@ -162,6 +189,7 @@ const Attendance = () => {
         setFilterDept('');
         setFilterStatus('');
         setSearchQuery('');
+        setDebouncedSearch('');
         setCurrentPage(1);
     };
 
@@ -306,9 +334,20 @@ const Attendance = () => {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Nama atau ID / PIN..." 
-                                className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
+                                className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-8 py-2 text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
                             />
                             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2 pointer-events-none" />
+                            {searchQuery !== debouncedSearch ? (
+                                <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin absolute right-2.5 top-2.5 pointer-events-none" />
+                            ) : searchQuery ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            ) : null}
                         </div>
                     </div>
                 </div>
@@ -392,71 +431,128 @@ const Attendance = () => {
                                             <div className="text-[10px] text-slate-500 mt-0.5">{row.outStatus || '-'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {(row.status === 'ontime' || row.status === 'hadir') && (
-                                                <div className="inline-flex items-center gap-1.5">
-                                                    <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200">
-                                                        Hadir ({row.dur || '-'})
-                                                    </span>
-                                                    {row.late_info?.is_exempt && (
-                                                        <span className="bg-amber-100 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-200" title="Bebas Sanksi (Karyawan Khusus)">
-                                                            Khusus
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                {(row.status === 'ontime' || row.status === 'hadir') && (
+                                                    <div className="inline-flex items-center gap-1.5">
+                                                        <span className="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded-full border border-emerald-200">
+                                                            Hadir ({row.dur || '-'})
                                                         </span>
-                                                    )}
-                                                </div>
-                                            )}
-                                            {(row.status === 'late' || row.status === 'terlambat') && (
-                                                <div className="relative group inline-block">
-                                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer hover:bg-amber-200/80 transition">
-                                                        <span>Telat {row.minutesLate} Mnt</span>
-                                                        {row.late_info?.tier_order && (
-                                                            <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
-                                                                Kat {row.late_info.tier_order}
+                                                        {row.late_info?.is_exempt && (
+                                                            <span className="bg-amber-100 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-200" title="Bebas Sanksi (Karyawan Khusus)">
+                                                                Khusus
                                                             </span>
                                                         )}
-                                                        {row.late_info && <Info className="w-3.5 h-3.5 text-amber-700" />}
                                                     </div>
+                                                )}
+                                                {(row.status === 'late' || row.status === 'terlambat') && (
+                                                    <div className="relative group inline-block">
+                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer hover:bg-amber-200/80 transition">
+                                                            <span>Telat {row.minutesLate} Mnt</span>
+                                                            {row.late_info?.tier_order && (
+                                                                <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
+                                                                    Kat {row.late_info.tier_order}
+                                                                </span>
+                                                            )}
+                                                            {row.late_info && <Info className="w-3.5 h-3.5 text-amber-700" />}
+                                                        </div>
 
-                                                    {row.late_info && (
-                                                        <div className={`absolute left-0 ${isBottomRow ? 'bottom-full mb-1.5 origin-bottom-left' : 'top-full mt-1.5 origin-top-left'} hidden group-hover:flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl z-50 text-xs pointer-events-none whitespace-normal transition animate-in fade-in zoom-in-95`}>
-                                                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-700 mb-2">
-                                                                <span className="font-bold text-amber-400 text-[11px] uppercase tracking-wider">Detail Keterlambatan</span>
-                                                                <span className="text-[10px] text-slate-400 font-sans">{row.late_info.category_name}</span>
-                                                            </div>
-                                                            <div className="space-y-1.5 text-[11px] font-sans">
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-slate-400">Durasi:</span>
-                                                                    <span className="font-medium text-slate-200">Kategori {row.late_info.tier_order} ({row.late_info.tier_name})</span>
+                                                        {row.late_info && (
+                                                            <div className={`absolute left-0 ${isBottomRow ? 'bottom-full mb-1.5 origin-bottom-left' : 'top-full mt-1.5 origin-top-left'} hidden group-hover:flex flex-col w-72 p-3 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl z-50 text-xs pointer-events-none whitespace-normal transition animate-in fade-in zoom-in-95`}>
+                                                                <div className="flex items-center justify-between pb-1.5 border-b border-slate-700 mb-2">
+                                                                    <span className="font-bold text-amber-400 text-[11px] uppercase tracking-wider">Detail Keterlambatan</span>
+                                                                    <span className="text-[10px] text-slate-400 font-sans">{row.late_info.category_name}</span>
                                                                 </div>
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-slate-400">Potongan Denda:</span>
-                                                                    <span className={`font-semibold ${row.late_info.deduction > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                                                                        {row.late_info.deduction > 0 ? `Rp ${Number(row.late_info.deduction).toLocaleString('id-ID')}` : 'Rp 0'}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="pt-1.5 border-t border-slate-800">
-                                                                    <span className="text-slate-400 block mb-0.5">Status Toleransi / Denda:</span>
-                                                                    {row.late_info.is_exempt ? (
-                                                                        <span className="text-emerald-400 font-semibold">Bebas Sanksi (Staf Khusus)</span>
-                                                                    ) : (
-                                                                        <span className="text-amber-300 font-medium leading-relaxed block">
-                                                                            {row.late_info.quota_text}
+                                                                <div className="space-y-1.5 text-[11px] font-sans">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-slate-400">Durasi:</span>
+                                                                        <span className="font-medium text-slate-200">Kategori {row.late_info.tier_order} ({row.late_info.tier_name})</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-slate-400">Potongan Denda:</span>
+                                                                        <span className={`font-semibold ${row.late_info.deduction > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                                                            {row.late_info.deduction > 0 ? `Rp ${Number(row.late_info.deduction).toLocaleString('id-ID')}` : 'Rp 0'}
                                                                         </span>
-                                                                    )}
+                                                                    </div>
+                                                                    <div className="pt-1.5 border-t border-slate-800">
+                                                                        <span className="text-slate-400 block mb-0.5">Status Toleransi / Denda:</span>
+                                                                        {row.late_info.is_exempt ? (
+                                                                            <span className="text-emerald-400 font-semibold">Bebas Sanksi (Staf Khusus)</span>
+                                                                        ) : (
+                                                                            <span className="text-amber-300 font-medium leading-relaxed block">
+                                                                                {row.late_info.quota_text}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <div className={`absolute left-6 ${isBottomRow ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900/95 rotate-45`}></div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {row.is_outdoor && (
+                                                    <div className="relative group inline-block">
+                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-900 border border-teal-200 cursor-pointer hover:bg-teal-200/80 transition">
+                                                            <Navigation className="w-3.5 h-3.5 text-teal-700" />
+                                                            <span>Absen Luar ({row.outdoor_info?.tap_label || 'GPS'})</span>
+                                                            <Info className="w-3.5 h-3.5 text-teal-700" />
+                                                        </div>
+
+                                                        <div className={`absolute left-0 ${isBottomRow ? 'bottom-full mb-1.5 origin-bottom-left' : 'top-full mt-1.5 origin-top-left'} hidden group-hover:flex flex-col w-80 p-3.5 bg-slate-900/95 backdrop-blur-xs text-white rounded-xl shadow-2xl z-50 text-xs pointer-events-none whitespace-normal transition animate-in fade-in zoom-in-95`}>
+                                                            <div className="flex items-center justify-between pb-2 border-b border-slate-700 mb-2">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <Navigation className="w-3.5 h-3.5 text-teal-400" />
+                                                                    <span className="font-bold text-teal-400 text-[11px] uppercase tracking-wider">Absensi Luar Kantor</span>
+                                                                </div>
+                                                                <span className="text-[10px] text-teal-300 bg-teal-900/60 px-2 py-0.5 rounded-full font-medium border border-teal-700/50">
+                                                                    {row.outdoor_info?.tap_label}
+                                                                </span>
+                                                            </div>
+
+                                                            {row.outdoor_info?.photo && (
+                                                                <div className="mb-2 rounded-lg overflow-hidden border border-slate-700 bg-slate-950">
+                                                                    <img 
+                                                                        src={row.outdoor_info.photo} 
+                                                                        alt="Foto Absen Luar" 
+                                                                        className="w-full h-32 object-contain bg-slate-950" 
+                                                                    />
+                                                                </div>
+                                                            )}
+
+                                                            <div className="space-y-1.5 text-slate-300">
+                                                                {row.outdoor_info?.address && (
+                                                                    <div className="flex items-start gap-1.5">
+                                                                        <MapPin className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
+                                                                        <span className="text-[11px] leading-tight text-slate-200">
+                                                                            {row.outdoor_info.address}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {row.outdoor_info?.keterangan && (
+                                                                    <div className="pt-1.5 border-t border-slate-800 text-[11px]">
+                                                                        <span className="text-slate-400 block mb-0.5">Keterangan:</span>
+                                                                        <p className="text-slate-200 whitespace-pre-line line-clamp-3">
+                                                                            {row.outdoor_info.keterangan}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                                <div className="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px] text-teal-300">
+                                                                    <span>Terverifikasi GPS & Kamera</span>
+                                                                    <span className="text-slate-400 font-mono">Mobile GPS</span>
                                                                 </div>
                                                             </div>
                                                             <div className={`absolute left-6 ${isBottomRow ? '-bottom-1' : '-top-1'} w-2 h-2 bg-slate-900/95 rotate-45`}></div>
                                                         </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                            {row.status === 'izin' && (
-                                                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-200">
-                                                    Izin / Sakit
-                                                </span>
-                                            )}
-                                            {!row.status && (
-                                                <span className="text-slate-300 italic text-xs">-</span>
-                                            )}
+                                                    </div>
+                                                )}
+                                                {row.status === 'izin' && (
+                                                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-200">
+                                                        Izin / Sakit
+                                                    </span>
+                                                )}
+                                                {!row.status && !row.is_outdoor && (
+                                                    <span className="text-slate-300 italic text-xs">-</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {row.locIn ? (

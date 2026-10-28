@@ -559,28 +559,6 @@ class PermissionController extends Controller
                 ],
             ]);
 
-            if ($isTapOut && !$permission->employee?->is_exempt) {
-                $overtimeService = app(OvertimeCalculationService::class);
-                $eval = $overtimeService->evaluateOvertimeDay($permission->employee, $tapDateTime);
-                if ($eval['qualifies']) {
-                    OvertimeLog::updateOrCreate(
-                        [
-                            'employee_id' => $permission->employee_id,
-                            'attendance_id' => $attendance->id,
-                        ],
-                        [
-                            'user_id' => $permission->user_id,
-                            'waktu_tap' => $tapDateTime,
-                            'durasi_menit' => 0,
-                            'tipe_lembur' => $eval['tipe_lembur'],
-                            'kategori_staf' => $eval['staff_category'],
-                            'nominal' => $eval['nominal'],
-                            'status' => 'DISETUJUI',
-                            'catatan_admin' => $adminNote ?: 'Sinkronisasi persetujuan Absensi Luar (Tap Out)',
-                        ]
-                    );
-                }
-            }
             return;
         }
 

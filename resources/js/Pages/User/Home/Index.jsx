@@ -20,6 +20,7 @@ const Home = () => {
     const [recentList, setRecentList] = useState([]);
     const [employeeData, setEmployeeData] = useState(null);
     const [overtimeRules, setOvertimeRules] = useState(null);
+    const [todayAttendance, setTodayAttendance] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const [now, setNow] = useState(new Date());
@@ -36,6 +37,7 @@ const Home = () => {
             setRecentList(res.data.recent || []);
             setEmployeeData(res.data.employee || null);
             setOvertimeRules(res.data.overtime_rules || null);
+            setTodayAttendance(res.data.today_attendance || null);
         } catch (err) {
             setNotif({
                 type: 'error',
@@ -307,6 +309,7 @@ const Home = () => {
                 onSuccess={handleSuccessSubmission}
                 employee={employeeData}
                 overtimeRules={overtimeRules}
+                todayAttendance={todayAttendance}
             />
         </div>
     );
