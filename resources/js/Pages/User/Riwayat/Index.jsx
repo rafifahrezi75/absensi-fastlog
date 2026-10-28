@@ -129,14 +129,6 @@ const Riwayat = () => {
                 </div>
             )}
 
-            {riwayat.some(r => r.raw_kategori === 'absensi' && r.raw_status === 'ditolak') && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2.5 shadow-xs">
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                    <span className="font-medium">
-                        Terdapat absensi luar yang telah dihapus atau ditolak oleh admin. Mohon lakukan absensi ulang dari menu Beranda.
-                    </span>
-                </div>
-            )}
 
             <div>
                 <h2 className="text-xl font-bold text-gray-900">Riwayat Pengajuan</h2>

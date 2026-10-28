@@ -261,7 +261,6 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
 
             let finalKeterangan = keterangan;
             if (type === 'Absensi') {
-                finalKeterangan = `[Tap ${tapType === 'in' ? 'In' : 'Out'}]\n${keterangan}`;
                 formData.append('tap_type', tapType);
                 const chosenTime = photoTime || new Date().toTimeString().substring(0, 8);
                 formData.append('tap_time', `${today} ${chosenTime}`);
