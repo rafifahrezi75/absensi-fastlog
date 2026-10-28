@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileSpreadsheet, Printer, Search, TableProperties, Loader2, ChevronRight, Download, ExternalLink, X, FileText } from 'lucide-react';
+import { FileSpreadsheet, Printer, Search, TableProperties, Loader2, ChevronRight } from 'lucide-react';
 import api from '../../../lib/api';
 
 const dayNamesIndo = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -26,11 +26,6 @@ const Reports = () => {
     const [departments, setDepartments] = useState([]);
     const [holidays, setHolidays] = useState({});
     const [loading, setLoading] = useState(true);
-    const [showPdfModal, setShowPdfModal] = useState(false);
-    const pdfIframeRef = useRef(null);
-
-    const rekapPdfUrl = `/api/admin/reports/pdf?start_date=${startDate}&end_date=${endDate}${selectedDept ? `&dept=${encodeURIComponent(selectedDept)}` : ''}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
-    const rekapPdfDownloadUrl = `${rekapPdfUrl}&download=1`;
 
     const loadReports = useCallback(async () => {
         try {
@@ -253,10 +248,18 @@ const Reports = () => {
                         <FileSpreadsheet className="w-4 h-4" /> Export Excel
                     </button>
                     <button
-                        onClick={() => setShowPdfModal(true)}
-                        className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                        onClick={() => {
+                            const params = new URLSearchParams();
+                            if (startDate) params.set('start_date', startDate);
+                            if (endDate) params.set('end_date', endDate);
+                            if (selectedDept) params.set('dept', selectedDept);
+                            if (searchQuery) params.set('search', searchQuery);
+                            navigate(`/admin/reports/preview?${params.toString()}`);
+                        }}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                        title="Buka Pratinjau & Cetak PDF"
                     >
-                        <Printer className="w-4 h-4" /> Pratinjau &amp; Cetak PDF
+                        <Printer className="w-4 h-4" /> Cetak
                     </button>
                 </div>
             </div>
@@ -480,67 +483,6 @@ const Reports = () => {
                 </div>
             </div>
 
-            {showPdfModal && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5">
-                    <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col h-[90vh] overflow-hidden border border-slate-200">
-                        <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
-                                    <FileText className="w-4 h-4" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-bold text-slate-900">
-                                        Pratinjau Dokumen Rekap Presensi &amp; Overtime (PDF)
-                                    </h3>
-                                    <p className="text-[11px] text-slate-500">
-                                        Periode: {startDate} s.d {endDate} {selectedDept ? `• Dept: ${selectedDept}` : ''}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => window.open(rekapPdfUrl, '_blank')}
-                                    className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 border border-slate-300 shadow-xs"
-                                    title="Buka PDF di Tab Baru"
-                                >
-                                    <ExternalLink className="w-3.5 h-3.5" /> Buka Tab Baru
-                                </button>
-                                <button
-                                    onClick={() => pdfIframeRef.current?.contentWindow?.print()}
-                                    className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 border border-slate-300 shadow-xs"
-                                    title="Cetak PDF"
-                                >
-                                    <Printer className="w-3.5 h-3.5" /> Cetak
-                                </button>
-                                <button
-                                    onClick={() => { window.location.href = rekapPdfDownloadUrl; }}
-                                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-xs"
-                                    title="Unduh PDF"
-                                >
-                                    <Download className="w-3.5 h-3.5" /> Unduh PDF
-                                </button>
-                                <button
-                                    onClick={() => setShowPdfModal(false)}
-                                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
-                                    title="Tutup Pratinjau"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 bg-slate-100/70 p-3 sm:p-4 overflow-hidden flex justify-center">
-                            <iframe
-                                ref={pdfIframeRef}
-                                src={`${rekapPdfUrl}#view=FitH`}
-                                title="Pratinjau Rekap Presensi PDF"
-                                className="w-full h-full bg-white rounded-xl border border-slate-300 shadow-md"
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

@@ -10,11 +10,13 @@ import Permissions from './Pages/Admin/Permissions/Index';
 import Employees from './Pages/Admin/Employees/Index';
 import Payroll from './Pages/Admin/Payroll/Index';
 import Reports from './Pages/Admin/Reports/Index';
+import RekapPreview from './Pages/Admin/Reports/RekapPreview';
+import EmployeeReportDetail from './Pages/Admin/Reports/Detail';
+import EmployeePreview from './Pages/Admin/Reports/EmployeePreview';
 import MasterAkun from './Pages/Admin/MasterAkun/Index';
 import MasterPayroll from './Pages/Admin/MasterPayroll/Index';
 import Settings from './Pages/Admin/Settings/Index';
 import Devices from './Pages/Admin/Devices/Index';
-import EmployeeReportDetail from './Pages/Admin/Reports/Detail';
 
 
 // User Layout & Pages
@@ -127,7 +129,9 @@ function App() {
                         <Route path="payroll/:id" element={<PayrollDetail />} />
                         <Route path="master-payroll" element={<MasterPayroll />} />
                         <Route path="reports" element={<Reports />} />
+                        <Route path="reports/preview" element={<RekapPreview />} />
                         <Route path="reports/:employeeId" element={<EmployeeReportDetail />} />
+                        <Route path="reports/:employeeId/preview" element={<EmployeePreview />} />
                         <Route path="master-akun" element={<MasterAkun />} />
                         <Route path="devices" element={<Devices />} />
                         <Route path="settings" element={<Settings />} />

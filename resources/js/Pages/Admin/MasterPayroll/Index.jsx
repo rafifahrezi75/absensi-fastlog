@@ -116,8 +116,8 @@ const MasterPayroll = () => {
             const q = searchQuery.toLowerCase();
             const matchesSearch = !q || (
                 (emp.nama && emp.nama.toLowerCase().includes(q)) ||
-                (emp.nik && emp.nik.toLowerCase().includes(q)) ||
-                (emp.pin && emp.pin.toString().includes(q))
+                (emp.pin && emp.pin.toString().includes(q)) ||
+                (emp.id && emp.id.toString().includes(q))
             );
             const matchesGrade = !empGrade || (emp.golongan && emp.golongan.toLowerCase() === empGrade.toLowerCase());
             const matchesCustomOnly = !empOnlyCustomized || emp.status === 'disesuaikan';
@@ -537,7 +537,7 @@ const MasterPayroll = () => {
                                                                 {emp.nama || <span className="text-slate-300 italic font-normal">Nama belum terisi</span>}
                                                             </div>
                                                             <div className="text-[11px] text-slate-400 mt-0.5">
-                                                                {emp.pin ? `PIN: ${emp.pin}` : ''}{emp.pin && emp.nik ? ' • ' : ''}{emp.nik ? `NIK: ${emp.nik}` : ''}{!emp.pin && !emp.nik ? `ID: ${emp.id}` : ''}
+                                                                ID: {emp.pin || emp.id || '-'}
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4 font-medium text-slate-800 whitespace-nowrap">

@@ -128,7 +128,7 @@ const Home = () => {
                         {user?.name || 'Karyawan'}
                     </h2>
                     <p className="text-white/50 text-xs mt-1">
-                        {deptText} {employeeData?.nik ? `(NIK: ${employeeData.nik})` : ''}
+                        {deptText} {employeeData?.pin ? `(ID: ${employeeData.pin})` : (employeeData?.id ? `(ID: ${employeeData.id})` : '')}
                     </p>
                 </div>
                 <div className="relative text-left md:text-right">
