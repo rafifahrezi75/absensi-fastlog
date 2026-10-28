@@ -4,6 +4,7 @@ import { Download, Calculator, Search, CheckCircle, FileText, Clock, ReceiptText
 import ModalSlip from './Components/ModalSlip';
 import ModalDetails from './Components/ModalDetails';
 import DeductionPopover from './Components/DeductionPopover';
+import AllowancePopover from './Components/AllowancePopover';
 import api from '../../../lib/api';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
@@ -420,8 +421,15 @@ const Payroll = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-xs font-mono text-slate-700 whitespace-nowrap">{item.gapok != null ? formatIDR(item.gapok) : <span className="text-slate-300 italic">-</span>}</td>
-                                            <td className="px-6 py-4 text-xs font-mono text-emerald-600 whitespace-nowrap">
-                                                <div>+ {formatIDR(item.bonus || 0)}</div>
+                                            <td className="px-6 py-4 text-xs whitespace-nowrap">
+                                                <div>
+                                                    <div className="font-semibold font-mono text-emerald-600">
+                                                        {(item.bonus || 0) > 0 ? `+ ${formatIDR(item.bonus || 0)}` : <span className="text-slate-400 font-normal">Rp 0</span>}
+                                                    </div>
+                                                    {((item.bonus || 0) > 0 || (item.tunjangan_details && item.tunjangan_details.length > 0)) && (
+                                                        <AllowancePopover item={item} formatIDR={formatIDR} />
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 text-xs whitespace-nowrap">
                                                 {(item.potongan || 0) > 0 ? (

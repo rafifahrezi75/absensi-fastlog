@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\LateCalculationService;
 use App\Services\OvertimeCalculationService;
+use App\Services\EmployeeReportExcelService;
 
 class ReportController extends Controller
 {
@@ -627,6 +628,55 @@ class ReportController extends Controller
         $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000);
         $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000);
 
+        foreach ($records as &$rec) {
+            $dStr = $rec['date'];
+            $lateDaily = $lateResult['daily_details'][$dStr] ?? null;
+            $otDaily = $overtimeResult['details'][$dStr] ?? null;
+
+            $tierOrder = $lateDaily['tier_order'] ?? null;
+            $tierName = $lateDaily['tier_name'] ?? null;
+
+            $otTypeName = null;
+            if ($otDaily && !empty($otDaily['tipe_lembur'])) {
+                $tipe = $otDaily['tipe_lembur'];
+                if ($tipe === 'HARI_BESAR') {
+                    $otTypeName = 'Lembur Hari Libur Nasional (Hari Besar)';
+                } elseif ($tipe === 'WEEKENDS') {
+                    $otTypeName = 'Lembur Akhir Pekan (Weekend)';
+                } else {
+                    $otTypeName = 'Lembur Hari Kerja (Daily)';
+                }
+            } elseif ($rec['overtime_minutes'] > 0) {
+                $dt = Carbon::parse($dStr);
+                $isHol = isset($holidaysMap[$dStr]);
+                $isWknd = $dt->isSaturday() || $dt->isSunday();
+                if ($isHol) {
+                    $otTypeName = 'Lembur Hari Libur Nasional (Hari Besar)';
+                } elseif ($isWknd) {
+                    $otTypeName = 'Lembur Akhir Pekan (Weekend)';
+                } else {
+                    $otTypeName = 'Lembur Hari Kerja (Daily)';
+                }
+            }
+
+            $rec['late_tier'] = $tierOrder;
+            $rec['late_tier_name'] = $tierName;
+            $rec['overtime_type_name'] = $otTypeName;
+
+            if ($rec['status'] === 'T' || $rec['late_minutes'] > 0) {
+                $lateText = 'Terlambat ' . $rec['late_minutes'] . ' menit';
+                if ($rec['overtime_minutes'] > 0) {
+                    $otText = ($otTypeName ?: 'Lembur') . ' ' . $rec['overtime_minutes'] . ' menit';
+                    $rec['note'] = $lateText . ' & ' . $otText;
+                } else {
+                    $rec['note'] = $lateText;
+                }
+            } elseif ($rec['status'] === 'OT' || $rec['overtime_minutes'] > 0) {
+                $rec['note'] = ($otTypeName ?: 'Lembur') . ' ' . $rec['overtime_minutes'] . ' menit';
+            }
+        }
+        unset($rec);
+
         return [
             'employee' => [
                 'id' => $employee->id,
@@ -724,5 +774,24 @@ class ReportController extends Controller
             return $pdf->download($filename);
         }
         return $pdf->stream($filename);
+    }
+
+    public function employeeExcel(Request $request, $id)
+    {
+        $employee = Employee::findOrFail($id);
+        $startDate = $request->input('start_date') ?: Carbon::now()->startOfMonth()->format('Y-m-d');
+        $endDate = $request->input('end_date') ?: Carbon::now()->endOfMonth()->format('Y-m-d');
+
+        $data = $this->prepareEmployeeReportData($employee, $startDate, $endDate);
+        
+        $excelService = app(EmployeeReportExcelService::class);
+        $filePath = $excelService->generate($data);
+
+        $cleanName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $employee->nama ?: 'Karyawan');
+        $filename = 'Laporan_Presensi_' . $cleanName . '_' . $startDate . '_sd_' . $endDate . '.xlsx';
+
+        return response()->download($filePath, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 }
