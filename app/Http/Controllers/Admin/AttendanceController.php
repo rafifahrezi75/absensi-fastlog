@@ -277,6 +277,37 @@ class AttendanceController extends Controller
                 }
             }
 
+            if ($isLate && !$lateInfo && $emp) {
+                $cat = $lateService->determineCategory($emp);
+                $matchedTier = null;
+                foreach ($cat->tiers as $t) {
+                    $min = (int)$t->min_menit;
+                    $max = $t->max_menit !== null ? (int)$t->max_menit : PHP_INT_MAX;
+                    if ($minutesLate >= $min && $minutesLate <= $max) {
+                        $matchedTier = $t;
+                        break;
+                    }
+                }
+                $deduction = $matchedTier ? (float)$matchedTier->nominal_denda : 30000;
+                $isNoTol = $matchedTier ? !$matchedTier->ada_toleransi : true;
+                $lateInfo = [
+                    'is_late' => true,
+                    'minutes_late' => $minutesLate,
+                    'category_name' => $cat->nama,
+                    'category_code' => $cat->kode,
+                    'tier_order' => $matchedTier ? $matchedTier->tier_order : null,
+                    'tier_name' => $matchedTier ? $matchedTier->nama_tier : null,
+                    'ada_toleransi' => $matchedTier ? (bool)$matchedTier->ada_toleransi : false,
+                    'toleransi_ke' => null,
+                    'toleransi_terpakai' => null,
+                    'toleransi_max' => (int)($cat->toleransi_bulanan ?? 3),
+                    'quota_text' => $isNoTol ? 'Tanpa toleransi (Potongan Rp ' . number_format($deduction, 0, ',', '.') . ')' : 'Jatah toleransi terpakai',
+                    'status_text' => 'Kategori ' . ($matchedTier ? $matchedTier->tier_order : '') . ' (Potongan Rp ' . number_format($deduction, 0, ',', '.') . ')',
+                    'deduction' => $deduction,
+                    'is_exempt' => (bool)$emp->is_exempt,
+                ];
+            }
+
             if ($outScan) {
                 $isEarly = $outScan->lt($scheduleOut);
                 $outStatus = $isEarly ? 'Pulang Cepat' : 'Tepat';
