@@ -320,6 +320,10 @@ class PayrollController extends Controller
         $activeComponents = SalaryComponent::where('status', 'aktif')->get();
 
         $payrolls = Payroll::where('employee_id', $employee->id)
+            ->where(function ($q) {
+                $q->whereIn('status', ['paid', 'disetujui', 'approved'])
+                  ->orWhereNotNull('dibayar_pada');
+            })
             ->orderBy('periode', 'desc')
             ->get()
             ->map(function ($p) use ($employee, $activeComponents) {
@@ -374,8 +378,8 @@ class PayrollController extends Controller
                     'dibayar_pada' => $p->dibayar_pada?->format('Y-m-d H:i:s'),
                     'bpjs_details' => $bpjsDetails,
                     'tunjangan_details' => $tunjanganDetails,
-                    'late_details' => $savedCatatan['late_details'] ?? null,
-                    'late_category' => $savedCatatan['late_details']['category_name'] ?? null,
+                    'late_details' => null,
+                    'late_category' => null,
                 ];
             });
 
@@ -448,9 +452,13 @@ class PayrollController extends Controller
         ];
     }
 
-    private function generatePdf(Payroll $payroll)
+    private function generatePdf(Payroll $payroll, bool $isAdmin = true)
     {
         $data = $this->prepareSlipViewData($payroll);
+        if (!$isAdmin) {
+            $data['lateDetails'] = null;
+            $data['lateCategory'] = null;
+        }
         return Pdf::loadView('pdf.slip-gaji', $data)->setPaper('a4', 'portrait');
     }
 
@@ -482,7 +490,7 @@ class PayrollController extends Controller
             $this->calculatePayrollForPeriod($payroll->periode, true);
             $payroll = Payroll::with('employee')->findOrFail($id);
         }
-        $pdf = $this->generatePdf($payroll);
+        $pdf = $this->generatePdf($payroll, true);
         $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
         $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
         return $pdf->stream($filename);
@@ -495,7 +503,7 @@ class PayrollController extends Controller
             $this->calculatePayrollForPeriod($payroll->periode, true);
             $payroll = Payroll::with('employee')->findOrFail($id);
         }
-        $pdf = $this->generatePdf($payroll);
+        $pdf = $this->generatePdf($payroll, true);
         $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
         $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
         return $pdf->download($filename);
@@ -509,6 +517,10 @@ class PayrollController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        if ($payroll->status !== 'paid' && empty($payroll->dibayar_pada)) {
+            return response()->json(['message' => 'Slip gaji belum diterbitkan atau disetujui oleh admin.'], 403);
+        }
+
         $data = $this->prepareSlipViewData($payroll);
         return response()->json([
             'payroll' => $payroll,
@@ -517,8 +529,8 @@ class PayrollController extends Controller
             'deptLabel' => $data['deptLabel'],
             'bpjsDetails' => $data['bpjsDetails'],
             'tunjanganDetails' => $data['tunjanganDetails'],
-            'lateDetails' => $data['lateDetails'],
-            'lateCategory' => $data['lateCategory'],
+            'lateDetails' => null,
+            'lateCategory' => null,
             'isExempt' => $data['isExempt'],
         ]);
     }
@@ -531,7 +543,11 @@ class PayrollController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $pdf = $this->generatePdf($payroll);
+        if ($payroll->status !== 'paid' && empty($payroll->dibayar_pada)) {
+            abort(403, 'Slip gaji belum disetujui atau dibayar oleh admin.');
+        }
+
+        $pdf = $this->generatePdf($payroll, false);
         $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
         $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
         return $pdf->stream($filename);
@@ -545,7 +561,11 @@ class PayrollController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        $pdf = $this->generatePdf($payroll);
+        if ($payroll->status !== 'paid' && empty($payroll->dibayar_pada)) {
+            abort(403, 'Slip gaji belum disetujui atau dibayar oleh admin.');
+        }
+
+        $pdf = $this->generatePdf($payroll, false);
         $cleanName = preg_replace('/[^A-Za-z0-9_-]/', '_', $payroll->employee->nama ?: 'Karyawan');
         $filename = 'Slip_Gaji_' . $cleanName . '_' . $payroll->periode . '.pdf';
         return $pdf->download($filename);

@@ -2,65 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wallet, Printer, FileText, CheckCircle, Clock, Calendar, Download, Loader2, ReceiptText, Info } from 'lucide-react';
 import ModalSlip from '../../Admin/Payroll/Components/ModalSlip';
-import DeductionPopover from '../../Admin/Payroll/Components/DeductionPopover';
 import api from '../../../lib/api';
-
-const getLateTiers = (item) => {
-    if (item.late_details?.tiers_breakdown && item.late_details.tiers_breakdown.length > 0) {
-        return item.late_details.tiers_breakdown;
-    }
-    const list = [];
-    if (item.late_details?.tier1_count > 0) {
-        const penalized = item.late_details.tier1_penalized || 0;
-        list.push({
-            tier_order: 1,
-            nama_tier: 'Kategori 1',
-            ada_toleransi: true,
-            total_kejadian: item.late_details.tier1_count,
-            toleransi_count: item.late_details.tier1_tolerated || 0,
-            penalized_count: penalized,
-            nominal_denda: penalized > 0 && item.potongan_terlambat > 0 ? Math.round(item.potongan_terlambat / penalized) : 10000,
-            deduction: item.potongan_terlambat || 0,
-        });
-    }
-    if (item.late_details?.tier2_count > 0) {
-        list.push({
-            tier_order: 2,
-            nama_tier: 'Kategori 2',
-            ada_toleransi: false,
-            total_kejadian: item.late_details.tier2_count,
-            toleransi_count: 0,
-            penalized_count: item.late_details.tier2_count,
-            nominal_denda: 0,
-            deduction: 0,
-        });
-    }
-    if (item.late_details?.tier3_count > 0) {
-        list.push({
-            tier_order: 3,
-            nama_tier: 'Kategori 3',
-            ada_toleransi: false,
-            total_kejadian: item.late_details.tier3_count,
-            toleransi_count: 0,
-            penalized_count: item.late_details.tier3_count,
-            nominal_denda: 0,
-            deduction: 0,
-        });
-    }
-    if (item.late_details?.tier4_count > 0) {
-        list.push({
-            tier_order: 4,
-            nama_tier: 'Kategori 4',
-            ada_toleransi: false,
-            total_kejadian: item.late_details.tier4_count,
-            toleransi_count: 0,
-            penalized_count: item.late_details.tier4_count,
-            nominal_denda: 0,
-            deduction: 0,
-        });
-    }
-    return list;
-};
 
 const SlipGaji = () => {
     const navigate = useNavigate();
@@ -190,35 +132,27 @@ const SlipGaji = () => {
                                     </td>
                                 </tr>
                             ) : payrolls.length > 0 ? (
-                                payrolls.map((item) => {
-                                    const lateTiers = getLateTiers(item);
-
-                                    return (
-                                        <tr key={item.id} className="hover:bg-slate-50 transition">
-                                            <td className="px-6 py-4 font-semibold text-slate-900 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="w-4 h-4 text-slate-400" />
-                                                    <span>{item.periode}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 font-mono text-xs text-slate-700 whitespace-nowrap">
-                                                {formatIDR(item.gapok ?? item.gaji_pokok)}
-                                            </td>
-                                            <td className="px-6 py-4 font-mono text-xs text-emerald-600 whitespace-nowrap">
-                                                + {formatIDR(item.bonus)}
-                                            </td>
-                                            <td className="px-6 py-4 text-xs whitespace-nowrap">
-                                                {(item.potongan || 0) > 0 ? (
-                                                    <div>
-                                                        <div className="font-semibold font-mono text-rose-600">- {formatIDR(item.potongan || 0)}</div>
-                                                        {(item.potongan_alpa > 0 || item.potongan_terlambat > 0 || item.potongan_lainnya > 0) && (
-                                                            <DeductionPopover item={item} lateTiers={lateTiers} formatIDR={formatIDR} />
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-slate-400 font-mono">Rp 0</span>
-                                                )}
-                                            </td>
+                                payrolls.map((item) => (
+                                    <tr key={item.id} className="hover:bg-slate-50 transition">
+                                        <td className="px-6 py-4 font-semibold text-slate-900 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="w-4 h-4 text-slate-400" />
+                                                <span>{item.periode}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 font-mono text-xs text-slate-700 whitespace-nowrap">
+                                            {formatIDR(item.gapok ?? item.gaji_pokok)}
+                                        </td>
+                                        <td className="px-6 py-4 font-mono text-xs text-emerald-600 whitespace-nowrap">
+                                            + {formatIDR(item.bonus)}
+                                        </td>
+                                        <td className="px-6 py-4 text-xs whitespace-nowrap">
+                                            {(item.potongan || 0) > 0 ? (
+                                                <div className="font-semibold font-mono text-rose-600">- {formatIDR(item.potongan || 0)}</div>
+                                            ) : (
+                                                <span className="text-slate-400 font-mono">Rp 0</span>
+                                            )}
+                                        </td>
                                             <td className="px-6 py-4 font-mono font-bold text-slate-900 whitespace-nowrap">
                                                 {formatIDR(item.thp)}
                                             </td>
@@ -243,8 +177,7 @@ const SlipGaji = () => {
                                                 </button>
                                             </td>
                                         </tr>
-                                    );
-                                })
+                                ))
                             ) : (
                                 <tr>
                                     <td colSpan="7" className="py-16 text-center">

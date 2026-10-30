@@ -63,7 +63,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
             setKeterangan('');
         } else if (isOpen && type === 'Absensi') {
             getLocation();
-            if (todayAttendance?.has_tap_in && !todayAttendance?.has_tap_out) {
+            if (todayAttendance?.has_tap_in) {
                 setTapType('out');
             } else {
                 setTapType('in');
@@ -389,16 +389,30 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => setTapType('in')}
-                                        className={`py-2.5 px-3 rounded-lg text-xs font-semibold border-2 transition cursor-pointer flex flex-col items-center justify-center gap-0.5 ${tapType === 'in'
-                                            ? 'bg-teal-600 border-teal-600 text-white shadow-sm'
-                                            : 'bg-white border-teal-200 text-teal-700 hover:border-teal-400'
-                                            }`}
+                                        disabled={Boolean(todayAttendance?.has_tap_in && todayAttendance?.tap_in_source === 'machine')}
+                                        onClick={() => {
+                                            if (!(todayAttendance?.has_tap_in && todayAttendance?.tap_in_source === 'machine')) {
+                                                setTapType('in');
+                                            }
+                                        }}
+                                        className={`py-2.5 px-3 rounded-lg text-xs font-semibold border-2 transition flex flex-col items-center justify-center gap-0.5 ${
+                                            todayAttendance?.has_tap_in && todayAttendance?.tap_in_source === 'machine'
+                                                ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-75'
+                                                : tapType === 'in'
+                                                    ? 'bg-teal-600 border-teal-600 text-white shadow-sm cursor-pointer'
+                                                    : 'bg-white border-teal-200 text-teal-700 hover:border-teal-400 cursor-pointer'
+                                        }`}
                                     >
                                         <span>Tap In (Masuk)</span>
                                         {todayAttendance?.has_tap_in && (
-                                            <span className={`text-[10px] ${tapType === 'in' ? 'text-teal-100' : 'text-teal-600'} font-normal`}>
-                                                Sudah tercatat ({todayAttendance.tap_in?.time})
+                                            <span className={`text-[10px] ${
+                                                todayAttendance?.tap_in_source === 'machine'
+                                                    ? 'text-slate-500 font-medium'
+                                                    : tapType === 'in' ? 'text-teal-100' : 'text-teal-600'
+                                            } font-normal`}>
+                                                {todayAttendance?.tap_in_source === 'machine'
+                                                    ? `Sudah di mesin (${todayAttendance.tap_in?.time})`
+                                                    : `Sudah tercatat (${todayAttendance.tap_in?.time})`}
                                             </span>
                                         )}
                                     </button>
@@ -429,7 +443,7 @@ const PengajuanModal = ({ isOpen, onClose, type, onSuccess, employee, overtimeRu
                                     </div>
                                 )}
 
-                                {((tapType === 'in' && todayAttendance?.has_tap_in) || (tapType === 'out' && todayAttendance?.has_tap_out)) && (
+                                {((tapType === 'in' && todayAttendance?.has_tap_in && todayAttendance?.tap_in_source !== 'machine') || (tapType === 'out' && todayAttendance?.has_tap_out)) && (
                                     <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-amber-800 text-[11px] leading-relaxed">
                                         <span className="font-bold block text-amber-900 mb-0.5">Mode Koreksi / Edit:</span>
                                         Anda telah mengirim {tapType === 'in' ? 'Tap In' : 'Tap Out'} hari ini. Ambil foto GPS baru dan tuliskan keterangan jika Anda ingin memperbaiki data yang keliru.
