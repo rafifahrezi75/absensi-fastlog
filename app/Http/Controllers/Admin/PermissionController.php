@@ -308,10 +308,11 @@ class PermissionController extends Controller
 
     public function update(Request $request, string|int $id): JsonResponse
     {
+        $cleanId = preg_replace('/^(ot_|perm_|db_perm_|anom_)/', '', (string)$id);
         $type = $request->input('source') ?? $request->input('type');
 
-        if ($type === 'overtime' || $type === 'lembur') {
-            $overtime = OvertimeLog::find($id);
+        if (str_starts_with((string)$id, 'ot_') || $type === 'overtime' || $type === 'lembur') {
+            $overtime = OvertimeLog::find($cleanId);
             if (!$overtime) {
                 return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
             }
@@ -327,6 +328,20 @@ class PermissionController extends Controller
             if ($request->has('catatan_admin')) {
                 $overtime->catatan_admin = $request->input('catatan_admin');
             }
+            if ($request->has('tipe_lembur')) {
+                $overtime->tipe_lembur = strtoupper($request->input('tipe_lembur'));
+            }
+            if ($request->has('jam_mulai') && !empty($request->input('jam_mulai'))) {
+                $jMulai = $request->input('jam_mulai');
+                $dStr = Carbon::parse($overtime->waktu_tap)->format('Y-m-d');
+                $overtime->waktu_tap = Carbon::parse($dStr . ' ' . $jMulai);
+            }
+            if ($request->has('jam_mulai') && $request->has('jam_selesai') && !empty($request->input('jam_mulai')) && !empty($request->input('jam_selesai'))) {
+                $t1 = Carbon::parse('2000-01-01 ' . $request->input('jam_mulai'));
+                $t2 = Carbon::parse('2000-01-01 ' . $request->input('jam_selesai'));
+                if ($t2->lt($t1)) $t2->addDay();
+                $overtime->durasi_menit = max(0, $t1->diffInMinutes($t2));
+            }
             $overtime->save();
             return response()->json([
                 'success' => true,
@@ -335,8 +350,8 @@ class PermissionController extends Controller
             ]);
         }
 
-        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
-            $anomaly = AttendanceAnomaly::find($id);
+        if (str_starts_with((string)$id, 'anom_') || $type === 'anomaly' || $type === 'di_luar_jadwal') {
+            $anomaly = AttendanceAnomaly::find($cleanId);
             if (!$anomaly) {
                 return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
             }
@@ -360,10 +375,10 @@ class PermissionController extends Controller
             ]);
         }
 
-        $permission = Permission::find($id);
+        $permission = Permission::find($cleanId);
 
         if (!$permission) {
-            $overtime = OvertimeLog::find($id);
+            $overtime = OvertimeLog::find($cleanId);
             if ($overtime) {
                 $statusUpper = match (strtoupper($request->input('status') ?? '')) {
                     'DISETUJUI', 'APPROVED' => 'DISETUJUI',
@@ -385,7 +400,7 @@ class PermissionController extends Controller
                 ]);
             }
 
-            $anomaly = AttendanceAnomaly::find($id);
+            $anomaly = AttendanceAnomaly::find($cleanId);
             if ($anomaly) {
                 $statusUpper = match (strtoupper($request->input('status') ?? '')) {
                     'DISETUJUI', 'APPROVED' => 'DISETUJUI',
@@ -414,28 +429,13 @@ class PermissionController extends Controller
             'status' => 'nullable|string|in:menunggu,disetujui,ditolak,pending,approved,rejected',
             'catatan_admin' => 'nullable|string|max:500',
             'keterangan' => 'nullable|string|max:1000',
+            'jam_mulai' => 'nullable|string|max:10',
+            'jam_selesai' => 'nullable|string|max:10',
+            'tanggal_mulai' => 'nullable|date',
+            'tanggal_selesai' => 'nullable|date',
+            'tipe_lembur' => 'nullable|string|max:50',
+            'durasi' => 'nullable|string|max:50',
         ]);
-
-        if (isset($validated['status'])) {
-            $newStatus = match(strtolower($validated['status'])) {
-                'pending' => 'menunggu',
-                'approved' => 'disetujui',
-                'rejected' => 'ditolak',
-                default => strtolower($validated['status']),
-            };
-            $permission->status = $newStatus;
-
-            if ($newStatus === 'disetujui') {
-                $this->syncApprovedPermission($permission, $validated['catatan_admin'] ?? null);
-            } elseif ($newStatus === 'ditolak' && strtolower($permission->category ?? '') === 'lembur') {
-                $startDate = Carbon::parse($permission->tanggal_mulai)->toDateString();
-                $endDate = ($permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : Carbon::parse($permission->tanggal_mulai))->toDateString();
-                OvertimeLog::where('employee_id', $permission->employee_id)
-                    ->whereDate('waktu_tap', '>=', $startDate)
-                    ->whereDate('waktu_tap', '<=', $endDate)
-                    ->update(['status' => 'DITOLAK']);
-            }
-        }
 
         if (array_key_exists('catatan_admin', $validated)) {
             $permission->catatan_admin = $validated['catatan_admin'];
@@ -445,7 +445,60 @@ class PermissionController extends Controller
             $permission->keterangan = $validated['keterangan'];
         }
 
+        if (strtolower($permission->category ?? '') === 'lembur') {
+            if (!empty($validated['jam_mulai'])) {
+                $permission->jam_mulai = strlen($validated['jam_mulai']) === 5 ? $validated['jam_mulai'] . ':00' : $validated['jam_mulai'];
+            }
+            if (!empty($validated['jam_selesai'])) {
+                $permission->jam_selesai = strlen($validated['jam_selesai']) === 5 ? $validated['jam_selesai'] . ':00' : $validated['jam_selesai'];
+            }
+            if (!empty($validated['tanggal_mulai'])) {
+                $permission->tanggal_mulai = $validated['tanggal_mulai'];
+            }
+            if (!empty($validated['tanggal_selesai'])) {
+                $permission->tanggal_selesai = $validated['tanggal_selesai'];
+            }
+            if (!empty($validated['tipe_lembur'])) {
+                $permission->tipe_lembur = strtoupper($validated['tipe_lembur']);
+            }
+            if (!empty($validated['durasi'])) {
+                $permission->durasi = $validated['durasi'];
+            } elseif ($permission->jam_mulai && $permission->jam_selesai) {
+                $t1 = Carbon::parse('2000-01-01 ' . $permission->jam_mulai);
+                $t2 = Carbon::parse('2000-01-01 ' . $permission->jam_selesai);
+                if ($t2->lt($t1)) $t2->addDay();
+                $diffMins = $t1->diffInMinutes($t2);
+                $diffHours = round($diffMins / 60, 1);
+                $permission->durasi = $diffHours . ' Jam';
+            }
+        }
+
+        if (isset($validated['status'])) {
+            $newStatus = match(strtolower($validated['status'])) {
+                'pending' => 'menunggu',
+                'approved' => 'disetujui',
+                'rejected' => 'ditolak',
+                default => strtolower($validated['status']),
+            };
+            $permission->status = $newStatus;
+        }
+
         $permission->save();
+
+        if (strtolower($permission->category ?? '') === 'lembur') {
+            if ($permission->status === 'disetujui') {
+                $this->syncApprovedPermission($permission, $permission->catatan_admin);
+            } elseif ($permission->status === 'ditolak') {
+                $startDate = Carbon::parse($permission->tanggal_mulai)->toDateString();
+                $endDate = ($permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : Carbon::parse($permission->tanggal_mulai))->toDateString();
+                OvertimeLog::where('employee_id', $permission->employee_id)
+                    ->whereDate('waktu_tap', '>=', $startDate)
+                    ->whereDate('waktu_tap', '<=', $endDate)
+                    ->update(['status' => 'DITOLAK']);
+            }
+        } elseif ($permission->status === 'disetujui') {
+            $this->syncApprovedPermission($permission, $permission->catatan_admin);
+        }
 
         if (isset($validated['status'])) {
             $targetUser = $permission->user ?? ($permission->employee ? $permission->employee->user : null);
@@ -463,19 +516,15 @@ class PermissionController extends Controller
 
     public function destroy(Request $request, string|int $id): JsonResponse
     {
+        $cleanId = preg_replace('/^(ot_|perm_|db_perm_|anom_)/', '', (string)$id);
         $type = $request->input('source') ?? $request->query('source') ?? $request->input('type') ?? $request->query('type');
 
-        if ($type === 'overtime' || $type === 'lembur') {
-            $overtime = OvertimeLog::find($id);
-            if ($overtime) {
-                $overtime->delete();
-                return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus.']);
-            }
-            return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
+        if (str_starts_with((string)$id, 'ot_') || $type === 'overtime' || $type === 'lembur') {
+            return response()->json(['success' => false, 'message' => 'Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.'], 403);
         }
 
-        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
-            $anomaly = AttendanceAnomaly::find($id);
+        if (str_starts_with((string)$id, 'anom_') || $type === 'anomaly' || $type === 'di_luar_jadwal') {
+            $anomaly = AttendanceAnomaly::find($cleanId);
             if ($anomaly) {
                 $anomaly->delete();
                 return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
@@ -483,22 +532,25 @@ class PermissionController extends Controller
             return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
         }
 
-        $permission = Permission::find($id);
+        $permission = Permission::find($cleanId);
 
         if (!$permission) {
-            $overtime = OvertimeLog::find($id);
+            $overtime = OvertimeLog::find($cleanId);
             if ($overtime) {
-                $overtime->delete();
-                return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus.']);
+                return response()->json(['success' => false, 'message' => 'Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.'], 403);
             }
 
-            $anomaly = AttendanceAnomaly::find($id);
+            $anomaly = AttendanceAnomaly::find($cleanId);
             if ($anomaly) {
                 $anomaly->delete();
                 return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
             }
 
             return response()->json(['success' => false, 'message' => 'Data pengajuan tidak ditemukan.'], 404);
+        }
+
+        if (strtolower($permission->category ?? '') === 'lembur') {
+            return response()->json(['success' => false, 'message' => 'Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.'], 403);
         }
 
         if ($permission->lampiran && file_exists(public_path('uploads/permissions/' . $permission->lampiran))) {

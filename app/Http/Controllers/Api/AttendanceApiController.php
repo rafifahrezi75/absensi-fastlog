@@ -292,19 +292,15 @@ class AttendanceApiController extends Controller
 
     public function destroy(Request $request, string|int $id): JsonResponse
     {
+        $cleanId = preg_replace('/^(ot_|perm_|db_perm_|anom_)/', '', (string)$id);
         $type = $request->input('type') ?? $request->query('type') ?? $request->input('source') ?? $request->query('source');
 
-        if ($type === 'overtime' || $type === 'lembur') {
-            $overtime = OvertimeLog::find($id);
-            if (!$overtime) {
-                return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
-            }
-            $overtime->delete();
-            return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus.']);
+        if (str_starts_with((string)$id, 'ot_') || $type === 'overtime' || $type === 'lembur') {
+            return response()->json(['success' => false, 'message' => 'Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.'], 403);
         }
 
-        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
-            $anomaly = AttendanceAnomaly::find($id);
+        if (str_starts_with((string)$id, 'anom_') || $type === 'anomaly' || $type === 'di_luar_jadwal') {
+            $anomaly = AttendanceAnomaly::find($cleanId);
             if (!$anomaly) {
                 return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
             }
@@ -312,13 +308,12 @@ class AttendanceApiController extends Controller
             return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
         }
 
-        $overtime = OvertimeLog::find($id);
+        $overtime = OvertimeLog::find($cleanId);
         if ($overtime) {
-            $overtime->delete();
-            return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus.']);
+            return response()->json(['success' => false, 'message' => 'Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.'], 403);
         }
 
-        $anomaly = AttendanceAnomaly::find($id);
+        $anomaly = AttendanceAnomaly::find($cleanId);
         if ($anomaly) {
             $anomaly->delete();
             return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);

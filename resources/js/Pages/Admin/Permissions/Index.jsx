@@ -61,8 +61,44 @@ const Permissions = () => {
     item: null,
     status: 'disetujui',
     note: '',
+    tanggal_mulai: '',
+    tanggal_selesai: '',
+    jam_mulai: '',
+    jam_selesai: '',
+    tipe_lembur: 'DAILY',
+    durasi: '',
+    keterangan: '',
     loading: false
   });
+
+  const calculateDurationHours = (start, end) => {
+    if (!start || !end) return '';
+    const [h1, m1] = start.split(':').map(Number);
+    const [h2, m2] = end.split(':').map(Number);
+    if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return '';
+    let min1 = h1 * 60 + m1;
+    let min2 = h2 * 60 + m2;
+    if (min2 < min1) min2 += 24 * 60;
+    const diff = min2 - min1;
+    const hrs = Math.floor(diff / 60);
+    const mins = diff % 60;
+    if (mins > 0) {
+      return `${hrs} Jam ${mins} Menit`;
+    }
+    return `${hrs} Jam`;
+  };
+
+  const handleJamChange = (field, val) => {
+    setEditModal(prev => {
+      const updated = { ...prev, [field]: val };
+      const start = field === 'jam_mulai' ? val : prev.jam_mulai;
+      const end = field === 'jam_selesai' ? val : prev.jam_selesai;
+      if (start && end) {
+        updated.durasi = calculateDurationHours(start, end);
+      }
+      return updated;
+    });
+  };
 
   const [employees, setEmployees] = useState([]);
 
@@ -132,6 +168,10 @@ const Permissions = () => {
         }
         const rawStatus = (item.status || 'menunggu').toLowerCase();
         const normStatus = rawStatus === 'pending' ? 'menunggu' : (rawStatus === 'approved' ? 'disetujui' : (rawStatus === 'rejected' ? 'ditolak' : rawStatus));
+        const jamMulaiClean = stTime ? (stTime.length > 5 ? stTime.substring(0, 5) : stTime) : '';
+        const jamSelesaiClean = enTime ? (enTime.length > 5 ? enTime.substring(0, 5) : enTime) : '';
+        const tglMulaiClean = startDate ? (startDate.length > 10 ? startDate.substring(0, 10) : startDate) : '';
+        const tglSelesaiClean = endDate ? (endDate.length > 10 ? endDate.substring(0, 10) : endDate) : tglMulaiClean;
 
         return {
           id: `db_perm_${item.id}`,
@@ -147,7 +187,14 @@ const Permissions = () => {
           attachment: item.lampiran || item.attachment || null,
           status: normStatus,
           adminNote: item.catatan_admin || item.admin_note || '',
-          sortTime: item.created_at || startDate
+          sortTime: item.created_at || startDate,
+          jam_mulai: jamMulaiClean,
+          jam_selesai: jamSelesaiClean,
+          tanggal_mulai: tglMulaiClean,
+          tanggal_selesai: tglSelesaiClean,
+          tipe_lembur: item.tipe_lembur || '',
+          durasi: item.durasi || '',
+          rawItem: item
         };
       });
 
@@ -292,6 +339,10 @@ const Permissions = () => {
   };
 
   const openDeleteModal = (item) => {
+    if ((item.category || '').toLowerCase() === 'lembur' || item.source === 'overtime') {
+      showError('Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.');
+      return;
+    }
     setDeleteModal({
       isOpen: true,
       item,
@@ -310,6 +361,11 @@ const Permissions = () => {
 
   const executeDeletePermission = async () => {
     if (!deleteModal.item) return;
+    if ((deleteModal.item.category || '').toLowerCase() === 'lembur' || deleteModal.item.source === 'overtime') {
+      showError('Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.');
+      closeDeleteModal();
+      return;
+    }
     try {
       setDeleteModal(p => ({ ...p, loading: true }));
       const { rawId, source } = deleteModal.item;
@@ -335,11 +391,38 @@ const Permissions = () => {
   };
 
   const openEditModal = (item) => {
+    const raw = item.rawItem || {};
+    const normStatus = item.status === 'approved' ? 'disetujui' : (item.status === 'rejected' ? 'ditolak' : (item.status === 'pending' ? 'menunggu' : item.status));
+
+    let jMulai = item.jam_mulai || raw.jam_mulai || '';
+    if (jMulai && jMulai.length > 5) jMulai = jMulai.substring(0, 5);
+
+    let jSelesai = item.jam_selesai || raw.jam_selesai || '';
+    if (jSelesai && jSelesai.length > 5) jSelesai = jSelesai.substring(0, 5);
+
+    let tMulai = item.tanggal_mulai || raw.tanggal_mulai || '';
+    if (tMulai && tMulai.length > 10) tMulai = tMulai.substring(0, 10);
+
+    let tSelesai = item.tanggal_selesai || raw.tanggal_selesai || tMulai || '';
+    if (tSelesai && tSelesai.length > 10) tSelesai = tSelesai.substring(0, 10);
+
+    let dur = item.durasi || raw.durasi || '';
+    if (!dur && jMulai && jSelesai) {
+      dur = calculateDurationHours(jMulai, jSelesai);
+    }
+
     setEditModal({
       isOpen: true,
       item,
-      status: item.status === 'approved' ? 'disetujui' : (item.status === 'rejected' ? 'ditolak' : (item.status === 'pending' ? 'menunggu' : item.status)),
-      note: item.adminNote || '',
+      status: normStatus,
+      note: item.adminNote || raw.catatan_admin || '',
+      tanggal_mulai: tMulai,
+      tanggal_selesai: tSelesai,
+      jam_mulai: jMulai,
+      jam_selesai: jSelesai,
+      tipe_lembur: (item.tipe_lembur || raw.tipe_lembur || 'DAILY').toUpperCase(),
+      durasi: dur,
+      keterangan: item.description || raw.keterangan || '',
       loading: false
     });
   };
@@ -351,6 +434,13 @@ const Permissions = () => {
       item: null,
       status: 'disetujui',
       note: '',
+      tanggal_mulai: '',
+      tanggal_selesai: '',
+      jam_mulai: '',
+      jam_selesai: '',
+      tipe_lembur: 'DAILY',
+      durasi: '',
+      keterangan: '',
       loading: false
     });
   };
@@ -361,24 +451,34 @@ const Permissions = () => {
 
     setEditModal(p => ({ ...p, loading: true }));
     try {
-      const { rawId, source } = editModal.item;
+      const { rawId, source, category } = editModal.item;
+      const isLembur = (category || '').toLowerCase() === 'lembur';
+
+      const payload = {
+        source,
+        type: source,
+        status: editModal.status,
+        catatan_admin: editModal.note,
+        keterangan: editModal.keterangan,
+      };
+
+      if (isLembur) {
+        payload.tanggal_mulai = editModal.tanggal_mulai;
+        payload.tanggal_selesai = editModal.tanggal_selesai || editModal.tanggal_mulai;
+        payload.jam_mulai = editModal.jam_mulai;
+        payload.jam_selesai = editModal.jam_selesai;
+        payload.tipe_lembur = editModal.tipe_lembur;
+        payload.durasi = editModal.durasi;
+      }
+
       if (source === 'overtime' || source === 'anomaly') {
-        await api.put(`/api/admin/anomalies/${rawId}`, {
-          type: source,
-          source: source,
-          status: editModal.status,
-          catatan_admin: editModal.note,
-        });
+        await api.put(`/api/admin/anomalies/${rawId}`, payload);
       } else {
-        await api.put(`/api/admin/permissions/${rawId}`, {
-          source: source,
-          status: editModal.status,
-          catatan_admin: editModal.note,
-        });
+        await api.put(`/api/admin/permissions/${rawId}`, payload);
       }
 
       await loadData();
-      showSuccess('Status dan catatan berhasil diperbarui.');
+      showSuccess('Perubahan data berhasil disimpan.');
       closeEditModal();
     } catch (err) {
       setNotif({
@@ -645,11 +745,22 @@ const Permissions = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {renderCategoryBadge(item.category)}
                     </td>
-                    <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
-                      {item.date}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="font-medium text-slate-800">{item.date}</div>
+                      {(item.category || '').toLowerCase() === 'lembur' && (item.jam_mulai || item.jam_selesai) && (
+                        <div className="text-xs font-mono font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md inline-flex items-center gap-1 mt-1">
+                          <Clock className="w-3 h-3 text-indigo-600 shrink-0" />
+                          <span>{item.jam_mulai || '-'} s/d {item.jam_selesai || '-'}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-slate-600 whitespace-nowrap font-medium">
-                      {item.duration}
+                      <div>{item.duration}</div>
+                      {(item.category || '').toLowerCase() === 'lembur' && item.tipe_lembur && (
+                        <div className="text-[11px] text-slate-400 capitalize mt-0.5 font-normal">
+                          {item.tipe_lembur === 'HARI_BESAR' ? 'Hari Besar' : (item.tipe_lembur === 'WEEKENDS' ? 'Standby Weekends' : 'Standby Daily')}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 max-w-xs">
                       {item.description ? (
@@ -699,12 +810,22 @@ const Permissions = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => openDeleteModal(item)}
-                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                              title="Hapus Data"
+                              onClick={() => openEditModal(item)}
+                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition cursor-pointer"
+                              title="Edit Detail"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Pencil className="w-4 h-4" />
                             </button>
+                            {(item.category || '').toLowerCase() !== 'lembur' && item.source !== 'overtime' && (
+                              <button
+                                type="button"
+                                onClick={() => openDeleteModal(item)}
+                                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                                title="Hapus Data"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </>
                         ) : (
                           <>
@@ -712,18 +833,20 @@ const Permissions = () => {
                               type="button"
                               onClick={() => openEditModal(item)}
                               className="p-1.5 rounded-lg border border-slate-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition cursor-pointer"
-                              title="Edit Perizinan"
+                              title="Edit Detail"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => openDeleteModal(item)}
-                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                              title="Hapus Data"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {(item.category || '').toLowerCase() !== 'lembur' && item.source !== 'overtime' && (
+                              <button
+                                type="button"
+                                onClick={() => openDeleteModal(item)}
+                                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                                title="Hapus Data"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -884,42 +1007,166 @@ const Permissions = () => {
 
       {editModal.isOpen && editModal.item && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className={`bg-white rounded-2xl w-full shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${
+            (editModal.item.category || '').toLowerCase() === 'lembur' ? 'max-w-lg' : 'max-w-md'
+          }`}>
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200">
+              <div className="flex items-center gap-2.5">
+                <span className={`p-2 rounded-xl border ${
+                  (editModal.item.category || '').toLowerCase() === 'lembur'
+                    ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                    : 'bg-slate-50 text-slate-600 border-slate-200'
+                }`}>
                   <Pencil className="w-4 h-4" />
                 </span>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Edit Data Perizinan</h3>
-                  <p className="text-xs text-slate-500">Perbarui status keputusan atau catatan admin</p>
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {(editModal.item.category || '').toLowerCase() === 'lembur' ? 'Edit Rincian Lembur' : 'Edit Data Perizinan'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {(editModal.item.category || '').toLowerCase() === 'lembur'
+                      ? 'Sesuaikan jam kerja, tanggal, tipe hari, dan status lembur'
+                      : 'Perbarui status keputusan atau catatan admin'}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={closeEditModal}
                 disabled={editModal.loading}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdatePermission} className="p-5 space-y-4">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
-                <div className="flex justify-between">
+            <form onSubmit={handleUpdatePermission} className="p-5 space-y-4 max-h-[85vh] overflow-y-auto">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
                   <span className="text-slate-500">Karyawan:</span>
-                  <span className="font-semibold text-slate-800">{editModal.item.name}</span>
+                  <span className="font-bold text-slate-800">{editModal.item.name}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Departemen:</span>
+                  <span className="font-medium text-slate-700">{editModal.item.department}</span>
+                </div>
+                <div className="flex justify-between items-center">
                   <span className="text-slate-500">Kategori:</span>
-                  <span className="font-semibold text-slate-800">{editModal.item.category.toUpperCase()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Tanggal / Waktu:</span>
-                  <span className="font-semibold text-slate-800">{editModal.item.date}</span>
+                  <span className="font-semibold text-indigo-600">{(editModal.item.category || '').toUpperCase()}</span>
                 </div>
               </div>
+
+              {(editModal.item.category || '').toLowerCase() === 'lembur' ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Tanggal Mulai
+                      </label>
+                      <input
+                        type="date"
+                        value={editModal.tanggal_mulai}
+                        onChange={(e) => setEditModal(p => ({ ...p, tanggal_mulai: e.target.value }))}
+                        className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Tanggal Selesai
+                      </label>
+                      <input
+                        type="date"
+                        value={editModal.tanggal_selesai}
+                        onChange={(e) => setEditModal(p => ({ ...p, tanggal_selesai: e.target.value }))}
+                        className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-indigo-600" /> Jam Mulai
+                      </label>
+                      <input
+                        type="time"
+                        value={editModal.jam_mulai}
+                        onChange={(e) => handleJamChange('jam_mulai', e.target.value)}
+                        className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-indigo-600" /> Jam Selesai
+                      </label>
+                      <input
+                        type="time"
+                        value={editModal.jam_selesai}
+                        onChange={(e) => handleJamChange('jam_selesai', e.target.value)}
+                        className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Tipe Lembur
+                      </label>
+                      <select
+                        value={editModal.tipe_lembur}
+                        onChange={(e) => setEditModal(p => ({ ...p, tipe_lembur: e.target.value }))}
+                        className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      >
+                        <option value="DAILY">Standby Daily (Hari Kerja)</option>
+                        <option value="WEEKENDS">Standby Weekends (Sabtu/Minggu)</option>
+                        <option value="HARI_BESAR">Lembur Hari Besar (Libur Nasional)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Durasi Terhitung
+                      </label>
+                      <input
+                        type="text"
+                        value={editModal.durasi}
+                        onChange={(e) => setEditModal(p => ({ ...p, durasi: e.target.value }))}
+                        placeholder="Contoh: 4 Jam"
+                        className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Deskripsi / Pekerjaan Lembur:
+                    </label>
+                    <textarea
+                      rows="2"
+                      placeholder="Uraian pekerjaan lembur..."
+                      value={editModal.keterangan}
+                      onChange={(e) => setEditModal(p => ({ ...p, keterangan: e.target.value }))}
+                      className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Keterangan:
+                  </label>
+                  <textarea
+                    rows="2"
+                    placeholder="Keterangan perizinan..."
+                    value={editModal.keterangan}
+                    onChange={(e) => setEditModal(p => ({ ...p, keterangan: e.target.value }))}
+                    className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -967,11 +1214,11 @@ const Permissions = () => {
                   Catatan Admin / Alasan Perubahan:
                 </label>
                 <textarea
-                  rows="3"
-                  placeholder="Masukkan catatan admin terkait keputusan perizinan ini..."
+                  rows="2"
+                  placeholder="Masukkan catatan admin terkait keputusan ini..."
                   value={editModal.note}
                   onChange={(e) => setEditModal(p => ({ ...p, note: e.target.value }))}
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
