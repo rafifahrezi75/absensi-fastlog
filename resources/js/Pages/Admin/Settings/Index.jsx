@@ -790,7 +790,7 @@ const Settings = () => {
                 isOpen={modalLateRule.isOpen}
                 onClose={closeModalLateRule}
                 onSave={handleSaveLateCategory}
-                initialData={modalLateRule.data}
+                data={modalLateRule.data}
             />
 
             <ModalKategoriLembur

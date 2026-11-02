@@ -16,7 +16,7 @@ const DEFAULT_TIERS = [
     { tier_order: 4, nama_tier: '> 90 Menit', min_menit: 91, max_menit: '', ada_toleransi: false, nominal_denda: 30000, deskripsi: 'Potongan Rp 30.000 / kejadian' }
 ];
 
-const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data }) => {
+const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data, initialData }) => {
     const [formData, setFormData] = useState({
         id: null,
         kode: '',
@@ -31,18 +31,19 @@ const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data }) => {
     });
 
     useEffect(() => {
-        if (data) {
+        const item = data || initialData;
+        if (item) {
             setFormData({
-                id: data.id || null,
-                kode: data.kode || '',
-                nama: data.nama || '',
-                deskripsi: data.deskripsi || '',
-                toleransi_bulanan: data.toleransi_bulanan ?? 3,
-                departemen_list: Array.isArray(data.departemen_list) ? data.departemen_list : [],
-                jabatan_keywords_str: Array.isArray(data.jabatan_keywords) ? data.jabatan_keywords.join(', ') : '',
-                is_default: Boolean(data.is_default),
-                is_locked: Boolean(data.is_locked),
-                tiers: data.tiers && data.tiers.length > 0 ? data.tiers.map(t => ({
+                id: item.id || null,
+                kode: item.kode || '',
+                nama: item.nama || '',
+                deskripsi: item.deskripsi || '',
+                toleransi_bulanan: item.toleransi_bulanan ?? 3,
+                departemen_list: Array.isArray(item.departemen_list) ? item.departemen_list : [],
+                jabatan_keywords_str: Array.isArray(item.jabatan_keywords) ? item.jabatan_keywords.join(', ') : '',
+                is_default: Boolean(item.is_default),
+                is_locked: Boolean(item.is_locked),
+                tiers: item.tiers && item.tiers.length > 0 ? item.tiers.map(t => ({
                     id: t.id,
                     tier_order: t.tier_order,
                     nama_tier: t.nama_tier || '',
@@ -67,7 +68,7 @@ const ModalKategoriTerlambat = ({ isOpen, onClose, onSave, data }) => {
                 tiers: DEFAULT_TIERS
             });
         }
-    }, [data, isOpen]);
+    }, [data, initialData, isOpen]);
 
     if (!isOpen) return null;
 
