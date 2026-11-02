@@ -21,17 +21,24 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks(id) {
-                    if (id.includes('node_modules')) {
-                        if (id.includes('apexcharts') || id.includes('react-apexcharts')) {
-                            return 'vendor-apexcharts';
-                        }
-                        if (id.includes('lucide-react')) {
-                            return 'vendor-icons';
-                        }
-                        if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                    const nid = id.replace(/\\/g, '/');
+                    if (nid.includes('/node_modules/')) {
+                        if (
+                            nid.includes('/node_modules/react/') ||
+                            nid.includes('/node_modules/react-dom/') ||
+                            nid.includes('/node_modules/react-router/') ||
+                            nid.includes('/node_modules/react-router-dom/') ||
+                            nid.includes('/node_modules/scheduler/')
+                        ) {
                             return 'vendor-react';
                         }
-                        if (id.includes('axios') || id.includes('sweetalert2')) {
+                        if (nid.includes('/node_modules/lucide-react/')) {
+                            return 'vendor-icons';
+                        }
+                        if (nid.includes('/node_modules/apexcharts/')) {
+                            return 'vendor-apexcharts';
+                        }
+                        if (nid.includes('axios') || nid.includes('sweetalert2')) {
                             return 'vendor-utils';
                         }
                     }

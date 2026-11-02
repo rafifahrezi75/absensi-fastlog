@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Chart from 'react-apexcharts';
+const Chart = lazy(() => import('react-apexcharts'));
 import {
   RefreshCw,
   BellRing,
@@ -1092,13 +1092,15 @@ const Dashboard = () => {
 
             <div className="w-full overflow-x-auto thin-scrollbar">
               <div className={activeChart.categories.length >= 5 ? 'min-w-[620px] sm:min-w-full' : 'min-w-[540px] sm:min-w-full'}>
-                <Chart
-                  key={`drill-bar-${drillLevel}-${selectedStatus}-${selectedCategory}-${chartRefreshKey}`}
-                  options={barChartOptions}
-                  series={activeChart.series}
-                  type="bar"
-                  height={330}
-                />
+                <Suspense fallback={<div className="h-[330px] flex items-center justify-center text-slate-300 text-xs">Memuat grafik...</div>}>
+                  <Chart
+                    key={`drill-bar-${drillLevel}-${selectedStatus}-${selectedCategory}-${chartRefreshKey}`}
+                    options={barChartOptions}
+                    series={activeChart.series}
+                    type="bar"
+                    height={330}
+                  />
+                </Suspense>
               </div>
             </div>
           </div>
@@ -1125,7 +1127,9 @@ const Dashboard = () => {
               <p className="text-xs text-slate-500">Persentase kehadiran pegawai realtime.</p>
             </div>
             <div className="w-full flex justify-center items-center">
-              <Chart options={pieChartOptions} series={pieChartSeries} type="donut" height={230} />
+              <Suspense fallback={<div className="h-[230px] flex items-center justify-center text-slate-300 text-xs">Memuat grafik...</div>}>
+                <Chart options={pieChartOptions} series={pieChartSeries} type="donut" height={230} />
+              </Suspense>
             </div>
 
             <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">

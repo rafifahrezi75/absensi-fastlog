@@ -4,11 +4,18 @@ import api from '../lib/api';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const initialUser = typeof window !== 'undefined' && window.__INITIAL_USER__ !== undefined
+        ? window.__INITIAL_USER__
+        : null;
+
+    const [user, setUser] = useState(initialUser);
+    const [loading, setLoading] = useState(typeof window !== 'undefined' && window.__INITIAL_USER__ === undefined);
 
     useEffect(() => {
-        // Cek sesi aktif saat aplikasi pertama kali dimuat
+        if (typeof window !== 'undefined' && window.__INITIAL_USER__ !== undefined) {
+            return;
+        }
+
         api.get('/api/user')
             .then(res => setUser(res.data.user))
             .catch(() => setUser(null))

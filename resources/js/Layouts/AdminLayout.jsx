@@ -171,10 +171,12 @@ const AdminLayout = () => {
                 {/* Logo & Tombol Close Mobile */}
                 <div className="h-16 flex items-center justify-between px-6 bg-[#042028] font-bold text-white text-lg border-b border-white/10">
                     <div className="flex items-center gap-3">
-                        {/* Menggunakan Logo Fastlog yang sama dengan halaman login */}
                         <img
                             src="/images/front-end/logo3.webp"
                             alt="Fastlog"
+                            width="32"
+                            height="32"
+                            fetchPriority="high"
                             className="h-8 w-auto object-contain"
                         />
                         <span className="text-base tracking-wide mt-1">Sistem Absensi</span>
