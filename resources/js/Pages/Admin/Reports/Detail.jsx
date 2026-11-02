@@ -115,6 +115,15 @@ const EmployeeReportDetail = () => {
         }
     };
 
+    const handlePrint = () => {
+        if (!employeeId) return;
+        const params = new URLSearchParams();
+        if (startDate) params.set('start_date', startDate);
+        if (endDate) params.set('end_date', endDate);
+        const pdfUrl = `/api/admin/reports/employee/${employeeId}/pdf?${params.toString()}`;
+        window.open(pdfUrl, '_blank');
+    };
+
     const filteredRecords = useMemo(() => {
         if (!reportData?.records) return [];
         if (statusFilter === 'ALL') return reportData.records;
@@ -266,18 +275,9 @@ const EmployeeReportDetail = () => {
                         <span>Export Excel</span>
                     </button>
                     <button
-                        onClick={() => {
-                            const params = new URLSearchParams();
-                            if (startDate) params.set('start_date', startDate);
-                            if (endDate) params.set('end_date', endDate);
-                            const dept = searchParams.get('dept');
-                            const search = searchParams.get('search');
-                            if (dept) params.set('dept', dept);
-                            if (search) params.set('search', search);
-                            navigate(`/admin/reports/${employeeId}/preview?${params.toString()}`);
-                        }}
-                        className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
-                        title="Pratinjau &amp; Cetak PDF Laporan Presensi"
+                        onClick={handlePrint}
+                        className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer"
+                        title="Buka PDF Laporan Presensi di Tab Baru"
                     >
                         <Printer className="w-4 h-4" />
                         <span>Cetak</span>
