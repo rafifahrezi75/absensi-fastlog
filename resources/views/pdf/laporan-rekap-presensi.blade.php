@@ -215,12 +215,15 @@
         $curr = $start->copy();
         while ($curr->lte($end)) {
             $dStr = $curr->format('Y-m-d');
+            $isHol = isset($holidays[$dStr]);
+            $isNatHol = $isHol ? (is_array($holidays[$dStr]) ? ($holidays[$dStr]['libur_nasional'] ?? true) : true) : false;
             $days[] = [
                 'date' => $dStr,
                 'num' => (int)$curr->format('j'),
                 'day' => $dayNamesShort[$curr->dayOfWeek] ?? '',
                 'isSun' => $curr->isSunday(),
-                'isHol' => isset($holidays[$dStr]),
+                'isHol' => $isHol,
+                'isNatHol' => $isNatHol,
             ];
             $curr->addDay();
         }
@@ -252,7 +255,7 @@
             </tr>
             <tr>
                 @foreach($days as $d)
-                    <th style="width: 16px; {{ $d['isSun'] ? 'background-color: #475569;' : ($d['isHol'] ? 'background-color: #be123c;' : '') }}">
+                    <th style="width: 16px; {{ $d['isSun'] || ($d['isHol'] && $d['isNatHol']) ? 'background-color: #be123c;' : ($d['isHol'] ? 'background-color: #475569;' : ($d['isSun'] ? 'background-color: #475569;' : '')) }}">
                         {{ $d['num'] }}<br><span style="font-size: 6px;">{{ $d['day'] }}</span>
                     </th>
                 @endforeach
@@ -276,7 +279,7 @@
                     </td>
                     @foreach($days as $d)
                         @php
-                            $defaultSt = $d['isHol'] ? 'LN' : ($d['isSun'] ? 'L' : '-');
+                            $defaultSt = $d['isHol'] ? ($d['isNatHol'] ? 'LN' : 'L') : ($d['isSun'] ? 'L' : '-');
                             $st = $emp['attendance'][$d['date']] ?? ($emp['attendance'][$d['num']] ?? $defaultSt);
                             if ($st === 'H') $cH++;
                             elseif ($st === 'T') $cT++;
@@ -284,7 +287,7 @@
                             elseif ($st === 'I' || $st === 'S') $cIS++;
                             elseif ($st === 'A') $cA++;
                         @endphp
-                        <td style="{{ $d['isHol'] ? 'background-color: #fff1f2;' : ($d['isSun'] ? 'background-color: #f8fafc;' : '') }}">
+                        <td style="{{ $d['isHol'] && $d['isNatHol'] ? 'background-color: #fff1f2;' : ($d['isSun'] || $d['isHol'] ? 'background-color: #f8fafc;' : '') }}">
                             @if($st === 'H')
                                 <span class="badge-h">H</span>
                             @elseif($st === 'T')
@@ -325,7 +328,7 @@
             <td><strong>I</strong>: Izin</td>
             <td><strong>S</strong>: Sakit</td>
             <td><strong>A</strong>: Alpha (Tanpa Keterangan)</td>
-            <td><strong>L</strong>: Libur Minggu</td>
+            <td><strong>L</strong>: Libur</td>
             <td><strong>LN</strong>: Libur Nasional</td>
         </tr>
     </table>

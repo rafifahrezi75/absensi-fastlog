@@ -78,8 +78,14 @@ const Reports = () => {
             const d = String(current.getDate()).padStart(2, '0');
             const fullDate = `${y}-${m}-${d}`;
             const isSun = current.getDay() === 0;
-            const isHol = Boolean(holidays && holidays[fullDate]);
-            const holName = (holidays && holidays[fullDate]) || '';
+            const holItem = holidays && holidays[fullDate];
+            const isHol = Boolean(holItem);
+            const isNationalHoliday = isHol
+                ? (typeof holItem === 'object' && holItem !== null ? Boolean(holItem.libur_nasional) : true)
+                : false;
+            const holName = isHol
+                ? (typeof holItem === 'object' && holItem !== null ? (holItem.keterangan || '') : String(holItem))
+                : '';
 
             days.push({
                 fullDate,
@@ -87,6 +93,7 @@ const Reports = () => {
                 dayName: dayNamesIndo[current.getDay()],
                 isSunday: isSun,
                 isHoliday: isHol,
+                isNationalHoliday: isNationalHoliday,
                 holidayName: holName,
             });
             current.setDate(current.getDate() + 1);
@@ -189,11 +196,11 @@ const Reports = () => {
             let countH = 0, countT = 0, countOT = 0, countIS = 0, countA = 0;
 
             const dailyStatus = daysInPeriod.map(d => {
-                const defaultSt = d.isHoliday ? 'LN' : (d.isSunday ? 'L' : '-');
+                const defaultSt = d.isHoliday ? (d.isNationalHoliday ? 'LN' : 'L') : (d.isSunday ? 'L' : '-');
                 let st = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || defaultSt;
                 if (emp.is_exempt) {
                     if (d.isHoliday) {
-                        st = 'LN';
+                        st = d.isNationalHoliday ? 'LN' : 'L';
                     } else if (d.isSunday) {
                         st = 'L';
                     } else if (d.fullDate > todayStr) {
@@ -341,7 +348,7 @@ const Reports = () => {
                 </div>
                 <div className="flex items-center gap-1.5">
                     <span className="w-5 h-5 rounded font-bold bg-slate-200 text-slate-500 border border-slate-300 flex items-center justify-center text-[10px]">L</span>
-                    <span>Libur Minggu</span>
+                    <span>Libur</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                     <span className="px-1 h-5 rounded font-bold bg-rose-100 text-rose-700 border border-rose-300 flex items-center justify-center text-[9px] min-w-[20px]">LN</span>
@@ -371,11 +378,22 @@ const Reports = () => {
                                     <th
                                         key={d.fullDate || d.dayNum}
                                         title={d.holidayName || (d.isSunday ? 'Hari Minggu' : '')}
-                                        className={`px-1 py-1.5 border-r border-slate-700 min-w-[30px] ${d.isSunday || d.isHoliday ? 'bg-rose-950/40 text-rose-300' : ''
-                                            }`}
+                                        className={`px-1 py-1.5 border-r border-slate-700 min-w-[30px] ${
+                                            d.isSunday || (d.isHoliday && d.isNationalHoliday)
+                                                ? 'bg-rose-950/40 text-rose-300'
+                                                : d.isHoliday
+                                                ? 'bg-slate-800 text-slate-300'
+                                                : ''
+                                        }`}
                                     >
                                         <div className="font-bold text-xs">{d.dayNum}</div>
-                                        <div className={`text-[9px] font-normal ${d.isSunday || d.isHoliday ? 'text-rose-300' : 'text-slate-400'}`}>
+                                        <div className={`text-[9px] font-normal ${
+                                            d.isSunday || (d.isHoliday && d.isNationalHoliday)
+                                                ? 'text-rose-300'
+                                                : d.isHoliday
+                                                ? 'text-slate-300'
+                                                : 'text-slate-400'
+                                        }`}>
                                             {d.dayName}
                                         </div>
                                     </th>
@@ -419,11 +437,11 @@ const Reports = () => {
                                             </td>
 
                                             {daysInPeriod.map((d) => {
-                                                const defaultSt = d.isHoliday ? 'LN' : (d.isSunday ? 'L' : '-');
+                                                const defaultSt = d.isHoliday ? (d.isNationalHoliday ? 'LN' : 'L') : (d.isSunday ? 'L' : '-');
                                                 let status = (emp.attendance && (emp.attendance[d.fullDate] || emp.attendance[d.dayNum])) || defaultSt;
                                                 if (emp.is_exempt) {
                                                     if (d.isHoliday) {
-                                                        status = 'LN';
+                                                        status = d.isNationalHoliday ? 'LN' : 'L';
                                                     } else if (d.isSunday) {
                                                         status = 'L';
                                                     } else if (d.fullDate > todayStr) {

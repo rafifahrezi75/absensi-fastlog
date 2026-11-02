@@ -143,7 +143,10 @@ class ReportController extends Controller
         $holidaysMap = [];
         foreach ($apiHolidays as $item) {
             if (!empty($item['date'])) {
-                $holidaysMap[$item['date']] = $item['description'] ?? 'Hari Libur Nasional';
+                $holidaysMap[$item['date']] = [
+                    'keterangan' => $item['description'] ?? 'Hari Libur Nasional',
+                    'libur_nasional' => true,
+                ];
             }
         }
 
@@ -161,7 +164,10 @@ class ReportController extends Controller
             });
             foreach ($periodHolidays as $item) {
                 if (!empty($item['date'])) {
-                    $holidaysMap[$item['date']] = $item['description'] ?? 'Hari Libur Nasional';
+                    $holidaysMap[$item['date']] = [
+                        'keterangan' => $item['description'] ?? 'Hari Libur Nasional',
+                        'libur_nasional' => true,
+                    ];
                 }
             }
         }
@@ -169,7 +175,10 @@ class ReportController extends Controller
         $dbHolidays = Holiday::all();
         foreach ($dbHolidays as $h) {
             $dStr = Carbon::parse($h->tanggal)->format('Y-m-d');
-            $holidaysMap[$dStr] = $h->keterangan;
+            $holidaysMap[$dStr] = [
+                'keterangan' => $h->keterangan,
+                'libur_nasional' => (bool)$h->libur_nasional,
+            ];
         }
 
         $data = [];
@@ -181,12 +190,14 @@ class ReportController extends Controller
             while ($current->lte($end)) {
                 $dateStr = $current->format('Y-m-d');
                 $isSunday = $current->isSunday();
-                $isHoliday = isset($holidaysMap[$dateStr]);
+                $holidayInfo = $holidaysMap[$dateStr] ?? null;
+                $isHoliday = !empty($holidayInfo);
+                $isNationalHoliday = $isHoliday ? ($holidayInfo['libur_nasional'] ?? true) : false;
                 $hasPermission = $permissionsMap[$emp->id . '_' . $dateStr] ?? null;
 
                 if ($emp->is_exempt) {
                     if ($isHoliday) {
-                        $status = 'LN';
+                        $status = $isNationalHoliday ? 'LN' : 'L';
                     } elseif ($isSunday) {
                         $status = 'L';
                     } elseif ($current->gt($today)) {
@@ -232,7 +243,7 @@ class ReportController extends Controller
                         }
                     } else {
                         if ($isHoliday) {
-                            $status = 'LN';
+                            $status = $isNationalHoliday ? 'LN' : 'L';
                         } elseif ($isSunday) {
                             $status = 'L';
                         } elseif ($hasPermission) {
@@ -307,7 +318,10 @@ class ReportController extends Controller
         $holidaysMap = [];
         foreach ($apiHolidays as $item) {
             if (!empty($item['date'])) {
-                $holidaysMap[$item['date']] = $item['description'] ?? 'Hari Libur Nasional';
+                $holidaysMap[$item['date']] = [
+                    'keterangan' => $item['description'] ?? 'Hari Libur Nasional',
+                    'libur_nasional' => true,
+                ];
             }
         }
 
@@ -325,7 +339,10 @@ class ReportController extends Controller
             });
             foreach ($periodHolidays as $item) {
                 if (!empty($item['date'])) {
-                    $holidaysMap[$item['date']] = $item['description'] ?? 'Hari Libur Nasional';
+                    $holidaysMap[$item['date']] = [
+                        'keterangan' => $item['description'] ?? 'Hari Libur Nasional',
+                        'libur_nasional' => true,
+                    ];
                 }
             }
         }
@@ -333,7 +350,10 @@ class ReportController extends Controller
         $dbHolidays = Holiday::all();
         foreach ($dbHolidays as $h) {
             $dStr = Carbon::parse($h->tanggal)->format('Y-m-d');
-            $holidaysMap[$dStr] = $h->keterangan;
+            $holidaysMap[$dStr] = [
+                'keterangan' => $h->keterangan,
+                'libur_nasional' => (bool)$h->libur_nasional,
+            ];
         }
 
         $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
@@ -427,8 +447,10 @@ class ReportController extends Controller
             $dayName = $dayNamesIndo[$dayOfWeek] ?? '';
             $isSunday = $current->isSunday();
             $isSaturday = $current->isSaturday();
-            $isHoliday = isset($holidaysMap[$dateStr]);
-            $holidayName = $holidaysMap[$dateStr] ?? null;
+            $holidayInfo = $holidaysMap[$dateStr] ?? null;
+            $isHoliday = !empty($holidayInfo);
+            $isNationalHoliday = $isHoliday ? ($holidayInfo['libur_nasional'] ?? true) : false;
+            $holidayName = $isHoliday ? ($holidayInfo['keterangan'] ?? 'Hari Libur') : null;
             $permInfo = $permissionsMap[$dateStr] ?? null;
 
             if (!$isSunday && !$isHoliday && $current->lte($today)) {
@@ -446,13 +468,19 @@ class ReportController extends Controller
 
             if ($employee->is_exempt) {
                 if ($isHoliday) {
-                    $status = 'LN';
-                    $statusLabel = 'Libur Nasional';
-                    $note = $holidayName ?: 'Libur Nasional';
+                    if ($isNationalHoliday) {
+                        $status = 'LN';
+                        $statusLabel = 'Libur Nasional';
+                        $note = $holidayName ?: 'Libur Nasional';
+                    } else {
+                        $status = 'L';
+                        $statusLabel = 'Libur';
+                        $note = $holidayName ?: 'Hari Libur';
+                    }
                     $totalLibur++;
                 } elseif ($isSunday) {
                     $status = 'L';
-                    $statusLabel = 'Libur Minggu';
+                    $statusLabel = 'Libur';
                     $note = 'Libur Akhir Pekan';
                     $totalLibur++;
                 } elseif ($current->gt($today)) {
@@ -531,13 +559,19 @@ class ReportController extends Controller
                     }
                 } else {
                     if ($isHoliday) {
-                        $status = 'LN';
-                        $statusLabel = 'Libur Nasional';
-                        $note = $holidayName ?: 'Libur Nasional';
+                        if ($isNationalHoliday) {
+                            $status = 'LN';
+                            $statusLabel = 'Libur Nasional';
+                            $note = $holidayName ?: 'Libur Nasional';
+                        } else {
+                            $status = 'L';
+                            $statusLabel = 'Libur';
+                            $note = $holidayName ?: 'Hari Libur';
+                        }
                         $totalLibur++;
                     } elseif ($isSunday) {
                         $status = 'L';
-                        $statusLabel = 'Libur Minggu';
+                        $statusLabel = 'Libur';
                         $note = 'Libur Akhir Pekan';
                         $totalLibur++;
                     } elseif ($permInfo) {
@@ -648,11 +682,13 @@ class ReportController extends Controller
                 }
             } elseif ($rec['overtime_minutes'] > 0) {
                 $dt = Carbon::parse($dStr);
-                $isHol = isset($holidaysMap[$dStr]);
+                $holidayInfo = $holidaysMap[$dStr] ?? null;
+                $isHol = !empty($holidayInfo);
+                $isNatHol = $isHol ? ($holidayInfo['libur_nasional'] ?? true) : false;
                 $isWknd = $dt->isSaturday() || $dt->isSunday();
-                if ($isHol) {
+                if ($isHol && $isNatHol) {
                     $otTypeName = 'Lembur Hari Libur Nasional (Hari Besar)';
-                } elseif ($isWknd) {
+                } elseif ($isHol || $isWknd) {
                     $otTypeName = 'Lembur Akhir Pekan (Weekend)';
                 } else {
                     $otTypeName = 'Lembur Hari Kerja (Daily)';
