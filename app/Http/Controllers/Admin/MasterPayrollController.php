@@ -293,9 +293,10 @@ class MasterPayrollController extends Controller
 
         $list = [];
         $karyawanDisesuaikanCount = 0;
+        $defaultGapok = (float)(SalaryGrade::where('status', 'aktif')->orderBy('id', 'asc')->value('gaji_pokok') ?? 0);
 
         foreach ($employees as $emp) {
-            $stdGapok = ($emp->salaryGrade && (float)$emp->salaryGrade->gaji_pokok > 0) ? (float)$emp->salaryGrade->gaji_pokok : 5000000;
+            $stdGapok = ($emp->salaryGrade && (float)$emp->salaryGrade->gaji_pokok > 0) ? (float)$emp->salaryGrade->gaji_pokok : $defaultGapok;
             $isGapokCustom = ($emp->gaji_pokok_kustom !== null && (float)$emp->gaji_pokok_kustom > 0 && abs((float)$emp->gaji_pokok_kustom - $stdGapok) >= 0.01);
             $effectiveGapok = $isGapokCustom ? (float)$emp->gaji_pokok_kustom : $stdGapok;
 
@@ -415,7 +416,9 @@ class MasterPayrollController extends Controller
     {
         $employee = Employee::with(['salaryGrade', 'customSalaryComponents'])->findOrFail($id);
 
-        $stdGapok = ($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000;
+        $stdGapok = ($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0)
+            ? (float)$employee->salaryGrade->gaji_pokok 
+            : (float)(SalaryGrade::where('status', 'aktif')->orderBy('id', 'asc')->value('gaji_pokok') ?? 0);
         $isGapokCustom = ($employee->gaji_pokok_kustom !== null && (float)$employee->gaji_pokok_kustom > 0 && abs((float)$employee->gaji_pokok_kustom - $stdGapok) >= 0.01);
 
         $activeMasterComponents = SalaryComponent::where('status', 'aktif')->get();
@@ -542,7 +545,9 @@ class MasterPayrollController extends Controller
             }
         }
 
-        $stdGapok = ($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000;
+        $stdGapok = ($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0)
+            ? (float)$employee->salaryGrade->gaji_pokok 
+            : (float)(SalaryGrade::where('status', 'aktif')->orderBy('id', 'asc')->value('gaji_pokok') ?? 0);
         $gapokKustom = ($validated['is_gaji_pokok_custom'] && isset($validated['gaji_pokok_kustom'])) 
             ? (float)$validated['gaji_pokok_kustom'] 
             : null;

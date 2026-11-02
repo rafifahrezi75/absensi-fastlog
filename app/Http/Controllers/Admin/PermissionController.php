@@ -603,6 +603,7 @@ class PermissionController extends Controller
             $endDate = $permission->tanggal_selesai ? Carbon::parse($permission->tanggal_selesai) : $startDate;
             $overtimeService = app(OvertimeCalculationService::class);
             $staffCategory = $overtimeService->determineStaffCategory($permission->employee);
+            $otCat = $overtimeService->getCategoryForEmployee($permission->employee);
             $settings = $overtimeService->getSettings();
             $catLower = strtolower($staffCategory);
 
@@ -613,15 +614,15 @@ class PermissionController extends Controller
                 $tipeLembur = $permission->tipe_lembur ?: $eval['tipe_lembur'];
 
                 $nominal = match ($tipeLembur) {
-                    'HARI_BESAR' => (float)($settings['overtime_' . $catLower . '_holiday_rate'] ?? 300000),
-                    'WEEKENDS' => (float)($settings['overtime_' . $catLower . '_weekend_rate'] ?? 75000),
-                    default => (float)($settings['overtime_' . $catLower . '_daily_rate'] ?? 50000),
+                    'HARI_BESAR' => $otCat ? (float)$otCat->holiday_rate : (float)($settings['overtime_' . $catLower . '_holiday_rate'] ?? 0),
+                    'WEEKENDS' => $otCat ? (float)$otCat->weekend_rate : (float)($settings['overtime_' . $catLower . '_weekend_rate'] ?? 0),
+                    default => $otCat ? (float)$otCat->daily_rate : (float)($settings['overtime_' . $catLower . '_daily_rate'] ?? 0),
                 };
 
                 $defaultTime = match ($tipeLembur) {
                     'HARI_BESAR' => '08:00:00',
-                    'WEEKENDS' => ($staffCategory === 'LAPANGAN' ? '12:01:00' : '13:00:00'),
-                    default => ($staffCategory === 'LAPANGAN' ? '16:31:00' : '17:00:00'),
+                    'WEEKENDS' => ($otCat?->weekend_start ? ($otCat->weekend_start . (strlen($otCat->weekend_start) === 5 ? ':00' : '')) : ($staffCategory === 'LAPANGAN' ? '12:01:00' : '13:00:00')),
+                    default => ($otCat?->daily_start ? ($otCat->daily_start . (strlen($otCat->daily_start) === 5 ? ':00' : '')) : ($staffCategory === 'LAPANGAN' ? '16:31:00' : '17:00:00')),
                 };
 
                 $tapTime = Carbon::parse($dateStr . ' ' . ($permission->jam_mulai ?: $defaultTime));

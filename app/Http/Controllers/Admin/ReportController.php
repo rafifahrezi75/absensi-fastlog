@@ -128,6 +128,8 @@ class ReportController extends Controller
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
         $today = Carbon::today();
         $currentTimeStr = Carbon::now()->format('H:i:s');
+        $overtimeService = app(OvertimeCalculationService::class);
+        $otCat = $overtimeService->getCategoryForEmployee($employee);
 
         $nowYear = Carbon::now()->format('Y');
         $apiHolidays = Cache::remember('holidays_api_' . $nowYear, 86400, function () use ($nowYear) {
@@ -182,9 +184,11 @@ class ReportController extends Controller
             ];
         }
 
+        $overtimeService = app(OvertimeCalculationService::class);
         $data = [];
 
         foreach ($employees as $emp) {
+            $empOtCat = $overtimeService->getCategoryForEmployee($emp);
             $attendance = [];
             $current = $start->copy();
 
@@ -229,8 +233,10 @@ class ReportController extends Controller
                         $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
                         $isLate = $firstScan->gt($lateThreshold);
 
-                        $outBase = $isSat ? $schedForDay['saturday_check_out'] : $schedForDay['normal_check_out'];
-                        $overtimeThreshold = Carbon::parse($dateStr . ' ' . $outBase . ':00')->addMinutes(30);
+                        $otStart = $isSat
+                            ? ($empOtCat?->weekend_start ?? $schedForDay['saturday_check_out'])
+                            : ($empOtCat?->daily_start ?? $schedForDay['normal_check_out']);
+                        $overtimeThreshold = Carbon::parse($dateStr . ' ' . $otStart . (strlen($otStart) === 5 ? ':00' : ''));
 
                         $hasApprovedOt = isset($approvedOvertimes[$emp->id . '_' . $dateStr]);
                         $hasScanOt = $lastScan && $lastScan->gt($overtimeThreshold);
@@ -368,6 +374,8 @@ class ReportController extends Controller
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
         $today = Carbon::today();
         $currentTimeStr = Carbon::now()->format('H:i:s');
+        $overtimeService = app(OvertimeCalculationService::class);
+        $otCat = $overtimeService->getCategoryForEmployee($employee);
 
         $approvedPermissions = Permission::where('employee_id', $employee->id)
             ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
@@ -513,7 +521,8 @@ class ReportController extends Controller
                 $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInTime . ':00');
                 $scheduleOut = Carbon::parse($dateStr . ' ' . $schedOutTime . ':00');
                 $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
-                $overtimeThreshold = $scheduleOut->copy()->addMinutes(30);
+                $otStart = $isSaturday ? ($otCat?->weekend_start ?? $schedOutTime) : ($otCat?->daily_start ?? $schedOutTime);
+                $overtimeThreshold = Carbon::parse($dateStr . ' ' . $otStart . (strlen($otStart) === 5 ? ':00' : ''));
 
                 if (!empty($scans)) {
                     sort($scans);
@@ -662,9 +671,9 @@ class ReportController extends Controller
         $otSettings = $overtimeService->getSettings();
         $staffCategory = $otCat ? strtoupper($otCat->kode) : $overtimeService->determineStaffCategory($employee);
         $catLower = strtolower($staffCategory);
-        $dailyRate = $otCat ? (float)$otCat->daily_rate : ($otSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000);
-        $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000);
-        $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000);
+        $dailyRate = $otCat ? (float)$otCat->daily_rate : ($otSettings['overtime_' . $catLower . '_daily_rate'] ?? 0);
+        $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 0);
+        $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 0);
 
         foreach ($records as &$rec) {
             $dStr = $rec['date'];
@@ -746,7 +755,7 @@ class ReportController extends Controller
             'late_breakdown' => [
                 'is_exempt' => (bool)$employee->is_exempt,
                 'category_name' => $lateResult['category_name'] ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
-                'toleransi_bulanan' => $lateResult['toleransi_bulanan'] ?? 3,
+                'toleransi_bulanan' => $lateResult['toleransi_bulanan'] ?? ($lateResult['category']?->toleransi_bulanan ?? 0),
                 'total_late_events' => $lateResult['total_late_events'] ?? $totalTelatKali,
                 'total_late_minutes' => $totalTelatMenit,
                 'tier1_count' => $lateResult['tier1_count'] ?? 0,

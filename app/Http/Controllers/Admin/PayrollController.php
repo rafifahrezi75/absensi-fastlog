@@ -156,6 +156,17 @@ class PayrollController extends Controller
             $satTol
         );
 
+        $effectiveWorkingDays = 0;
+        $cIter = $startDate->copy();
+        while ($cIter->lte($endDate)) {
+            $dStr = $cIter->format('Y-m-d');
+            if (!$cIter->isSunday() && !isset($holidays[$dStr])) {
+                $effectiveWorkingDays++;
+            }
+            $cIter->addDay();
+        }
+        $effectiveWorkingDays = max(1, $effectiveWorkingDays);
+
         $details = [];
         $curr = $checkLimit->copy();
 
@@ -244,7 +255,10 @@ class PayrollController extends Controller
                     ];
                 } else {
                     if ($absentComp && $absentComp->metode === 'harian') {
-                        $dailyRate = round((($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000) / 22);
+                        $empGapok = ($employee->gaji_pokok_kustom !== null && (float)$employee->gaji_pokok_kustom > 0)
+                            ? (float)$employee->gaji_pokok_kustom
+                            : (($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 0);
+                        $dailyRate = round($empGapok / $effectiveWorkingDays);
                     } else {
                         $dailyRate = $absentDeduction;
                     }
@@ -633,9 +647,9 @@ class PayrollController extends Controller
                     $categoryName = $otCat ? $otCat->nama : ($staffCategory === 'LAPANGAN' ? 'Staf Lapangan (Operasional)' : 'Staf Kantor');
                     $catLower = strtolower($staffCategory);
                     $otSettings = $overtimeService->getSettings();
-                    $dailyRate = $otCat ? (float)$otCat->daily_rate : ($otSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000);
-                    $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000);
-                    $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000);
+                    $dailyRate = $otCat ? (float)$otCat->daily_rate : ($otSettings['overtime_' . $catLower . '_daily_rate'] ?? 0);
+                    $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 0);
+                    $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 0);
 
                     $otDetails = $savedCatatan['overtime_details'] ?? [];
                     $overtimeBreakdown = [
@@ -693,9 +707,9 @@ class PayrollController extends Controller
 
             $gajiPokok = ($employee->gaji_pokok_kustom !== null && (float)$employee->gaji_pokok_kustom > 0)
                 ? (float)$employee->gaji_pokok_kustom 
-                : (($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 5000000);
+                : (($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0) ? (float)$employee->salaryGrade->gaji_pokok : 0);
 
-            $tarifLembur = ($employee->salaryGrade && (float)$employee->salaryGrade->tarif_lembur > 0) ? (float)$employee->salaryGrade->tarif_lembur : 50000;
+            $tarifLembur = ($employee->salaryGrade && (float)$employee->salaryGrade->tarif_lembur > 0) ? (float)$employee->salaryGrade->tarif_lembur : 0;
 
             // Resolve komponen gaji untuk karyawan ini
             $customOverrides = $employee->customSalaryComponents->keyBy('salary_component_id');
@@ -850,6 +864,7 @@ class PayrollController extends Controller
             $potonganTerlambat = $lateResult['total_deduction'];
 
             $alpaCount = 0;
+            $workingDaysCount = 0;
             $curr = $startDate->copy();
             while ($curr->lte($limitDate)) {
                 $dateStr = $curr->format('Y-m-d');
@@ -857,6 +872,7 @@ class PayrollController extends Controller
                 $isHoliday = in_array($dateStr, $holidays);
 
                 if (!$isSunday && !$isHoliday) {
+                    $workingDaysCount++;
                     if (!isset($groupedByDate[$dateStr])) {
                         if (!in_array($dateStr, $dispensations)) {
                             $alpaCount++;
@@ -865,6 +881,7 @@ class PayrollController extends Controller
                 }
                 $curr->addDay();
             }
+            $workingDaysCount = max(1, $workingDaysCount);
 
             if ($employee->is_exempt) {
                 $overtimeDays = 0;
@@ -888,7 +905,7 @@ class PayrollController extends Controller
                 $overtimeDays = $overtimeResult['total_days'];
 
                 if ($absentComp && $absentComp->metode === 'harian') {
-                    $potonganAlpa = round(($gajiPokok / 22) * $alpaCount);
+                    $potonganAlpa = round(($gajiPokok / $workingDaysCount) * $alpaCount);
                 } else {
                     $potonganAlpa = $alpaCount * $absentDeduction;
                 }
@@ -904,7 +921,7 @@ class PayrollController extends Controller
             $lateDetails = [
                 'is_exempt' => (bool)$employee->is_exempt,
                 'category_name' => $lateResult['category']?->nama ?? ($employee->is_exempt ? 'Bebas Denda & Lembur' : 'Umum'),
-                'toleransi_bulanan' => (int)($lateResult['category']?->toleransi_bulanan ?? 3),
+                'toleransi_bulanan' => (int)($lateResult['toleransi_bulanan'] ?? ($lateResult['category']?->toleransi_bulanan ?? 0)),
                 'total_late_events' => $lateResult['total_late_events'] ?? (($lateResult['tier1_count'] ?? 0) + ($lateResult['tier2_count'] ?? 0) + ($lateResult['tier3_count'] ?? 0) + ($lateResult['tier4_count'] ?? 0)),
                 'tier1_count' => $lateResult['tier1_count'] ?? 0,
                 'tier1_tolerated' => $lateResult['tier1_tolerated_count'] ?? 0,
@@ -922,9 +939,9 @@ class PayrollController extends Controller
             $categoryName = $otCat ? $otCat->nama : ($staffCategory === 'LAPANGAN' ? 'Staf Lapangan (Operasional)' : 'Staf Kantor');
             $catLower = strtolower($staffCategory);
             $otSettings = $overtimeService->getSettings();
-            $dailyRate = $otCat ? (float)$otCat->daily_rate : ($otSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000);
-            $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000);
-            $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000);
+            $dailyRate = $otCat ? (float)$otCat->daily_rate : ($otSettings['overtime_' . $catLower . '_daily_rate'] ?? 0);
+            $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($otSettings['overtime_' . $catLower . '_weekend_rate'] ?? 0);
+            $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($otSettings['overtime_' . $catLower . '_holiday_rate'] ?? 0);
 
             $overtimeBreakdown = [
                 'is_exempt' => (bool)$employee->is_exempt,

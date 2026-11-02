@@ -112,7 +112,7 @@ class LateCalculationService
         }
 
         $category = $this->determineCategory($employee);
-        $toleransiBulanan = (int)($category->toleransi_bulanan ?? 3);
+        $toleransiBulanan = (int)($category->toleransi_bulanan ?? 0);
         $tiers = $category->tiers ?? collect();
 
         ksort($groupedByDate);
@@ -238,9 +238,11 @@ class LateCalculationService
                 $quotaText = "Tanpa toleransi (Potongan Rp " . number_format($deduction, 0, ',', '.') . ")";
                 $statusText = "Kategori {$matchedTier->tier_order} (Potongan Rp " . number_format($deduction, 0, ',', '.') . ")";
             } else {
-                $deduction = 30000;
+                $highestTier = $tiers->sortByDesc('tier_order')->first();
+                $deduction = $highestTier ? (float)$highestTier->nominal_denda : 0;
+                $tierOrder = $highestTier?->tier_order;
                 $quotaText = "Tanpa toleransi (Potongan Rp " . number_format($deduction, 0, ',', '.') . ")";
-                $statusText = 'Terlambat (Potongan Rp 30.000)';
+                $statusText = $highestTier ? "Kategori {$tierOrder} (Potongan Rp " . number_format($deduction, 0, ',', '.') . ")" : 'Terlambat';
             }
 
             $totalLateMinutes += $minutesLate;
@@ -306,6 +308,7 @@ class LateCalculationService
         return [
             'is_exempt' => false,
             'category' => $category,
+            'toleransi_bulanan' => $toleransiBulanan,
             'total_late_minutes' => $totalLateMinutes,
             'total_deduction' => $totalDeduction,
             'total_late_events' => $tier1Count + $tier2Count + $tier3Count + $tier4Count,

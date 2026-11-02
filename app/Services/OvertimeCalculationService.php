@@ -15,17 +15,20 @@ class OvertimeCalculationService
 {
     public function getSettings(): array
     {
+        $kantorCat = OvertimeRuleCategory::where('kode', 'KANTOR')->first();
+        $lapanganCat = OvertimeRuleCategory::where('kode', 'LAPANGAN')->first();
+
         $keys = [
-            'overtime_kantor_daily_start' => '17:00',
-            'overtime_kantor_daily_rate' => '50000',
-            'overtime_kantor_weekend_start' => '13:00',
-            'overtime_kantor_weekend_rate' => '75000',
-            'overtime_kantor_holiday_rate' => '300000',
-            'overtime_lapangan_daily_start' => '16:31',
-            'overtime_lapangan_daily_rate' => '50000',
-            'overtime_lapangan_weekend_start' => '12:01',
-            'overtime_lapangan_weekend_rate' => '75000',
-            'overtime_lapangan_holiday_rate' => '300000',
+            'overtime_kantor_daily_start' => $kantorCat?->daily_start ?? '17:00',
+            'overtime_kantor_daily_rate' => $kantorCat?->daily_rate ?? '0',
+            'overtime_kantor_weekend_start' => $kantorCat?->weekend_start ?? '13:00',
+            'overtime_kantor_weekend_rate' => $kantorCat?->weekend_rate ?? '0',
+            'overtime_kantor_holiday_rate' => $kantorCat?->holiday_rate ?? '0',
+            'overtime_lapangan_daily_start' => $lapanganCat?->daily_start ?? '16:31',
+            'overtime_lapangan_daily_rate' => $lapanganCat?->daily_rate ?? '0',
+            'overtime_lapangan_weekend_start' => $lapanganCat?->weekend_start ?? '12:01',
+            'overtime_lapangan_weekend_rate' => $lapanganCat?->weekend_rate ?? '0',
+            'overtime_lapangan_holiday_rate' => $lapanganCat?->holiday_rate ?? '0',
         ];
 
         $fromDb = SystemSetting::whereIn('kunci', array_keys($keys))->pluck('nilai', 'kunci')->all();
@@ -108,12 +111,12 @@ class OvertimeCalculationService
         $settings = $this->getSettings();
 
         $dailyStart = $otCat ? $otCat->daily_start : ($settings['overtime_' . $catLower . '_daily_start'] ?? ($staffCategory === 'LAPANGAN' ? '16:31' : '17:00'));
-        $dailyRate = $otCat ? (float)$otCat->daily_rate : ($settings['overtime_' . $catLower . '_daily_rate'] ?? 50000);
+        $dailyRate = $otCat ? (float)$otCat->daily_rate : (float)($settings['overtime_' . $catLower . '_daily_rate'] ?? 0);
 
         $weekendStart = $otCat ? $otCat->weekend_start : ($settings['overtime_' . $catLower . '_weekend_start'] ?? ($staffCategory === 'LAPANGAN' ? '12:01' : '13:00'));
-        $weekendRate = $otCat ? (float)$otCat->weekend_rate : ($settings['overtime_' . $catLower . '_weekend_rate'] ?? 75000);
+        $weekendRate = $otCat ? (float)$otCat->weekend_rate : (float)($settings['overtime_' . $catLower . '_weekend_rate'] ?? 0);
 
-        $holidayRate = $otCat ? (float)$otCat->holiday_rate : ($settings['overtime_' . $catLower . '_holiday_rate'] ?? 300000);
+        $holidayRate = $otCat ? (float)$otCat->holiday_rate : (float)($settings['overtime_' . $catLower . '_holiday_rate'] ?? 0);
 
         $isHoliday = Holiday::whereDate('tanggal', $dateStr)->exists();
         $isWeekend = $dt->isSaturday() || $dt->isSunday();

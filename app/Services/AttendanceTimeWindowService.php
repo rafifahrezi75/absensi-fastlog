@@ -107,21 +107,17 @@ class AttendanceTimeWindowService
             ];
         }
 
-        if ($timeStr <= '09:00:59') {
-            return $this->handleCheckIn($employee, $tapTime, $date, $timeStr);
-        }
-
         $overtimeService = app(OvertimeCalculationService::class);
         $eval = $overtimeService->evaluateOvertimeDay($employee, $tapTime);
         if ($eval['qualifies']) {
             return $this->handleOvertime($employee, $tapTime, $date, $eval);
         }
 
-        if ($timeStr >= '12:00:00') {
-            return $this->handleCheckOut($employee, $tapTime, $date);
+        if ($timeStr < '12:00:00') {
+            return $this->handleCheckIn($employee, $tapTime, $date, $timeStr);
         }
 
-        return $this->handleAnomaly($employee, $tapTime, $date, $reason);
+        return $this->handleCheckOut($employee, $tapTime, $date);
     }
 
     protected function handleCheckIn(Employee $employee, Carbon $tapTime, string $date, string $timeStr): array
@@ -141,7 +137,7 @@ class AttendanceTimeWindowService
         $tol = $isSat ? $sched['saturday_tolerance'] : $sched['normal_tolerance'];
         $lateThreshold = Carbon::parse($date . ' ' . $schedIn . ':00')->addMinutes($tol)->format('H:i:s');
 
-        $status = $timeStr <= $lateThreshold ? 'hadir' : 'terlambat';
+        $status = ($employee->is_exempt || $timeStr <= $lateThreshold) ? 'hadir' : 'terlambat';
 
         if (!$attendance->jam_masuk) {
             $attendance->jam_masuk = $tapTime;

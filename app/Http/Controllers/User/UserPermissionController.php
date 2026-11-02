@@ -209,10 +209,10 @@ class UserPermissionController extends Controller
                 'staff_category' => $staffCategory,
                 'category_name' => $categoryName,
                 'daily_start' => $otCat ? $otCat->daily_start : ($overtimeSettings['overtime_' . $catLower . '_daily_start'] ?? ($staffCategory === 'LAPANGAN' ? '16:31' : '17:00')),
-                'daily_rate' => $otCat ? (float)$otCat->daily_rate : ($overtimeSettings['overtime_' . $catLower . '_daily_rate'] ?? 50000),
+                'daily_rate' => $otCat ? (float)$otCat->daily_rate : (float)($overtimeSettings['overtime_' . $catLower . '_daily_rate'] ?? 0),
                 'weekend_start' => $otCat ? $otCat->weekend_start : ($overtimeSettings['overtime_' . $catLower . '_weekend_start'] ?? ($staffCategory === 'LAPANGAN' ? '12:01' : '13:00')),
-                'weekend_rate' => $otCat ? (float)$otCat->weekend_rate : ($overtimeSettings['overtime_' . $catLower . '_weekend_rate'] ?? 75000),
-                'holiday_rate' => $otCat ? (float)$otCat->holiday_rate : ($overtimeSettings['overtime_' . $catLower . '_holiday_rate'] ?? 300000),
+                'weekend_rate' => $otCat ? (float)$otCat->weekend_rate : (float)($overtimeSettings['overtime_' . $catLower . '_weekend_rate'] ?? 0),
+                'holiday_rate' => $otCat ? (float)$otCat->holiday_rate : (float)($overtimeSettings['overtime_' . $catLower . '_holiday_rate'] ?? 0),
             ],
             'stats' => [
                 'izin' => $countIzin,
