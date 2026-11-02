@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Download, Calculator, Search, CheckCircle, FileText, Clock, ReceiptText, CalendarCheck2, Loader2, Info } from 'lucide-react';
 import ModalSlip from './Components/ModalSlip';
 import ModalDetails from './Components/ModalDetails';
@@ -67,15 +67,47 @@ const getLateTiers = (item) => {
 
 const Payroll = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const getInitialFilter = (key, fallback) => {
+        const fromUrl = searchParams.get(key);
+        if (fromUrl !== null && fromUrl !== '') return fromUrl;
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('admin_payroll_filters') || '{}');
+            if (saved[key] !== undefined && saved[key] !== '') return saved[key];
+        } catch (e) {}
+        return fallback;
+    };
+
     const [payrollList, setPayrollList] = useState([]);
     const [periode, setPeriode] = useState(() => {
         const date = new Date();
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const def = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return getInitialFilter('periode', def);
     });
-    const [selectedDept, setSelectedDept] = useState('');
-    const [selectedStatus, setSelectedStatus] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedDept, setSelectedDept] = useState(() => getInitialFilter('dept', ''));
+    const [selectedStatus, setSelectedStatus] = useState(() => getInitialFilter('status', ''));
+    const [searchQuery, setSearchQuery] = useState(() => getInitialFilter('search', ''));
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const filters = {
+            periode,
+            dept: selectedDept,
+            status: selectedStatus,
+            search: searchQuery,
+        };
+        try {
+            sessionStorage.setItem('admin_payroll_filters', JSON.stringify(filters));
+        } catch (e) {}
+
+        const params = new URLSearchParams();
+        if (periode) params.set('periode', periode);
+        if (selectedDept) params.set('dept', selectedDept);
+        if (selectedStatus) params.set('status', selectedStatus);
+        if (searchQuery) params.set('search', searchQuery);
+        setSearchParams(params, { replace: true });
+    }, [periode, selectedDept, selectedStatus, searchQuery, setSearchParams]);
 
     const [modalData, setModalData] = useState({
         isOpen: false,
@@ -466,7 +498,14 @@ const Payroll = () => {
                                                         <CalendarCheck2 className="w-3.5 h-3.5 text-indigo-600" /> Rincian
                                                     </button>
                                                     <button
-                                                        onClick={() => navigate(`/admin/payroll/${item.payroll_id || item.id}`)}
+                                                        onClick={() => {
+                                                            const params = new URLSearchParams();
+                                                            if (periode) params.set('periode', periode);
+                                                            if (selectedDept) params.set('dept', selectedDept);
+                                                            if (selectedStatus) params.set('status', selectedStatus);
+                                                            if (searchQuery) params.set('search', searchQuery);
+                                                            navigate(`/admin/payroll/${item.payroll_id || item.id}?${params.toString()}`);
+                                                        }}
                                                         className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
                                                         title="Buka Halaman Detail & Preview PDF"
                                                     >

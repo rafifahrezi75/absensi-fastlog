@@ -43,6 +43,10 @@ const EmployeePreview = () => {
         const params = new URLSearchParams();
         if (startDate) params.set('start_date', startDate);
         if (endDate) params.set('end_date', endDate);
+        const dept = searchParams.get('dept');
+        const search = searchParams.get('search');
+        if (dept) params.set('dept', dept);
+        if (search) params.set('search', search);
         navigate(`/admin/reports/${employeeId}?${params.toString()}`);
     };
 

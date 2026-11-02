@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fingerprint, RefreshCw, UserCheck, AlertTriangle, Stethoscope, LogOut, CalendarX, Loader2, CheckCircle2, AlertCircle, Info, MapPin, Navigation, Camera, ExternalLink } from 'lucide-react';
 import ModalKoreksi from './Components/ModalKoreksi';
@@ -28,14 +29,45 @@ const Attendance = () => {
     const [fetchingCloud, setFetchingCloud] = useState(false);
     const [notif, setNotif] = useState(null);
 
-    const [filterTanggal, setFilterTanggal] = useState('');
-    const [filterDept, setFilterDept] = useState('');
-    const [filterStatus, setFilterStatus] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const getInitialFilter = (key, fallback) => {
+        const fromUrl = searchParams.get(key);
+        if (fromUrl !== null && fromUrl !== '') return fromUrl;
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('admin_attendance_filters') || '{}');
+            if (saved[key] !== undefined && saved[key] !== '') return saved[key];
+        } catch (e) {}
+        return fallback;
+    };
+
+    const [filterTanggal, setFilterTanggal] = useState(() => getInitialFilter('tanggal', ''));
+    const [filterDept, setFilterDept] = useState(() => getInitialFilter('dept', ''));
+    const [filterStatus, setFilterStatus] = useState(() => getInitialFilter('status', ''));
+    const [searchQuery, setSearchQuery] = useState(() => getInitialFilter('search', ''));
+    const [debouncedSearch, setDebouncedSearch] = useState(() => getInitialFilter('search', ''));
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 15;
     const abortControllerRef = useRef(null);
+
+    useEffect(() => {
+        const filters = {
+            tanggal: filterTanggal,
+            dept: filterDept,
+            status: filterStatus,
+            search: searchQuery,
+        };
+        try {
+            sessionStorage.setItem('admin_attendance_filters', JSON.stringify(filters));
+        } catch (e) {}
+
+        const params = new URLSearchParams();
+        if (filterTanggal) params.set('tanggal', filterTanggal);
+        if (filterDept) params.set('dept', filterDept);
+        if (filterStatus) params.set('status', filterStatus);
+        if (searchQuery) params.set('search', searchQuery);
+        setSearchParams(params, { replace: true });
+    }, [filterTanggal, filterDept, filterStatus, searchQuery, setSearchParams]);
 
     const [hoverPopover, setHoverPopover] = useState(null);
     const hoverTimerRef = useRef(null);

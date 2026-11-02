@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     ArrowLeft, Download, Printer, ExternalLink, FileText, CheckCircle,
     Clock, Wallet, Calendar, Building2, User, RefreshCw, AlertCircle, Eye
@@ -68,6 +68,7 @@ const getLateTiers = (input, fallbackPotongan = 0) => {
 const PayrollDetail = ({ isAdmin = true }) => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -77,6 +78,29 @@ const PayrollDetail = ({ isAdmin = true }) => {
     const iframeRef = useRef(null);
 
     const backUrl = isAdmin ? '/admin/payroll' : '/user/slip-gaji';
+
+    const handleBack = () => {
+        const searchStr = location.search;
+        if (searchStr) {
+            navigate(`${backUrl}${searchStr}`);
+        } else {
+            const saved = sessionStorage.getItem('admin_payroll_filters');
+            if (saved) {
+                try {
+                    const f = JSON.parse(saved);
+                    const params = new URLSearchParams();
+                    if (f.periode) params.set('periode', f.periode);
+                    if (f.dept) params.set('dept', f.dept);
+                    if (f.status) params.set('status', f.status);
+                    if (f.search) params.set('search', f.search);
+                    navigate(`${backUrl}?${params.toString()}`);
+                    return;
+                } catch (e) {}
+            }
+            navigate(backUrl);
+        }
+    };
+
     const detailApiUrl = isAdmin ? `/api/admin/payroll/${id}/detail` : `/api/user/payroll/${id}/detail`;
     const pdfStreamUrl = isAdmin ? `/api/admin/payroll/${id}/pdf` : `/api/user/payroll/${id}/pdf`;
     const pdfDownloadUrl = isAdmin ? `/api/admin/payroll/${id}/download` : `/api/user/payroll/${id}/download`;
@@ -167,7 +191,7 @@ const PayrollDetail = ({ isAdmin = true }) => {
                     <p className="text-xs text-slate-500 mt-1">Slip gaji yang Anda minta mungkin telah dihapus atau tidak tersedia.</p>
                 </div>
                 <button
-                    onClick={() => navigate(backUrl)}
+                    onClick={handleBack}
                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition"
                 >
                     Kembali ke Daftar
@@ -186,7 +210,7 @@ const PayrollDetail = ({ isAdmin = true }) => {
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => navigate(backUrl)}
+                            onClick={handleBack}
                             className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition inline-flex items-center gap-1.5 text-xs font-medium"
                             title="Kembali"
                         >

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Users, Plus, Search, Download, CheckCircle2, AlertCircle, Edit3, Trash2, UserX, Loader2, RefreshCw, X } from 'lucide-react';
 import ModalKaryawan from './Components/ModalKaryawan';
 import api from '../../../lib/api';
@@ -9,9 +10,38 @@ const Employees = () => {
     const [loading, setLoading] = useState(true);
     const [syncingCloud, setSyncingCloud] = useState(false);
     const [notif, setNotif] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [deptFilter, setDeptFilter] = useState('');
-    const [syncFilter, setSyncFilter] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const getInitialFilter = (key, fallback) => {
+        const fromUrl = searchParams.get(key);
+        if (fromUrl !== null && fromUrl !== '') return fromUrl;
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('admin_employees_filters') || '{}');
+            if (saved[key] !== undefined && saved[key] !== '') return saved[key];
+        } catch (e) {}
+        return fallback;
+    };
+
+    const [searchQuery, setSearchQuery] = useState(() => getInitialFilter('search', ''));
+    const [deptFilter, setDeptFilter] = useState(() => getInitialFilter('dept', ''));
+    const [syncFilter, setSyncFilter] = useState(() => getInitialFilter('sync', ''));
+
+    useEffect(() => {
+        const filters = {
+            search: searchQuery,
+            dept: deptFilter,
+            sync: syncFilter,
+        };
+        try {
+            sessionStorage.setItem('admin_employees_filters', JSON.stringify(filters));
+        } catch (e) {}
+
+        const params = new URLSearchParams();
+        if (searchQuery) params.set('search', searchQuery);
+        if (deptFilter) params.set('dept', deptFilter);
+        if (syncFilter) params.set('sync', syncFilter);
+        setSearchParams(params, { replace: true });
+    }, [searchQuery, deptFilter, syncFilter, setSearchParams]);
 
     const [salaryGrades, setSalaryGrades] = useState([]);
     const [lateCategories, setLateCategories] = useState([]);

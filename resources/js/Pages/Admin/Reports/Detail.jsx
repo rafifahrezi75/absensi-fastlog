@@ -187,6 +187,19 @@ const EmployeeReportDetail = () => {
         );
     }
 
+    const handleBack = () => {
+        const params = new URLSearchParams();
+        const sDate = searchParams.get('start_date') || startDate;
+        const eDate = searchParams.get('end_date') || endDate;
+        const dept = searchParams.get('dept');
+        const search = searchParams.get('search');
+        if (sDate) params.set('start_date', sDate);
+        if (eDate) params.set('end_date', eDate);
+        if (dept) params.set('dept', dept);
+        if (search) params.set('search', search);
+        navigate(`/admin/reports?${params.toString()}`);
+    };
+
     const { employee, summary, late_breakdown: lateBreakdown, overtime_breakdown: otBreakdown } = reportData || {};
 
     return (
@@ -195,7 +208,7 @@ const EmployeeReportDetail = () => {
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={() => navigate('/admin/reports')}
+                            onClick={handleBack}
                             className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition inline-flex items-center gap-1.5 text-xs font-medium"
                             title="Kembali"
                         >
@@ -257,6 +270,10 @@ const EmployeeReportDetail = () => {
                             const params = new URLSearchParams();
                             if (startDate) params.set('start_date', startDate);
                             if (endDate) params.set('end_date', endDate);
+                            const dept = searchParams.get('dept');
+                            const search = searchParams.get('search');
+                            if (dept) params.set('dept', dept);
+                            if (search) params.set('search', search);
                             navigate(`/admin/reports/${employeeId}/preview?${params.toString()}`);
                         }}
                         className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm"

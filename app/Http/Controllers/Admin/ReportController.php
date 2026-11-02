@@ -73,6 +73,11 @@ class ReportController extends Controller
                 return $ot->employee_id . '_' . Carbon::parse($ot->waktu_tap)->format('Y-m-d');
             });
 
+        $approvedOvertimesMap = [];
+        foreach ($approvedOvertimes as $key => $logs) {
+            $approvedOvertimesMap[$key] = true;
+        }
+
         $approvedPermissions = Permission::whereIn('employee_id', $employeeIds)
             ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
             ->where(function ($q) use ($start, $end) {
@@ -94,11 +99,15 @@ class ReportController extends Controller
             $pStart = Carbon::parse($perm->tanggal_mulai)->startOfDay();
             $pEnd = Carbon::parse($perm->tanggal_selesai ?? $perm->tanggal_mulai)->endOfDay();
             $cat = strtolower($perm->category ?? 'izin');
-            $statusCode = ($cat === 'sakit') ? 'S' : 'I';
 
             $pCurr = $pStart->copy();
             while ($pCurr->lte($pEnd)) {
-                $permissionsMap[$perm->employee_id . '_' . $pCurr->format('Y-m-d')] = $statusCode;
+                $key = $perm->employee_id . '_' . $pCurr->format('Y-m-d');
+                if ($cat === 'lembur') {
+                    $approvedOvertimesMap[$key] = true;
+                } else {
+                    $permissionsMap[$key] = ($cat === 'sakit') ? 'S' : 'I';
+                }
                 $pCurr->addDay();
             }
         }
@@ -196,6 +205,7 @@ class ReportController extends Controller
         foreach ($employees as $emp) {
             $empOtCat = $overtimeService->getCategoryForEmployee($emp);
             $attendance = [];
+            $empOtDates = [];
             $current = $start->copy();
 
             while ($current->lte($end)) {
@@ -205,9 +215,16 @@ class ReportController extends Controller
                 $isHoliday = !empty($holidayInfo);
                 $isNationalHoliday = $isHoliday ? ($holidayInfo['libur_nasional'] ?? true) : false;
                 $hasPermission = $permissionsMap[$emp->id . '_' . $dateStr] ?? null;
+                $hasApprovedOt = isset($approvedOvertimesMap[$emp->id . '_' . $dateStr]);
+
+                if ($hasApprovedOt) {
+                    $empOtDates[] = $dateStr;
+                }
 
                 if ($emp->is_exempt) {
-                    if ($isHoliday) {
+                    if ($hasApprovedOt && ($isSunday || $isHoliday)) {
+                        $status = 'OT';
+                    } elseif ($isHoliday) {
                         $status = $isNationalHoliday ? 'LN' : 'L';
                     } elseif ($isSunday) {
                         $status = 'L';
@@ -228,7 +245,6 @@ class ReportController extends Controller
                     if (!empty($scans)) {
                         sort($scans);
                         $firstScan = Carbon::parse($scans[0]);
-                        $lastScan = count($scans) > 1 ? Carbon::parse(end($scans)) : null;
 
                         $schedForDay = OperationalSchedule::forDate($dateStr);
                         $isSat = $current->isSaturday();
@@ -239,24 +255,17 @@ class ReportController extends Controller
                         $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
                         $isLate = $firstScan->gt($lateThreshold);
 
-                        $otStart = $isSat
-                            ? ($empOtCat?->weekend_start ?? $schedForDay['saturday_check_out'])
-                            : ($empOtCat?->daily_start ?? $schedForDay['normal_check_out']);
-                        $overtimeThreshold = Carbon::parse($dateStr . ' ' . $otStart . (strlen($otStart) === 5 ? ':00' : ''));
-
-                        $hasApprovedOt = isset($approvedOvertimes[$emp->id . '_' . $dateStr]);
-                        $hasScanOt = $lastScan && $lastScan->gt($overtimeThreshold);
-                        $hasOvertime = $hasApprovedOt || $hasScanOt;
-
-                        if ($hasOvertime && !$isLate) {
-                            $status = 'OT';
+                        if ($isSunday || $isHoliday) {
+                            $status = $hasApprovedOt ? 'OT' : ($isNationalHoliday ? 'LN' : 'L');
                         } elseif ($isLate) {
                             $status = 'T';
                         } else {
                             $status = 'H';
                         }
                     } else {
-                        if ($isHoliday) {
+                        if ($hasApprovedOt && ($isSunday || $isHoliday)) {
+                            $status = 'OT';
+                        } elseif ($isHoliday) {
                             $status = $isNationalHoliday ? 'LN' : 'L';
                         } elseif ($isSunday) {
                             $status = 'L';
@@ -278,8 +287,6 @@ class ReportController extends Controller
                 }
 
                 $attendance[$dateStr] = $status;
-                $attendance[(int)$current->format('j')] = $status;
-
                 $current->addDay();
             }
 
@@ -293,6 +300,8 @@ class ReportController extends Controller
                 'jabatan' => $emp->jabatan ?: '-',
                 'is_exempt' => (bool)$emp->is_exempt,
                 'attendance' => $attendance,
+                'overtime_dates' => array_values(array_unique($empOtDates)),
+                'total_lembur' => count(array_unique($empOtDates)),
             ];
         }
 
@@ -400,6 +409,7 @@ class ReportController extends Controller
             ->get();
 
         $permissionsMap = [];
+        $approvedLemburPermsMap = [];
         foreach ($approvedPermissions as $perm) {
             $pStart = Carbon::parse($perm->tanggal_mulai)->startOfDay();
             $pEnd = Carbon::parse($perm->tanggal_selesai ?? $perm->tanggal_mulai)->endOfDay();
@@ -409,10 +419,15 @@ class ReportController extends Controller
 
             $pCurr = $pStart->copy();
             while ($pCurr->lte($pEnd)) {
-                $permissionsMap[$pCurr->format('Y-m-d')] = [
-                    'code' => $statusCode,
-                    'desc' => $pDesc,
-                ];
+                $dK = $pCurr->format('Y-m-d');
+                if ($cat === 'lembur') {
+                    $approvedLemburPermsMap[$dK] = $perm;
+                } else {
+                    $permissionsMap[$dK] = [
+                        'code' => $statusCode,
+                        'desc' => $pDesc,
+                    ];
+                }
                 $pCurr->addDay();
             }
         }
@@ -552,10 +567,18 @@ class ReportController extends Controller
                     }
 
                     $otLogs = $approvedOvertimes[$dateStr] ?? null;
+                    $otPerm = $approvedLemburPermsMap[$dateStr] ?? null;
                     if ($otLogs && $otLogs->isNotEmpty()) {
                         $overtimeMinutes = (int) $otLogs->sum('durasi_menit');
-                    } elseif ($lastScan && $lastScan->gt($overtimeThreshold)) {
-                        $overtimeMinutes = (int) floor($scheduleOut->diffInMinutes($lastScan));
+                    } elseif ($otPerm) {
+                        if (!empty($otPerm->durasi) && preg_match('/([\d\.]+)/', $otPerm->durasi, $m)) {
+                            $overtimeMinutes = (int) round((float)$m[1] * 60);
+                        } elseif (!empty($otPerm->jam_mulai) && !empty($otPerm->jam_selesai)) {
+                            $t1 = Carbon::parse('2000-01-01 ' . $otPerm->jam_mulai);
+                            $t2 = Carbon::parse('2000-01-01 ' . $otPerm->jam_selesai);
+                            if ($t2->lt($t1)) $t2->addDay();
+                            $overtimeMinutes = (int) $t1->diffInMinutes($t2);
+                        }
                     }
 
                     if ($lateMinutes > 0) {
@@ -573,19 +596,35 @@ class ReportController extends Controller
                         $status = 'T';
                         $statusLabel = 'Terlambat';
                         $note = 'Terlambat ' . $lateMinutes . ' menit' . ($overtimeMinutes > 0 ? (' & Lembur ' . $overtimeMinutes . ' mnt') : '');
-                    } elseif ($overtimeMinutes > 0) {
-                        $status = 'OT';
-                        $statusLabel = 'Hadir & Lembur';
-                        $note = 'Lembur ' . $overtimeMinutes . ' menit';
-                        $totalTepatWaktu++;
                     } else {
                         $status = 'H';
                         $statusLabel = 'Hadir Tepat Waktu';
-                        $note = 'Hadir Tepat Waktu';
+                        $note = $overtimeMinutes > 0 ? ('Hadir Tepat Waktu & Lembur ' . $overtimeMinutes . ' mnt') : 'Hadir Tepat Waktu';
                         $totalTepatWaktu++;
                     }
                 } else {
-                    if ($isHoliday) {
+                    $otLogs = $approvedOvertimes[$dateStr] ?? null;
+                    $otPerm = $approvedLemburPermsMap[$dateStr] ?? null;
+                    if ($otLogs && $otLogs->isNotEmpty()) {
+                        $overtimeMinutes = (int) $otLogs->sum('durasi_menit');
+                    } elseif ($otPerm) {
+                        if (!empty($otPerm->durasi) && preg_match('/([\d\.]+)/', $otPerm->durasi, $m)) {
+                            $overtimeMinutes = (int) round((float)$m[1] * 60);
+                        } elseif (!empty($otPerm->jam_mulai) && !empty($otPerm->jam_selesai)) {
+                            $t1 = Carbon::parse('2000-01-01 ' . $otPerm->jam_mulai);
+                            $t2 = Carbon::parse('2000-01-01 ' . $otPerm->jam_selesai);
+                            if ($t2->lt($t1)) $t2->addDay();
+                            $overtimeMinutes = (int) $t1->diffInMinutes($t2);
+                        }
+                    }
+
+                    if ($overtimeMinutes > 0 && ($isHoliday || $isSunday)) {
+                        $status = 'OT';
+                        $statusLabel = 'Lembur Hari Libur';
+                        $note = 'Lembur ' . $overtimeMinutes . ' menit';
+                        $totalLemburKali++;
+                        $totalLemburMenit += $overtimeMinutes;
+                    } elseif ($isHoliday) {
                         if ($isNationalHoliday) {
                             $status = 'LN';
                             $statusLabel = 'Libur Nasional';

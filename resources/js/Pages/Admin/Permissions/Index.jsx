@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   FileCheck2,
   Search,
@@ -32,10 +33,39 @@ const Permissions = () => {
     izin_cuti: 0,
     lembur_dinas: 0
   });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const getInitialFilter = (key, fallback) => {
+    const fromUrl = searchParams.get(key);
+    if (fromUrl !== null && fromUrl !== '') return fromUrl;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('admin_permissions_filters') || '{}');
+      if (saved[key] !== undefined && saved[key] !== '') return saved[key];
+    } catch (e) {}
+    return fallback;
+  };
+
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => getInitialFilter('search', ''));
+  const [categoryFilter, setCategoryFilter] = useState(() => getInitialFilter('category', ''));
+  const [statusFilter, setStatusFilter] = useState(() => getInitialFilter('status', ''));
+
+  useEffect(() => {
+    const filters = {
+      search: searchTerm,
+      category: categoryFilter,
+      status: statusFilter,
+    };
+    try {
+      sessionStorage.setItem('admin_permissions_filters', JSON.stringify(filters));
+    } catch (e) {}
+
+    const params = new URLSearchParams();
+    if (searchTerm) params.set('search', searchTerm);
+    if (categoryFilter) params.set('category', categoryFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    setSearchParams(params, { replace: true });
+  }, [searchTerm, categoryFilter, statusFilter, setSearchParams]);
   const [notif, setNotif] = useState(null);
 
   const [modalData, setModalData] = useState({ isOpen: false, title: '', filename: '' });

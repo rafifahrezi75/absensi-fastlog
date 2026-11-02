@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FileSpreadsheet, Printer, Search, TableProperties, Loader2, ChevronRight } from 'lucide-react';
 import api from '../../../lib/api';
 
@@ -7,25 +7,56 @@ const dayNamesIndo = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 const Reports = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const getInitialFilter = (key, fallback) => {
+        const fromUrl = searchParams.get(key);
+        if (fromUrl !== null && fromUrl !== '') return fromUrl;
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('admin_reports_filters') || '{}');
+            if (saved[key] !== undefined && saved[key] !== '') return saved[key];
+        } catch (e) {}
+        return fallback;
+    };
+
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
-        return `${y}-${m}-01`;
+        return getInitialFilter('start_date', `${y}-${m}-01`);
     });
     const [endDate, setEndDate] = useState(() => {
         const d = new Date();
         const y = d.getFullYear();
         const m = d.getMonth() + 1;
         const lastDay = new Date(y, m, 0).getDate();
-        return `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        return getInitialFilter('end_date', `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`);
     });
-    const [selectedDept, setSelectedDept] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedDept, setSelectedDept] = useState(() => getInitialFilter('dept', ''));
+    const [searchQuery, setSearchQuery] = useState(() => getInitialFilter('search', ''));
     const [employees, setEmployees] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [holidays, setHolidays] = useState({});
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const filters = {
+            start_date: startDate,
+            end_date: endDate,
+            dept: selectedDept,
+            search: searchQuery,
+        };
+        try {
+            sessionStorage.setItem('admin_reports_filters', JSON.stringify(filters));
+        } catch (e) {}
+
+        const params = new URLSearchParams();
+        if (startDate) params.set('start_date', startDate);
+        if (endDate) params.set('end_date', endDate);
+        if (selectedDept) params.set('dept', selectedDept);
+        if (searchQuery) params.set('search', searchQuery);
+        setSearchParams(params, { replace: true });
+    }, [startDate, endDate, selectedDept, searchQuery, setSearchParams]);
 
     const loadReports = useCallback(async () => {
         try {
@@ -101,7 +132,15 @@ const Reports = () => {
         return days;
     }, [startDate, endDate, holidays]);
 
-    const renderStatusBadge = (status) => {
+    const renderStatusBadge = (status, hasOt = false) => {
+        if (hasOt && (status === 'H' || status === 'T')) {
+            return (
+                <div className="relative inline-flex items-center justify-center" title={`${status === 'H' ? 'Hadir' : 'Terlambat'} & Lembur Disetujui`}>
+                    <span className={status === 'T' ? "w-5 h-5 rounded font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center text-[10px] mx-auto" : "font-bold text-slate-700"}>{status}</span>
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 ring-1 ring-white" />
+                </div>
+            );
+        }
         switch (status) {
             case 'H':
                 return <span className="font-bold text-slate-700">H</span>;
@@ -194,6 +233,7 @@ const Reports = () => {
 
         const rows = employees.map(emp => {
             let countH = 0, countT = 0, countOT = 0, countIS = 0, countA = 0;
+            const otDatesSet = new Set(emp.overtime_dates || []);
 
             const dailyStatus = daysInPeriod.map(d => {
                 const defaultSt = d.isHoliday ? (d.isNationalHoliday ? 'LN' : 'L') : (d.isSunday ? 'L' : '-');
@@ -211,7 +251,7 @@ const Reports = () => {
                 }
                 if (st === 'H') countH++;
                 if (st === 'T') countT++;
-                if (st === 'OT') countOT++;
+                if (st === 'OT' || otDatesSet.has(d.fullDate)) countOT++;
                 if (st === 'I' || st === 'S') countIS++;
                 if (st === 'A') countA++;
                 return st;
@@ -413,11 +453,19 @@ const Reports = () => {
                             ) : employees.length > 0 ? (
                                 employees.map((emp) => {
                                     let countH = 0, countT = 0, countOT = 0, countIS = 0, countA = 0;
+                                    const otDatesSet = new Set(emp.overtime_dates || []);
 
                                     return (
                                         <tr
                                             key={emp.id}
-                                            onClick={() => navigate(`/admin/reports/${emp.id}?start_date=${startDate}&end_date=${endDate}`)}
+                                            onClick={() => {
+                                                const params = new URLSearchParams();
+                                                if (startDate) params.set('start_date', startDate);
+                                                if (endDate) params.set('end_date', endDate);
+                                                if (selectedDept) params.set('dept', selectedDept);
+                                                if (searchQuery) params.set('search', searchQuery);
+                                                navigate(`/admin/reports/${emp.id}?${params.toString()}`);
+                                            }}
                                             className="hover:bg-indigo-50/60 cursor-pointer transition group"
                                             title="Klik untuk melihat detail laporan presensi karyawan ini"
                                         >
@@ -451,9 +499,10 @@ const Reports = () => {
                                                     }
                                                 }
 
+                                                const isOvertimeOnDate = otDatesSet.has(d.fullDate);
                                                 if (status === 'H') countH++;
                                                 if (status === 'T') countT++;
-                                                if (status === 'OT') countOT++;
+                                                if (status === 'OT' || isOvertimeOnDate) countOT++;
                                                 if (status === 'I' || status === 'S') countIS++;
                                                 if (status === 'A') countA++;
 
@@ -462,7 +511,7 @@ const Reports = () => {
                                                         key={d.fullDate || d.dayNum}
                                                         className={`p-1 border-r border-slate-200 ${status === 'LN' ? 'bg-rose-50/40' : status === 'L' ? 'bg-slate-50' : status === 'A' ? 'bg-red-50/40' : ''}`}
                                                     >
-                                                        {renderStatusBadge(status)}
+                                                        {renderStatusBadge(status, isOvertimeOnDate)}
                                                     </td>
                                                 );
                                             })}
