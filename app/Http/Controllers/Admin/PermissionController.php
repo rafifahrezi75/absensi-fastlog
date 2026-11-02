@@ -183,13 +183,10 @@ class PermissionController extends Controller
                   ->where(function ($sub) use ($startDate) {
                       $sub->where(function ($s1) use ($startDate) {
                           $s1->whereNotNull('tanggal_selesai')
-                             ->where('tanggal_selesai', '!=', '')
                              ->whereDate('tanggal_selesai', '>=', $startDate);
                       })->orWhere(function ($s2) use ($startDate) {
-                          $s2->where(function ($s3) {
-                              $s3->whereNull('tanggal_selesai')
-                                 ->orWhere('tanggal_selesai', '');
-                          })->whereDate('tanggal_mulai', '>=', $startDate);
+                          $s2->whereNull('tanggal_selesai')
+                             ->whereDate('tanggal_mulai', '>=', $startDate);
                       });
                   });
             })

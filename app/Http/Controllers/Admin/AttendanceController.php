@@ -124,13 +124,10 @@ class AttendanceController extends Controller
                   ->where(function ($sub) use ($targetDate) {
                       $sub->where(function ($s1) use ($targetDate) {
                           $s1->whereNotNull('tanggal_selesai')
-                             ->where('tanggal_selesai', '!=', '')
                              ->whereDate('tanggal_selesai', '>=', $targetDate);
                       })->orWhere(function ($s2) use ($targetDate) {
-                          $s2->where(function ($s3) {
-                              $s3->whereNull('tanggal_selesai')
-                                 ->orWhere('tanggal_selesai', '');
-                          })->whereDate('tanggal_mulai', '>=', $targetDate);
+                          $s2->whereNull('tanggal_selesai')
+                             ->whereDate('tanggal_mulai', '>=', $targetDate);
                       });
                   });
             })->count();
@@ -189,13 +186,10 @@ class AttendanceController extends Controller
                   ->where(function ($sub) use ($startOfMonth) {
                       $sub->where(function ($s1) use ($startOfMonth) {
                           $s1->whereNotNull('tanggal_selesai')
-                             ->where('tanggal_selesai', '!=', '')
                              ->whereDate('tanggal_selesai', '>=', $startOfMonth);
                       })->orWhere(function ($s2) use ($startOfMonth) {
-                          $s2->where(function ($s3) {
-                              $s3->whereNull('tanggal_selesai')
-                                 ->orWhere('tanggal_selesai', '');
-                          })->whereDate('tanggal_mulai', '>=', $startOfMonth);
+                          $s2->whereNull('tanggal_selesai')
+                             ->whereDate('tanggal_mulai', '>=', $startOfMonth);
                       });
                   });
             })->distinct('employee_id')->count('employee_id');

@@ -558,13 +558,10 @@ class UserPermissionController extends Controller
                   ->where(function ($sub) use ($validated) {
                       $sub->where(function ($s1) use ($validated) {
                           $s1->whereNotNull('tanggal_selesai')
-                             ->where('tanggal_selesai', '!=', '')
                              ->whereDate('tanggal_selesai', '>=', $validated['tanggal_mulai']);
                       })->orWhere(function ($s2) use ($validated) {
-                          $s2->where(function ($s3) {
-                              $s3->whereNull('tanggal_selesai')
-                                 ->orWhere('tanggal_selesai', '');
-                          })->whereDate('tanggal_mulai', '>=', $validated['tanggal_mulai']);
+                          $s2->whereNull('tanggal_selesai')
+                             ->whereDate('tanggal_mulai', '>=', $validated['tanggal_mulai']);
                       });
                   });
             })
