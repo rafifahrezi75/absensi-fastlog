@@ -23,6 +23,7 @@ const Attendance = () => {
 
     const [attendanceData, setAttendanceData] = useState([]);
     const [stats, setStats] = useState({ hadir: 0, terlambat: 0, izin: 0, belum_pulang: 0, total_karyawan: 0 });
+    const [operationalSchedule, setOperationalSchedule] = useState(null);
     const [loading, setLoading] = useState(true);
     const [fetchingCloud, setFetchingCloud] = useState(false);
     const [notif, setNotif] = useState(null);
@@ -158,6 +159,9 @@ const Attendance = () => {
             setAttendanceData(res.data.attendance || []);
             if (res.data.stats) {
                 setStats(res.data.stats);
+            }
+            if (res.data.operational_schedule) {
+                setOperationalSchedule(res.data.operational_schedule);
             }
         } catch (err) {
             if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
@@ -331,7 +335,7 @@ const Attendance = () => {
                         <div className="p-1.5 bg-rose-50 rounded-lg"><AlertTriangle className="w-4 h-4 text-rose-600" /></div>
                     </div>
                     <div className="text-2xl font-bold text-slate-900">{stats.terlambat}</div>
-                    <span className="text-[11px] text-rose-600 font-medium">Lewat jam 08:00 WIB</span>
+                    <span className="text-[11px] text-rose-600 font-medium">Lewat jam {operationalSchedule?.target_check_in || operationalSchedule?.normal_check_in || '08:00'} WIB</span>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-2">

@@ -254,7 +254,7 @@ const Employees = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Data Karyawan</h1>
-                    <p className="text-sm text-slate-500">Kelola informasi pegawai dan pemetaan ID mesin fingerprint (Jam Kerja: 08:00 - 16:30 WIB).</p>
+                    <p className="text-sm text-slate-500">Kelola informasi pegawai dan pemetaan ID mesin fingerprint.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button

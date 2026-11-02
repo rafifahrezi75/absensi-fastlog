@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Holiday;
+use App\Models\OperationalSchedule;
 use App\Models\SalaryComponent;
 use App\Models\SystemSetting;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,17 +44,28 @@ class SettingController extends Controller
         ];
 
         $settings = array_merge($defaultSettings, $settings);
+        $todaySched = OperationalSchedule::forDate(date('Y-m-d'));
+        $settings['normal_check_in'] = $todaySched['normal_check_in'];
+        $settings['normal_check_out'] = $todaySched['normal_check_out'];
+        $settings['normal_tolerance'] = (string)$todaySched['normal_tolerance'];
+        $settings['saturday_check_in'] = $todaySched['saturday_check_in'];
+        $settings['saturday_check_out'] = $todaySched['saturday_check_out'];
+        $settings['saturday_tolerance'] = (string)$todaySched['saturday_tolerance'];
+
         $holidays = Holiday::orderBy('tanggal', 'desc')->get();
+        $scheduleHistory = OperationalSchedule::orderBy('tanggal_mulai_berlaku', 'desc')->get();
 
         return response()->json([
             'settings' => $settings,
             'holidays' => $holidays,
+            'schedule_history' => $scheduleHistory,
         ]);
     }
 
     public function update(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'effective_date' => 'nullable|date',
             'normal_check_in' => 'nullable|string',
             'normal_check_out' => 'nullable|string',
             'normal_tolerance' => 'nullable|integer',
@@ -75,13 +88,47 @@ class SettingController extends Controller
 
         DB::beginTransaction();
         try {
+            $hasScheduleUpdate = false;
+            $scheduleKeys = [
+                'normal_check_in',
+                'normal_check_out',
+                'normal_tolerance',
+                'saturday_check_in',
+                'saturday_check_out',
+                'saturday_tolerance',
+            ];
+
             foreach ($data as $key => $value) {
+                if ($key === 'effective_date') {
+                    continue;
+                }
                 if ($value !== null) {
                     SystemSetting::updateOrCreate(
                         ['kunci' => $key],
                         ['nilai' => (string)$value]
                     );
+                    if (in_array($key, $scheduleKeys)) {
+                        $hasScheduleUpdate = true;
+                    }
                 }
+            }
+
+            if ($hasScheduleUpdate) {
+                $effectiveDate = $data['effective_date'] ?? Carbon::today()->format('Y-m-d');
+                $currentSched = OperationalSchedule::forDate($effectiveDate);
+
+                OperationalSchedule::updateOrCreate(
+                    ['tanggal_mulai_berlaku' => $effectiveDate],
+                    [
+                        'normal_check_in' => $data['normal_check_in'] ?? $currentSched['normal_check_in'],
+                        'normal_check_out' => $data['normal_check_out'] ?? $currentSched['normal_check_out'],
+                        'normal_tolerance' => isset($data['normal_tolerance']) ? (int)$data['normal_tolerance'] : $currentSched['normal_tolerance'],
+                        'saturday_check_in' => $data['saturday_check_in'] ?? $currentSched['saturday_check_in'],
+                        'saturday_check_out' => $data['saturday_check_out'] ?? $currentSched['saturday_check_out'],
+                        'saturday_tolerance' => isset($data['saturday_tolerance']) ? (int)$data['saturday_tolerance'] : $currentSched['saturday_tolerance'],
+                    ]
+                );
+                OperationalSchedule::clearCache();
             }
             if (isset($data['late_fine_per_minute']) && $data['late_fine_per_minute'] !== null) {
                 SalaryComponent::where('nama', 'like', '%keterlambatan%')

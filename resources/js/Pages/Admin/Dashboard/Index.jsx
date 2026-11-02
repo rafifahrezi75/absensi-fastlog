@@ -269,6 +269,7 @@ const Dashboard = () => {
   const [permissions, setPermissions] = useState([]);
   const [allEmployees, setAllEmployees] = useState([]);
   const [savedHrActions, setSavedHrActions] = useState([]);
+  const [operationalSchedule, setOperationalSchedule] = useState(null);
 
   const [drillLevel, setDrillLevel] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -340,6 +341,9 @@ const Dashboard = () => {
         }
         if (attRes.value.data.monthly_stats) {
           setMonthlyStats(attRes.value.data.monthly_stats);
+        }
+        if (attRes.value.data.operational_schedule) {
+          setOperationalSchedule(attRes.value.data.operational_schedule);
         }
         if (attRes.value.data.attendance) {
           const todayRecords = attRes.value.data.attendance.filter((r) => r.tgl === todayStr);
@@ -993,7 +997,7 @@ const Dashboard = () => {
           <div>
             <p className="text-xs font-semibold uppercase text-amber-600 tracking-wider">Terlambat</p>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">{stats.terlambat}</h3>
-            <p className="text-xs text-amber-600 font-medium mt-1">Lewat 08:00 WIB</p>
+            <p className="text-xs text-amber-600 font-medium mt-1">Lewat {operationalSchedule?.target_check_in || operationalSchedule?.normal_check_in || '08:00'} WIB</p>
           </div>
           <div className="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Clock className="w-6 h-6" />

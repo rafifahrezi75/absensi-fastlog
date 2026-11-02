@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Employee;
 use App\Models\LateRuleCategory;
 use App\Models\LateRuleTier;
+use App\Models\OperationalSchedule;
 use Carbon\Carbon;
 
 class LateCalculationService
@@ -132,8 +133,11 @@ class LateCalculationService
             }
 
             $firstScan = $scans[0];
+            $schedForDate = OperationalSchedule::forDate($dateStr);
             $isSat = Carbon::parse($dateStr)->isSaturday();
-            $schedInStr = $isSat ? $satIn : $normalIn;
+            $schedInStr = $isSat
+                ? ($schedForDate['saturday_check_in'] ?? $satIn)
+                : ($schedForDate['normal_check_in'] ?? $normalIn);
             $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInStr . ':00');
 
             if ($firstScan->lte($scheduleIn)) {

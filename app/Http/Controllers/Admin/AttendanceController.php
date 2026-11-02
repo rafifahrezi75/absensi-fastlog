@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
+use App\Models\OperationalSchedule;
 use App\Models\Permission;
 use App\Models\SystemSetting;
 use App\Services\AttendanceTimeWindowService;
@@ -103,13 +104,13 @@ class AttendanceController extends Controller
         $startOfMonth = $targetMonth . '-01';
         $endOfMonth = date('Y-m-t', strtotime($startOfMonth));
 
-        $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
-        $normalIn = $settingsData['normal_check_in'] ?? '08:00';
-        $normalOut = $settingsData['normal_check_out'] ?? '16:30';
-        $normalTol = (int)($settingsData['normal_tolerance'] ?? 0);
-        $satIn = $settingsData['saturday_check_in'] ?? '08:00';
-        $satOut = $settingsData['saturday_check_out'] ?? '12:00';
-        $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
+        $targetSched = OperationalSchedule::forDate($targetDate);
+        $normalIn = $targetSched['normal_check_in'];
+        $normalOut = $targetSched['normal_check_out'];
+        $normalTol = (int)$targetSched['normal_tolerance'];
+        $satIn = $targetSched['saturday_check_in'];
+        $satOut = $targetSched['saturday_check_out'];
+        $satTol = (int)$targetSched['saturday_tolerance'];
 
         $categoriesList = ['izin', 'sakit', 'cuti', 'dinas', 'dispensasi_payroll'];
         $totalApprovedIzin = Permission::whereIn('status', ['disetujui', 'approved'])
@@ -153,8 +154,9 @@ class AttendanceController extends Controller
         $belumPulangToday = 0;
 
         $targetDaySat = date('N', strtotime($targetDate)) === '6';
-        $targetSchedInSeconds = (int)substr($targetDaySat ? $satIn : $normalIn, 0, 2) * 3600
-            + (int)substr($targetDaySat ? $satIn : $normalIn, 3, 2) * 60;
+        $targetSchedInTime = $targetDaySat ? $satIn : $normalIn;
+        $targetSchedInSeconds = (int)substr($targetSchedInTime, 0, 2) * 3600
+            + (int)substr($targetSchedInTime, 3, 2) * 60;
 
         foreach ($dayGrouped as $p => $info) {
             $scans = $info['scans'];
@@ -247,8 +249,9 @@ class AttendanceController extends Controller
             $monthHadirPins[$p] = true;
             foreach ($dates as $dateStr => $scans) {
                 $firstScanStr = $scans[0]->format('H:i:s');
+                $schedForDay = OperationalSchedule::forDate($dateStr);
                 $isSat = date('N', strtotime($dateStr)) === '6';
-                $schedIn = ($isSat ? $satIn : $normalIn) . ':00';
+                $schedIn = ($isSat ? $schedForDay['saturday_check_in'] : $schedForDay['normal_check_in']) . ':00';
                 if ($firstScanStr > $schedIn) {
                     $monthLatePins[$p] = true;
                     $totalKasusTerlambat++;
@@ -531,6 +534,15 @@ class AttendanceController extends Controller
             'attendance' => $attendanceList,
             'stats' => $stats,
             'monthly_stats' => $monthlyStats,
+            'operational_schedule' => [
+                'target_check_in' => $targetSchedInTime,
+                'target_check_out' => $targetDaySat ? $satOut : $normalOut,
+                'normal_check_in' => $normalIn,
+                'normal_check_out' => $normalOut,
+                'saturday_check_in' => $satIn,
+                'saturday_check_out' => $satOut,
+                'is_saturday' => $targetDaySat,
+            ],
         ]);
     }
 
@@ -731,9 +743,9 @@ class AttendanceController extends Controller
                 $attendance->jam_pulang = $jamKeluar ? Carbon::parse($tanggal . ' ' . $jamKeluar) : null;
 
                 if ($jamMasuk) {
-                    $settingsData = SystemSetting::pluck('nilai', 'kunci')->all();
+                    $schedForDate = OperationalSchedule::forDate($tanggal);
                     $isSat = Carbon::parse($tanggal)->isSaturday();
-                    $schedInTime = $isSat ? ($settingsData['saturday_check_in'] ?? '08:00') : ($settingsData['normal_check_in'] ?? '08:00');
+                    $schedInTime = $isSat ? $schedForDate['saturday_check_in'] : $schedForDate['normal_check_in'];
                     $lateThreshold = Carbon::parse($tanggal . ' ' . $schedInTime . ':00');
                     $isLate = Carbon::parse($tanggal . ' ' . $jamMasuk)->gt($lateThreshold);
                     $attendance->status = $employee->is_exempt ? 'hadir' : ($isLate ? 'terlambat' : 'hadir');

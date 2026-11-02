@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Attendance;
 use App\Models\AttendanceAnomaly;
 use App\Models\Employee;
+use App\Models\OperationalSchedule;
 use App\Models\OvertimeLog;
 use App\Models\SystemSetting;
 use App\Services\OvertimeCalculationService;
@@ -134,8 +135,11 @@ class AttendanceTimeWindowService
             $attendance->user_id = $employee->user_id;
         }
 
-        $normalIn = SystemSetting::where('kunci', 'normal_check_in')->value('nilai') ?? '08:00';
-        $lateThreshold = Carbon::parse($date . ' ' . $normalIn . ':00')->format('H:i:s');
+        $sched = OperationalSchedule::forDate($date);
+        $isSat = Carbon::parse($date)->isSaturday();
+        $schedIn = $isSat ? $sched['saturday_check_in'] : $sched['normal_check_in'];
+        $tol = $isSat ? $sched['saturday_tolerance'] : $sched['normal_tolerance'];
+        $lateThreshold = Carbon::parse($date . ' ' . $schedIn . ':00')->addMinutes($tol)->format('H:i:s');
 
         $status = $timeStr <= $lateThreshold ? 'hadir' : 'terlambat';
 

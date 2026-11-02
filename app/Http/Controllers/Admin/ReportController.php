@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\Holiday;
+use App\Models\OperationalSchedule;
 use App\Models\OvertimeLog;
 use App\Models\Permission;
 use App\Models\SystemSetting;
@@ -219,15 +220,16 @@ class ReportController extends Controller
                         $firstScan = Carbon::parse($scans[0]);
                         $lastScan = count($scans) > 1 ? Carbon::parse(end($scans)) : null;
 
+                        $schedForDay = OperationalSchedule::forDate($dateStr);
                         $isSat = $current->isSaturday();
-                        $schedInTime = $isSat ? $satIn : $normalIn;
-                        $tol = $isSat ? $satTol : $normalTol;
+                        $schedInTime = $isSat ? $schedForDay['saturday_check_in'] : $schedForDay['normal_check_in'];
+                        $tol = $isSat ? $schedForDay['saturday_tolerance'] : $schedForDay['normal_tolerance'];
 
                         $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInTime . ':00');
                         $lateThreshold = $scheduleIn->copy()->addMinutes($tol);
                         $isLate = $firstScan->gt($lateThreshold);
 
-                        $outBase = $isSat ? $satOut : $normalOut;
+                        $outBase = $isSat ? $schedForDay['saturday_check_out'] : $schedForDay['normal_check_out'];
                         $overtimeThreshold = Carbon::parse($dateStr . ' ' . $outBase . ':00')->addMinutes(30);
 
                         $hasApprovedOt = isset($approvedOvertimes[$emp->id . '_' . $dateStr]);
@@ -252,8 +254,9 @@ class ReportController extends Controller
                             $status = 'A';
                         } elseif ($current->equalTo($today)) {
                             $isSat = $current->isSaturday();
-                            $schedInTime = $isSat ? $satIn : $normalIn;
-                            $tol = $isSat ? $satTol : $normalTol;
+                            $schedForToday = OperationalSchedule::forDate($dateStr);
+                            $schedInTime = $isSat ? $schedForToday['saturday_check_in'] : $schedForToday['normal_check_in'];
+                            $tol = $isSat ? $schedForToday['saturday_tolerance'] : $schedForToday['normal_tolerance'];
                             $lateThreshold = Carbon::parse($dateStr . ' ' . $schedInTime . ':00')->addMinutes($tol)->format('H:i:s');
                             $status = $currentTimeStr > $lateThreshold ? 'A' : '-';
                         } else {
@@ -502,9 +505,10 @@ class ReportController extends Controller
                     }
                 }
             } else {
-                $schedInTime = $isSaturday ? $satIn : $normalIn;
-                $schedOutTime = $isSaturday ? $satOut : $normalOut;
-                $tol = $isSaturday ? $satTol : $normalTol;
+                $schedForDay = OperationalSchedule::forDate($dateStr);
+                $schedInTime = $isSaturday ? $schedForDay['saturday_check_in'] : $schedForDay['normal_check_in'];
+                $schedOutTime = $isSaturday ? $schedForDay['saturday_check_out'] : $schedForDay['normal_check_out'];
+                $tol = $isSaturday ? $schedForDay['saturday_tolerance'] : $schedForDay['normal_tolerance'];
 
                 $scheduleIn = Carbon::parse($dateStr . ' ' . $schedInTime . ':00');
                 $scheduleOut = Carbon::parse($dateStr . ' ' . $schedOutTime . ':00');

@@ -46,12 +46,17 @@ const Settings = () => {
 
     const [modalLateRule, setModalLateRule] = useState({ isOpen: false, data: null });
     const [modalOvertimeRule, setModalOvertimeRule] = useState({ isOpen: false, data: null });
+    const [scheduleHistory, setScheduleHistory] = useState([]);
 
     const fetchSettings = useCallback(async () => {
         try {
             const res = await api.get('/api/admin/settings');
-            setSettings(res.data.settings || {});
+            setSettings({
+                ...(res.data.settings || {}),
+                effective_date: new Date().toISOString().slice(0, 10),
+            });
             setHolidays(res.data.holidays || []);
+            setScheduleHistory(res.data.schedule_history || []);
         } catch (error) {
             console.error(error);
             setErrorMsg('Gagal mengambil data pengaturan.');
@@ -115,6 +120,7 @@ const Settings = () => {
             setErrorMsg(null);
             await api.post('/api/admin/settings', settings);
             showSuccess('Pengaturan berhasil diperbarui dan disimpan.');
+            await fetchSettings();
         } catch (error) {
             console.error(error);
             setErrorMsg('Gagal menyimpan pengaturan.');
@@ -367,6 +373,28 @@ const Settings = () => {
                         <div className="p-6 space-y-6">
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Mulai Berlaku Tanggal</span>
+                                    <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-semibold">Absen Ke Depan</span>
+                                </div>
+                                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                                    <label className="block text-xs font-semibold text-slate-700 mb-1">Tanggal Efektif Berlaku</label>
+                                    <input
+                                        type="date"
+                                        name="effective_date"
+                                        value={settings.effective_date || new Date().toISOString().slice(0, 10)}
+                                        onChange={handleChange}
+                                        className="w-full sm:w-60 text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                                    />
+                                    <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                                        Perubahan jam masuk/pulang akan berlaku mulai tanggal ini ke depan. Data absensi dan laporan presensi sebelum tanggal ini tetap aman menggunakan jadwal sebelumnya.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <hr className="border-slate-200" />
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
                                     <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Senin - Jumat (Hari Kerja Normal)</span>
                                     <span className="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-semibold">5 Hari Kerja</span>
                                 </div>
@@ -424,6 +452,35 @@ const Settings = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {scheduleHistory.length > 0 && (
+                                <div className="space-y-3 pt-2">
+                                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Riwayat Jadwal Operasional</span>
+                                    <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                                        <table className="w-full text-xs text-left text-slate-600">
+                                            <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+                                                <tr>
+                                                    <th className="px-3.5 py-2.5">Mulai Berlaku</th>
+                                                    <th className="px-3.5 py-2.5">Senin - Jumat</th>
+                                                    <th className="px-3.5 py-2.5">Sabtu</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {scheduleHistory.map((s, idx) => (
+                                                    <tr key={s.id || idx} className="hover:bg-slate-50/50">
+                                                        <td className="px-3.5 py-2 font-medium text-slate-800">
+                                                            {s.tanggal_mulai_berlaku ? String(s.tanggal_mulai_berlaku).slice(0, 10) : '-'}
+                                                            {idx === 0 && <span className="ml-2 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] rounded font-semibold border border-emerald-200">Aktif</span>}
+                                                        </td>
+                                                        <td className="px-3.5 py-2">{s.normal_check_in || '08:00'} - {s.normal_check_out || '17:00'}</td>
+                                                        <td className="px-3.5 py-2">{s.saturday_check_in || '08:00'} - {s.saturday_check_out || '12:00'}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
