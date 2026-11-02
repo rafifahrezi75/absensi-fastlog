@@ -98,9 +98,13 @@ class UserPermissionController extends Controller
         $catLower = strtolower($staffCategory);
 
         $todayDate = date('Y-m-d');
-        $todayLogs = AttendanceLog::where('employee_id', $employee->id)
+        $allTodayLogs = AttendanceLog::where(function ($q) use ($employee) {
+                $q->where('employee_id', $employee->id);
+                if (!empty($employee->pin)) {
+                    $q->orWhere('pin', (string)$employee->pin);
+                }
+            })
             ->whereDate('scan_at', $todayDate)
-            ->where('verify_method', 'mobile_gps')
             ->orderBy('scan_at', 'asc')
             ->get();
 
@@ -113,12 +117,7 @@ class UserPermissionController extends Controller
 
         $isResubmitted = false;
         if ($rejectedToday) {
-            $hasNewLog = AttendanceLog::where('employee_id', $employee->id)
-                ->whereDate('scan_at', $todayDate)
-                ->where('verify_method', 'mobile_gps')
-                ->where('created_at', '>=', $rejectedToday->updated_at)
-                ->exists();
-
+            $hasNewLog = $allTodayLogs->where('created_at', '>=', $rejectedToday->updated_at)->isNotEmpty();
             $hasNewPerm = Permission::where('employee_id', $employee->id)
                 ->where('category', 'absensi')
                 ->whereDate('tanggal_mulai', $todayDate)
@@ -126,7 +125,7 @@ class UserPermissionController extends Controller
                 ->where('id', '>', $rejectedToday->id)
                 ->exists();
 
-            if ($hasNewLog || $hasNewPerm || $todayLogs->isNotEmpty()) {
+            if ($hasNewLog || $hasNewPerm || $allTodayLogs->isNotEmpty()) {
                 $isResubmitted = true;
             }
         }
@@ -138,30 +137,61 @@ class UserPermissionController extends Controller
             'has_tap_out' => false,
             'tap_in' => null,
             'tap_out' => null,
+            'tap_in_source' => null,
             'has_rejected' => $hasRejected,
             'rejected_message' => $hasRejected ? ($rejectedToday->catatan_admin ?: 'Absensi telah dihapus atau ditolak, mohon absensi ulang.') : null,
         ];
 
-        foreach ($todayLogs as $tl) {
+        foreach ($allTodayLogs as $tl) {
             $raw = $tl->raw_data ?: [];
-            if ($tl->status_scan === '0') {
-                $todayAttendance['has_tap_in'] = true;
-                $todayAttendance['tap_in'] = [
-                    'id' => $tl->id,
-                    'time' => substr($tl->getRawOriginal('scan_at'), 11, 5),
-                    'keterangan' => $raw['keterangan'] ?? '',
-                    'photo' => !empty($raw['lampiran']) ? '/uploads/permissions/' . $raw['lampiran'] : null,
-                    'address' => $raw['location_address'] ?? '',
-                ];
-            } elseif ($tl->status_scan === '1') {
-                $todayAttendance['has_tap_out'] = true;
-                $todayAttendance['tap_out'] = [
-                    'id' => $tl->id,
-                    'time' => substr($tl->getRawOriginal('scan_at'), 11, 5),
-                    'keterangan' => $raw['keterangan'] ?? '',
-                    'photo' => !empty($raw['lampiran']) ? '/uploads/permissions/' . $raw['lampiran'] : null,
-                    'address' => $raw['location_address'] ?? '',
-                ];
+            $timeStr = substr($tl->getRawOriginal('scan_at'), 11, 5);
+            $fullTime = substr($tl->getRawOriginal('scan_at'), 11, 8);
+            $isMobile = ($tl->verify_method === 'mobile_gps');
+
+            if ($isMobile) {
+                if ($tl->status_scan === '0') {
+                    $todayAttendance['has_tap_in'] = true;
+                    $todayAttendance['tap_in_source'] = 'mobile_gps';
+                    $todayAttendance['tap_in'] = [
+                        'id' => $tl->id,
+                        'time' => $timeStr,
+                        'source' => 'mobile_gps',
+                        'label' => 'Absensi Luar (GPS)',
+                        'keterangan' => $raw['keterangan'] ?? '',
+                        'photo' => !empty($raw['lampiran']) ? '/uploads/permissions/' . $raw['lampiran'] : null,
+                        'address' => $raw['location_address'] ?? '',
+                    ];
+                } elseif ($tl->status_scan === '1') {
+                    $todayAttendance['has_tap_out'] = true;
+                    $todayAttendance['tap_out'] = [
+                        'id' => $tl->id,
+                        'time' => $timeStr,
+                        'source' => 'mobile_gps',
+                        'label' => 'Absensi Luar (GPS)',
+                        'keterangan' => $raw['keterangan'] ?? '',
+                        'photo' => !empty($raw['lampiran']) ? '/uploads/permissions/' . $raw['lampiran'] : null,
+                        'address' => $raw['location_address'] ?? '',
+                    ];
+                }
+            } else {
+                if (!$todayAttendance['has_tap_in'] && ($tl->status_scan === '0' || $fullTime < '12:00:00')) {
+                    $todayAttendance['has_tap_in'] = true;
+                    $todayAttendance['tap_in_source'] = 'machine';
+                    $todayAttendance['tap_in'] = [
+                        'id' => $tl->id,
+                        'time' => $timeStr,
+                        'source' => 'machine',
+                        'label' => 'Mesin Fingerprint',
+                    ];
+                } elseif ($tl->status_scan === '1' || $fullTime >= '12:00:00') {
+                    $todayAttendance['has_tap_out'] = true;
+                    $todayAttendance['tap_out'] = [
+                        'id' => $tl->id,
+                        'time' => $timeStr,
+                        'source' => 'machine',
+                        'label' => 'Mesin Fingerprint',
+                    ];
+                }
             }
         }
 
@@ -334,6 +364,28 @@ class UserPermissionController extends Controller
                 } catch (\Throwable $e) {}
             }
             $scanDate = $tapDateTime->format('Y-m-d');
+
+            if ($isTapIn) {
+                $hasMachineIn = AttendanceLog::where(function ($q) use ($employee) {
+                        $q->where('employee_id', $employee->id);
+                        if (!empty($employee->pin)) {
+                            $q->orWhere('pin', (string)$employee->pin);
+                        }
+                    })
+                    ->whereDate('scan_at', $scanDate)
+                    ->where('verify_method', '!=', 'mobile_gps')
+                    ->where(function ($q) {
+                        $q->where('status_scan', '0')
+                          ->orWhereRaw('TIME(scan_at) < "12:00:00"');
+                    })
+                    ->exists();
+
+                if ($hasMachineIn) {
+                    return response()->json([
+                        'message' => 'Anda telah tercatat absen masuk melalui mesin hari ini. Silakan pilih opsi Tap Out (Pulang).',
+                    ], 422);
+                }
+            }
 
             $existingLog = AttendanceLog::where('employee_id', $employee->id)
                 ->whereDate('scan_at', $scanDate)

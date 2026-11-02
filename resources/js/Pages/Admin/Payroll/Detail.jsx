@@ -395,13 +395,13 @@ const PayrollDetail = ({ isAdmin = true }) => {
                                                     <div className="flex justify-between items-center text-rose-600">
                                                         <span>
                                                             Denda Keterlambatan{payroll.terlambat_menit > 0 ? ` (${payroll.terlambat_menit} Menit)` : ''}
-                                                            {lateCategory ? ` - ${lateCategory}` : ''}:
+                                                            {lateCategory && isAdmin ? ` - ${lateCategory}` : ''}:
                                                         </span>
                                                         <span className="font-mono font-medium">
                                                             {payroll.potongan_terlambat > 0 ? `- ${formatIDR(payroll.potongan_terlambat)}` : <span className="text-emerald-600">Rp 0</span>}
                                                         </span>
                                                     </div>
-                                                    {lateTiers.length > 0 && (
+                                                    {isAdmin && lateTiers.length > 0 && (
                                                         <div className="pl-2.5 border-l-2 border-amber-300 space-y-1.5 my-1 text-[11px]">
                                                             {lateTiers.map((tier, idx) => (
                                                                 <div key={idx} className="space-y-0.5">
