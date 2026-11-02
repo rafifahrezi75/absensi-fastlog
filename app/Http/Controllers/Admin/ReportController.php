@@ -77,7 +77,15 @@ class ReportController extends Controller
             ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
             ->where(function ($q) use ($start, $end) {
                 $q->whereDate('tanggal_mulai', '<=', $end->format('Y-m-d'))
-                  ->whereDate('tanggal_selesai', '>=', $start->format('Y-m-d'));
+                  ->where(function ($sub) use ($start) {
+                      $sub->where(function ($s1) use ($start) {
+                          $s1->whereNotNull('tanggal_selesai')
+                             ->whereDate('tanggal_selesai', '>=', $start->format('Y-m-d'));
+                      })->orWhere(function ($s2) use ($start) {
+                          $s2->whereNull('tanggal_selesai')
+                             ->whereDate('tanggal_mulai', '>=', $start->format('Y-m-d'));
+                      });
+                  });
             })
             ->get();
 
@@ -379,7 +387,15 @@ class ReportController extends Controller
             ->whereIn('status', ['DISETUJUI', 'disetujui', 'APPROVED', 'approved'])
             ->where(function ($q) use ($start, $end) {
                 $q->whereDate('tanggal_mulai', '<=', $end->format('Y-m-d'))
-                  ->whereDate('tanggal_selesai', '>=', $start->format('Y-m-d'));
+                  ->where(function ($sub) use ($start) {
+                      $sub->where(function ($s1) use ($start) {
+                          $s1->whereNotNull('tanggal_selesai')
+                             ->whereDate('tanggal_selesai', '>=', $start->format('Y-m-d'));
+                      })->orWhere(function ($s2) use ($start) {
+                          $s2->whereNull('tanggal_selesai')
+                             ->whereDate('tanggal_mulai', '>=', $start->format('Y-m-d'));
+                      });
+                  });
             })
             ->get();
 

@@ -117,7 +117,7 @@ class AttendanceController extends Controller
             ->whereIn('category', $categoriesList)
             ->count();
 
-        $izinCount = Permission::whereIn('status', ['disetujui', 'approved'])
+        $izinCountQuery = Permission::whereIn('status', ['disetujui', 'approved'])
             ->whereIn('category', $categoriesList)
             ->where(function ($q) use ($targetDate) {
                 $q->whereDate('tanggal_mulai', '<=', $targetDate)
@@ -130,13 +130,29 @@ class AttendanceController extends Controller
                              ->whereDate('tanggal_mulai', '>=', $targetDate);
                       });
                   });
-            })->count();
+            });
 
-        $activeEmployeesCount = Employee::whereIn('status', ['active', 'aktif'])->count();
+        if (!empty($filterDept)) {
+            $izinCountQuery->whereHas('employee', function ($eq) use ($filterDept) {
+                $eq->where('dept', $filterDept);
+            });
+        }
+        $izinCount = $izinCountQuery->count();
 
-        $dayLogs = AttendanceLog::with('employee:id,is_exempt')
-            ->whereDate('scan_at', $targetDate)
-            ->orderBy('scan_at', 'asc')
+        $activeEmployeesQuery = Employee::whereIn('status', ['active', 'aktif']);
+        if (!empty($filterDept)) {
+            $activeEmployeesQuery->where('dept', $filterDept);
+        }
+        $activeEmployeesCount = $activeEmployeesQuery->count();
+
+        $dayLogsQuery = AttendanceLog::with('employee:id,is_exempt,dept')
+            ->whereDate('scan_at', $targetDate);
+        if (!empty($filterDept)) {
+            $dayLogsQuery->whereHas('employee', function ($eq) use ($filterDept) {
+                $eq->where('dept', $filterDept);
+            });
+        }
+        $dayLogs = $dayLogsQuery->orderBy('scan_at', 'asc')
             ->get(['id', 'employee_id', 'pin', 'scan_at']);
 
         $dayGrouped = [];
@@ -421,13 +437,17 @@ class AttendanceController extends Controller
             if (!empty($filterStatus)) {
                 $isTargetHadir = in_array($filterStatus, ['hadir', 'ontime']);
                 $isTargetTerlambat = in_array($filterStatus, ['terlambat', 'late']);
+                $isTargetIzin = in_array($filterStatus, ['izin', 'leave']);
                 if ($isTargetHadir && !in_array($status, ['hadir', 'ontime'])) {
                     continue;
                 }
                 if ($isTargetTerlambat && !in_array($status, ['terlambat', 'late'])) {
                     continue;
                 }
-                if (!$isTargetHadir && !$isTargetTerlambat && $status !== $filterStatus) {
+                if ($isTargetIzin && $status !== 'izin') {
+                    continue;
+                }
+                if (!$isTargetHadir && !$isTargetTerlambat && !$isTargetIzin && $status !== $filterStatus) {
                     continue;
                 }
             }
@@ -514,6 +534,139 @@ class AttendanceController extends Controller
                 'outdoor_info' => $outdoorInfo,
                 'foto' => $outdoorInfo['photo'] ?? null,
             ];
+        }
+
+        $isOnlyAttendance = in_array($filterStatus, ['hadir', 'ontime', 'terlambat', 'late']);
+        if (!$isOnlyAttendance) {
+            $permQuery = Permission::with('employee:id,nik,nama,dept,pin')
+                ->whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
+                ->whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dispensasi_payroll', 'dinas']);
+
+            if (!empty($filterDept)) {
+                $permQuery->whereHas('employee', function ($eq) use ($filterDept) {
+                    $eq->where('dept', $filterDept);
+                });
+            }
+
+            if (!empty($search)) {
+                $searchTerm = trim($search);
+                $permQuery->where(function ($q) use ($searchTerm) {
+                    $q->whereHas('employee', function ($eq) use ($searchTerm) {
+                        $eq->where('nama', 'like', "%{$searchTerm}%")
+                           ->orWhere('nik', 'like', "%{$searchTerm}%");
+                    });
+                });
+            }
+
+            if (!empty($filterTanggal)) {
+                $permQuery->where(function ($q) use ($filterTanggal) {
+                    $q->whereDate('tanggal_mulai', '<=', $filterTanggal)
+                      ->where(function ($sub) use ($filterTanggal) {
+                          $sub->where(function ($s1) use ($filterTanggal) {
+                              $s1->whereNotNull('tanggal_selesai')
+                                 ->whereDate('tanggal_selesai', '>=', $filterTanggal);
+                          })->orWhere(function ($s2) use ($filterTanggal) {
+                              $s2->whereNull('tanggal_selesai')
+                                 ->whereDate('tanggal_mulai', '>=', $filterTanggal);
+                          });
+                      });
+                });
+            } elseif (!empty($filterBulan)) {
+                $permQuery->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                    $q->whereDate('tanggal_mulai', '<=', $endOfMonth)
+                      ->where(function ($sub) use ($startOfMonth) {
+                          $sub->where(function ($s1) use ($startOfMonth) {
+                              $s1->whereNotNull('tanggal_selesai')
+                                 ->whereDate('tanggal_selesai', '>=', $startOfMonth);
+                          })->orWhere(function ($s2) use ($startOfMonth) {
+                              $s2->whereNull('tanggal_selesai')
+                                 ->whereDate('tanggal_mulai', '>=', $startOfMonth);
+                          });
+                      });
+                });
+            } else {
+                $permQuery->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                    $q->whereDate('tanggal_mulai', '<=', $endOfMonth)
+                      ->where(function ($sub) use ($startOfMonth) {
+                          $sub->where(function ($s1) use ($startOfMonth) {
+                              $s1->whereNotNull('tanggal_selesai')
+                                 ->whereDate('tanggal_selesai', '>=', $startOfMonth);
+                          })->orWhere(function ($s2) use ($startOfMonth) {
+                              $s2->whereNull('tanggal_selesai')
+                                 ->whereDate('tanggal_mulai', '>=', $startOfMonth);
+                          });
+                      });
+                });
+            }
+
+            $approvedList = $permQuery->get();
+            foreach ($approvedList as $ap) {
+                $apEmp = $ap->employee;
+                $apPin = $apEmp ? (string)$apEmp->pin : '';
+                $apStart = Carbon::parse($ap->tanggal_mulai);
+                $apEnd = $ap->tanggal_selesai ? Carbon::parse($ap->tanggal_selesai) : $apStart;
+
+                $rangeStart = !empty($filterTanggal) ? Carbon::parse($filterTanggal) : Carbon::parse($startOfMonth);
+                $rangeEnd = !empty($filterTanggal) ? Carbon::parse($filterTanggal) : Carbon::parse($endOfMonth);
+
+                $cur = $apStart->copy();
+                while ($cur->lte($apEnd)) {
+                    $curDateStr = $cur->format('Y-m-d');
+                    if ($cur->gte($rangeStart) && $cur->lte($rangeEnd)) {
+                        $groupKey = $apPin ? ($apPin . '_' . $curDateStr) : null;
+                        if (!$groupKey || !isset($grouped[$groupKey])) {
+                            $empName = $apEmp ? $apEmp->nama : 'Karyawan';
+                            $empNik = $apEmp ? $apEmp->nik : '-';
+                            $empDept = $apEmp && !empty($apEmp->dept) ? $apEmp->dept : 'Umum';
+                            $words = explode(' ', trim($empName));
+                            $initials = '';
+                            foreach ($words as $w) {
+                                if (!empty($w)) {
+                                    $initials .= mb_strtoupper(mb_substr($w, 0, 1));
+                                    if (strlen($initials) >= 2) break;
+                                }
+                            }
+                            if (empty($initials)) $initials = '-';
+
+                            $dateParts = explode('-', $curDateStr);
+                            $tglDisplay = $dateParts[2] . ' ' . ($monthsIndo[$dateParts[1]] ?? $dateParts[1]) . ' ' . $dateParts[0];
+                            $catLabel = match(strtolower($ap->category)) {
+                                'sakit' => 'Sakit',
+                                'cuti' => 'Cuti',
+                                'dinas' => 'Dinas Luar',
+                                'dispensasi_payroll' => 'Dispensasi',
+                                default => 'Izin',
+                            };
+
+                            $attendanceList[] = [
+                                'id' => $counterId++,
+                                'employee_id' => $apEmp ? $apEmp->id : $ap->employee_id,
+                                'nama' => $empName,
+                                'nik' => $empNik,
+                                'finger' => $apPin ?: '-',
+                                'initials' => $initials,
+                                'dept' => strtolower($empDept),
+                                'deptDisplay' => $empDept,
+                                'tgl' => $curDateStr,
+                                'tglDisplay' => $tglDisplay,
+                                'in' => '-',
+                                'out' => '-',
+                                'dur' => '-',
+                                'status' => 'izin',
+                                'minutesLate' => 0,
+                                'inStatus' => $catLabel,
+                                'outStatus' => '-',
+                                'locIn' => 'Surat ' . $catLabel,
+                                'late_info' => null,
+                                'is_outdoor' => false,
+                                'outdoor_info' => null,
+                                'foto' => $ap->lampiran ? '/uploads/permissions/' . $ap->lampiran : null,
+                            ];
+                        }
+                    }
+                    $cur->addDay();
+                }
+            }
         }
 
         usort($attendanceList, function ($a, $b) {

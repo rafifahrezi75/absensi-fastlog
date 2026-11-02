@@ -132,7 +132,7 @@ const Employees = () => {
 
             const matchesSearch = nameStr.toLowerCase().includes(q) ||
                 pinStr.includes(searchQuery);
-            const matchesDept = deptFilter ? emp.dept.toLowerCase() === deptFilter.toLowerCase() : true;
+            const matchesDept = deptFilter ? (emp.dept || '').toLowerCase() === deptFilter.toLowerCase() : true;
             const matchesSync = syncFilter ? emp.syncStatus === syncFilter : true;
 
             return matchesSearch && matchesDept && matchesSync;

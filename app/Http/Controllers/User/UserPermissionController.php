@@ -75,8 +75,8 @@ class UserPermissionController extends Controller
                     'kategori' => ucfirst($p->category),
                     'raw_kategori' => $p->category,
                     'tanggal_mulai' => Carbon::parse($p->tanggal_mulai)->translatedFormat('d M Y'),
-                    'tanggal_selesai' => Carbon::parse($p->tanggal_selesai)->translatedFormat('d M Y'),
-                    'tanggal_format' => Carbon::parse($p->tanggal_mulai)->isSameDay(Carbon::parse($p->tanggal_selesai))
+                    'tanggal_selesai' => $p->tanggal_selesai ? Carbon::parse($p->tanggal_selesai)->translatedFormat('d M Y') : Carbon::parse($p->tanggal_mulai)->translatedFormat('d M Y'),
+                    'tanggal_format' => (!$p->tanggal_selesai || Carbon::parse($p->tanggal_mulai)->isSameDay(Carbon::parse($p->tanggal_selesai)))
                         ? Carbon::parse($p->tanggal_mulai)->translatedFormat('l, d M Y')
                         : Carbon::parse($p->tanggal_mulai)->translatedFormat('d M Y') . ' - ' . Carbon::parse($p->tanggal_selesai)->translatedFormat('d M Y'),
                     'durasi' => $p->durasi . ' Hari',
@@ -249,7 +249,16 @@ class UserPermissionController extends Controller
         }
 
         if (!empty($filterStatus) && $filterStatus !== 'Semua Status') {
-            $query->where('status', strtolower($filterStatus));
+            $fs = strtolower($filterStatus);
+            if ($fs === 'menunggu' || $fs === 'pending') {
+                $query->whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending']);
+            } elseif ($fs === 'disetujui' || $fs === 'approved') {
+                $query->whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved']);
+            } elseif ($fs === 'ditolak' || $fs === 'rejected') {
+                $query->whereIn(DB::raw('LOWER(status)'), ['ditolak', 'rejected']);
+            } else {
+                $query->where(DB::raw('LOWER(status)'), $fs);
+            }
         }
 
         if (!empty($search)) {
@@ -273,8 +282,8 @@ class UserPermissionController extends Controller
                 'kategori' => $isAbsensi ? 'Absensi Luar' : ucfirst($p->category),
                 'raw_kategori' => $p->category,
                 'tanggal_mulai' => Carbon::parse($p->tanggal_mulai)->format('Y-m-d'),
-                'tanggal_selesai' => Carbon::parse($p->tanggal_selesai)->format('Y-m-d'),
-                'tanggal_format' => Carbon::parse($p->tanggal_mulai)->isSameDay(Carbon::parse($p->tanggal_selesai))
+                'tanggal_selesai' => $p->tanggal_selesai ? Carbon::parse($p->tanggal_selesai)->format('Y-m-d') : Carbon::parse($p->tanggal_mulai)->format('Y-m-d'),
+                'tanggal_format' => (!$p->tanggal_selesai || Carbon::parse($p->tanggal_mulai)->isSameDay(Carbon::parse($p->tanggal_selesai)))
                     ? Carbon::parse($p->tanggal_mulai)->translatedFormat('l, d M Y')
                     : Carbon::parse($p->tanggal_mulai)->translatedFormat('d M Y') . ' - ' . Carbon::parse($p->tanggal_selesai)->translatedFormat('d M Y'),
                 'durasi' => $isAbsensi ? ($p->jam_mulai ? 'Pukul ' . substr($p->jam_mulai, 0, 5) : 'Tap GPS') : ($p->durasi . ' Hari'),

@@ -98,8 +98,8 @@ const MasterAkun = () => {
     };
 
     const filteredUsers = users.filter(user => {
-        const matchSearch = user.name.toLowerCase().includes(search.toLowerCase()) ||
-            user.email.toLowerCase().includes(search.toLowerCase());
+        const matchSearch = (user.name || '').toLowerCase().includes(search.toLowerCase()) ||
+            (user.email || '').toLowerCase().includes(search.toLowerCase());
         const matchRole = !roleFilter || user.role === roleFilter;
         return matchSearch && matchRole;
     });

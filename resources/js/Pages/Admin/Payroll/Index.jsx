@@ -165,6 +165,7 @@ const Payroll = () => {
         return payrollList.filter(item => {
             const matchesPeriode = periode ? item.periode === periode : true;
             const matchesSearch = (item.nama || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.nik || '').toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (item.pin || '').toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (item.id || '').toString().toLowerCase().includes(searchQuery.toLowerCase());
             const matchesDept = selectedDept ? (item.dept || '').toLowerCase() === selectedDept.toLowerCase() : true;

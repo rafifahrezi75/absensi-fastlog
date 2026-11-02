@@ -33,13 +33,16 @@ class PermissionController extends Controller
         }
 
         if (!empty($status) && $status !== 'all') {
-            $statusVal = match(strtolower($status)) {
-                'pending' => 'menunggu',
-                'approved' => 'disetujui',
-                'rejected' => 'ditolak',
-                default => strtolower($status),
-            };
-            $query->where('status', $statusVal);
+            $statusVal = strtolower($status);
+            if ($statusVal === 'pending' || $statusVal === 'menunggu') {
+                $query->whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending']);
+            } elseif ($statusVal === 'approved' || $statusVal === 'disetujui') {
+                $query->whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved']);
+            } elseif ($statusVal === 'rejected' || $statusVal === 'ditolak') {
+                $query->whereIn(DB::raw('LOWER(status)'), ['ditolak', 'rejected']);
+            } else {
+                $query->where(DB::raw('LOWER(status)'), $statusVal);
+            }
         }
 
         if (!empty($search)) {
@@ -59,12 +62,12 @@ class PermissionController extends Controller
 
         if (!empty($status) && $status !== 'all') {
             $statusUpper = match(strtoupper($status)) {
-                'PENDING', 'MENUNGGU' => 'MENUNGGU',
-                'APPROVED', 'DISETUJUI' => 'DISETUJUI',
-                'REJECTED', 'DITOLAK' => 'DITOLAK',
-                default => strtoupper($status),
+                'PENDING', 'MENUNGGU' => ['MENUNGGU', 'PENDING'],
+                'APPROVED', 'DISETUJUI' => ['DISETUJUI', 'APPROVED'],
+                'REJECTED', 'DITOLAK' => ['DITOLAK', 'REJECTED'],
+                default => [strtoupper($status), strtolower($status)],
             };
-            $overtimeQuery->where('status', $statusUpper);
+            $overtimeQuery->whereIn('status', $statusUpper);
         }
 
         if (!empty($search)) {
