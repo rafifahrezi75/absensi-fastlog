@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Carbon\Carbon;
-use ZipArchive;
 
 class EmployeeReportExcelService
 {
@@ -23,19 +22,23 @@ class EmployeeReportExcelService
         $tempPath = tempnam(sys_get_temp_dir(), 'rep_') . '.xlsx';
         $templatePath = dirname(__DIR__, 2) . '/resources/templates/Contoh_Laporan_Presensi_agus.xlsx';
 
-        if (file_exists($templatePath)) {
-            copy($templatePath, $tempPath);
-            $zip = new ZipArchive();
-            if ($zip->open($tempPath) === true) {
-                $sheetXml = $this->buildSheetXml($employee, $records, $startDate, $endDate);
-                $zip->addFromString('xl/worksheets/sheet1.xml', $sheetXml);
-                $zip->close();
-                return $tempPath;
+        if (class_exists(\ZipArchive::class)) {
+            if (file_exists($templatePath)) {
+                copy($templatePath, $tempPath);
+                $zip = new \ZipArchive();
+                if ($zip->open($tempPath) === true) {
+                    $sheetXml = $this->buildSheetXml($employee, $records, $startDate, $endDate);
+                    $zip->addFromString('xl/worksheets/sheet1.xml', $sheetXml);
+                    $zip->close();
+                    return $tempPath;
+                }
             }
+
+            $this->buildEntirePackage($tempPath, $employee, $records, $startDate, $endDate);
+            return $tempPath;
         }
 
-        // Fallback: build entire XLSX package from scratch
-        $this->buildEntirePackage($tempPath, $employee, $records, $startDate, $endDate);
+        $this->generateWithPurePhp($tempPath, $templatePath, $employee, $records, $startDate, $endDate);
         return $tempPath;
     }
 
@@ -220,8 +223,26 @@ class EmployeeReportExcelService
 
     private function buildEntirePackage(string $targetFile, array $employee, array $records, string $startDate, string $endDate): void
     {
-        $zip = new ZipArchive();
-        $zip->open($targetFile, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $sheetXml = $this->buildSheetXml($employee, $records, $startDate, $endDate);
+
+        if (!class_exists(\ZipArchive::class)) {
+            $files = [
+                '[Content_Types].xml' => $this->getContentTypesXml(),
+                '_rels/.rels' => $this->getRelsXml(),
+                'docProps/app.xml' => $this->getAppXml(),
+                'docProps/core.xml' => $this->getCoreXml(),
+                'xl/_rels/workbook.xml.rels' => $this->getWorkbookRelsXml(),
+                'xl/workbook.xml' => $this->getWorkbookXml(),
+                'xl/styles.xml' => $this->getStylesXml(),
+                'xl/theme/theme1.xml' => $this->getThemeXml(),
+                'xl/worksheets/sheet1.xml' => $sheetXml,
+            ];
+            $this->pureCreateZip($targetFile, $files);
+            return;
+        }
+
+        $zip = new \ZipArchive();
+        $zip->open($targetFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
 
         $zip->addFromString('[Content_Types].xml', $this->getContentTypesXml());
         $zip->addFromString('_rels/.rels', $this->getRelsXml());
@@ -231,11 +252,124 @@ class EmployeeReportExcelService
         $zip->addFromString('xl/workbook.xml', $this->getWorkbookXml());
         $zip->addFromString('xl/styles.xml', $this->getStylesXml());
         $zip->addFromString('xl/theme/theme1.xml', $this->getThemeXml());
-
-        $sheetXml = $this->buildSheetXml($employee, $records, $startDate, $endDate);
         $zip->addFromString('xl/worksheets/sheet1.xml', $sheetXml);
 
         $zip->close();
+    }
+
+    private function generateWithPurePhp(string $targetFile, string $templatePath, array $employee, array $records, string $startDate, string $endDate): void
+    {
+        $sheetXml = $this->buildSheetXml($employee, $records, $startDate, $endDate);
+
+        if (file_exists($templatePath)) {
+            $files = $this->pureExtractZip($templatePath);
+            if (!empty($files)) {
+                $files['xl/worksheets/sheet1.xml'] = $sheetXml;
+                $this->pureCreateZip($targetFile, $files);
+                return;
+            }
+        }
+
+        $files = [
+            '[Content_Types].xml' => $this->getContentTypesXml(),
+            '_rels/.rels' => $this->getRelsXml(),
+            'docProps/app.xml' => $this->getAppXml(),
+            'docProps/core.xml' => $this->getCoreXml(),
+            'xl/_rels/workbook.xml.rels' => $this->getWorkbookRelsXml(),
+            'xl/workbook.xml' => $this->getWorkbookXml(),
+            'xl/styles.xml' => $this->getStylesXml(),
+            'xl/theme/theme1.xml' => $this->getThemeXml(),
+            'xl/worksheets/sheet1.xml' => $sheetXml,
+        ];
+
+        $this->pureCreateZip($targetFile, $files);
+    }
+
+    private function pureExtractZip(string $zipPath): array
+    {
+        $data = @file_get_contents($zipPath);
+        if ($data === false) {
+            return [];
+        }
+
+        $files = [];
+        $offset = 0;
+        $len = strlen($data);
+
+        while ($offset + 30 <= $len) {
+            if (substr($data, $offset, 4) !== "PK\x03\x04") {
+                break;
+            }
+
+            $header = unpack('vversion/vflags/vmethod/vtime/vdate/Vcrc/VcompSize/VuncompSize/vnameLen/vextraLen', substr($data, $offset + 4, 26));
+            $name = substr($data, $offset + 30, $header['nameLen']);
+            $contentOffset = $offset + 30 + $header['nameLen'] + $header['extraLen'];
+
+            if ($contentOffset + $header['compSize'] > $len) {
+                break;
+            }
+
+            $raw = substr($data, $contentOffset, $header['compSize']);
+
+            if ($header['method'] === 0) {
+                $files[$name] = $raw;
+            } elseif ($header['method'] === 8 && function_exists('gzinflate')) {
+                $inflated = gzinflate($raw);
+                if ($inflated !== false) {
+                    $files[$name] = $inflated;
+                }
+            }
+
+            $offset = $contentOffset + $header['compSize'];
+        }
+
+        return $files;
+    }
+
+    private function pureCreateZip(string $targetFile, array $files): bool
+    {
+        $data = '';
+        $cd = '';
+        $offset = 0;
+        $time = time();
+        $dosTime = ((date('Y', $time) - 1980) << 25)
+            | (date('m', $time) << 21)
+            | (date('d', $time) << 16)
+            | (date('H', $time) << 11)
+            | (date('i', $time) << 5)
+            | (date('s', $time) >> 1);
+
+        $entriesCount = count($files);
+
+        foreach ($files as $name => $content) {
+            $crc = crc32($content);
+            $uncompLen = strlen($content);
+            $compData = $content;
+            $method = 0;
+
+            if (function_exists('gzdeflate')) {
+                $deflated = gzdeflate($content);
+                if ($deflated !== false && strlen($deflated) < $uncompLen) {
+                    $compData = $deflated;
+                    $method = 8;
+                }
+            }
+
+            $compLen = strlen($compData);
+            $nameLen = strlen($name);
+
+            $localHeader = pack('VvvvVVVVvv', 0x04034b50, 20, 0, $method, $dosTime, $crc, $compLen, $uncompLen, $nameLen, 0) . $name;
+            $data .= $localHeader . $compData;
+
+            $cdHeader = pack('VvvvvVVVVvvvvvVV', 0x02014b50, 20, 20, 0, $method, $dosTime, $crc, $compLen, $uncompLen, $nameLen, 0, 0, 0, 0, 32, $offset) . $name;
+            $cd .= $cdHeader;
+
+            $offset += strlen($localHeader) + $compLen;
+        }
+
+        $ecd = pack('VvvvvVVv', 0x06054b50, 0, 0, $entriesCount, $entriesCount, strlen($cd), $offset, 0);
+
+        return file_put_contents($targetFile, $data . $cd . $ecd) !== false;
     }
 
     private function getContentTypesXml(): string
