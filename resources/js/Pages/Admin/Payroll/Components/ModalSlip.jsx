@@ -123,7 +123,7 @@ const ModalSlip = ({ isOpen, onClose, data }) => {
                 <div className="p-6 space-y-4 text-xs text-slate-800">
                     <div className="text-center border-b border-slate-200 pb-4">
                         <div className="flex items-center justify-center mb-1.5">
-                            <img src="/images/front-end/logo2.png" alt="FastLog" className="h-10 w-auto object-contain" />
+                            <img src="/images/front-end/logo3.webp" alt="FastLog" className="h-10 w-auto object-contain" />
                         </div>
                         <h4 className="font-bold text-sm text-slate-900 tracking-wide uppercase">
                             PT. FASTLOG ERA MANDIRI

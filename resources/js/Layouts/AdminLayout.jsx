@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     X, LayoutDashboard, Clock, FileCheck2,
@@ -173,7 +173,7 @@ const AdminLayout = () => {
                     <div className="flex items-center gap-3">
                         {/* Menggunakan Logo Fastlog yang sama dengan halaman login */}
                         <img
-                            src="/images/front-end/logo2.png"
+                            src="/images/front-end/logo3.webp"
                             alt="Fastlog"
                             className="h-8 w-auto object-contain"
                         />
@@ -395,7 +395,13 @@ const AdminLayout = () => {
 
                 {/* Main Content */}
                 <main className="flex-1 p-4 sm:p-6">
-                    <Outlet />
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center p-12">
+                            <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    }>
+                        <Outlet />
+                    </Suspense>
                 </main>
 
             </div>

@@ -59,7 +59,7 @@ export default function Login({ errors: propErrors }) {
                 {/* Panel Kiri: Branding */}
                 <div className="relative lg:w-1/2 min-h-[380px] lg:min-h-screen flex flex-col justify-between p-8 md:p-12 overflow-hidden">
                     <div className="absolute inset-0">
-                        <img src="/images/front-end/fastlog2.jpg" alt="Fastlog Era Mandiri" className="w-full h-full object-cover" />
+                        <img src="/images/front-end/fastlog2.webp" alt="Fastlog Era Mandiri" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-b from-[#052B35]/80 via-[#052B35]/85 to-[#052B35]/95"></div>
                         <div className="absolute inset-0 bg-gradient-to-r from-[#052B35]/40 to-transparent"></div>
                     </div>
@@ -70,7 +70,7 @@ export default function Login({ errors: propErrors }) {
 
                     {/* Logo */}
                     <div className="relative flex items-center gap-3 mb-4 lg:mb-0">
-                        <img src="/images/front-end/logo2.png" alt="Fastlog Era Mandiri" className="h-14 w-auto object-contain" />
+                        <img src="/images/front-end/logo3.webp" alt="Fastlog Era Mandiri" className="h-14 w-auto object-contain" />
                     </div>
 
                     {/* Middle Content */}

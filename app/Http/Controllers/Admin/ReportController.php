@@ -132,7 +132,7 @@ class ReportController extends Controller
         $nowYear = Carbon::now()->format('Y');
         $apiHolidays = Cache::remember('holidays_api_' . $nowYear, 86400, function () use ($nowYear) {
             try {
-                $response = Http::withoutVerifying()->timeout(8)->get('https://api-hari-libur.vercel.app/api?year=' . $nowYear);
+                $response = Http::withoutVerifying()->timeout(3)->get('https://api-hari-libur.vercel.app/api?year=' . $nowYear);
                 if ($response->successful()) {
                     return $response->json('data') ?? [];
                 }
@@ -155,7 +155,7 @@ class ReportController extends Controller
         if ($startYear !== $nowYear) {
             $periodHolidays = Cache::remember('holidays_api_' . $startYear, 86400, function () use ($startYear) {
                 try {
-                    $response = Http::withoutVerifying()->timeout(8)->get('https://api-hari-libur.vercel.app/api?year=' . $startYear);
+                    $response = Http::withoutVerifying()->timeout(3)->get('https://api-hari-libur.vercel.app/api?year=' . $startYear);
                     if ($response->successful()) {
                         return $response->json('data') ?? [];
                     }
@@ -313,7 +313,7 @@ class ReportController extends Controller
         $nowYear = Carbon::now()->format('Y');
         $apiHolidays = Cache::remember('holidays_api_' . $nowYear, 86400, function () use ($nowYear) {
             try {
-                $response = Http::withoutVerifying()->timeout(8)->get('https://api-hari-libur.vercel.app/api?year=' . $nowYear);
+                $response = Http::withoutVerifying()->timeout(3)->get('https://api-hari-libur.vercel.app/api?year=' . $nowYear);
                 if ($response->successful()) {
                     return $response->json('data') ?? [];
                 }
@@ -336,7 +336,7 @@ class ReportController extends Controller
         if ($startYear !== $nowYear) {
             $periodHolidays = Cache::remember('holidays_api_' . $startYear, 86400, function () use ($startYear) {
                 try {
-                    $response = Http::withoutVerifying()->timeout(8)->get('https://api-hari-libur.vercel.app/api?year=' . $startYear);
+                    $response = Http::withoutVerifying()->timeout(3)->get('https://api-hari-libur.vercel.app/api?year=' . $startYear);
                     if ($response->successful()) {
                         return $response->json('data') ?? [];
                     }

@@ -242,7 +242,7 @@ const DevicesIndex = () => {
 
                         <div className="my-5 p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 flex items-center justify-center">
                             <img
-                                src={deviceData?.photo_url || '/images/mesin-fingerspot.png'}
+                                src={deviceData?.photo_url || '/images/mesin-fingerspot.webp'}
                                 alt="Mesin Fingerspot"
                                 className="max-h-56 object-contain drop-shadow-2xl transition hover:scale-105 duration-300"
                             />

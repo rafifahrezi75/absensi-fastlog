@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutGrid, Clock, LogOut, Menu, User, Bell, Check, FileText, AlertCircle, ShieldAlert, Wallet } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
@@ -135,7 +135,7 @@ const UserLayout = () => {
             >
                 <div className="h-20 flex items-center px-6 border-b border-white/10">
                     <img 
-                        src="/images/front-end/logo2.png" 
+                        src="/images/front-end/logo3.webp" 
                         alt="Logo Fastlog Era Mandiri" 
                         className="h-14 w-auto object-contain"
                     />
@@ -329,7 +329,13 @@ const UserLayout = () => {
 
                 <main className="flex-1 overflow-y-auto p-4 md:p-8">
                     <div className="w-full space-y-6">
-                        <Outlet />
+                        <Suspense fallback={
+                            <div className="flex items-center justify-center p-12">
+                                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        }>
+                            <Outlet />
+                        </Suspense>
                     </div>
                 </main>
             </div>
