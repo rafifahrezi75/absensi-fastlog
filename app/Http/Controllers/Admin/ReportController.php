@@ -128,8 +128,6 @@ class ReportController extends Controller
         $satTol = (int)($settingsData['saturday_tolerance'] ?? 0);
         $today = Carbon::today();
         $currentTimeStr = Carbon::now()->format('H:i:s');
-        $overtimeService = app(OvertimeCalculationService::class);
-        $otCat = $overtimeService->getCategoryForEmployee($employee);
 
         $nowYear = Carbon::now()->format('Y');
         $apiHolidays = Cache::remember('holidays_api_' . $nowYear, 86400, function () use ($nowYear) {
