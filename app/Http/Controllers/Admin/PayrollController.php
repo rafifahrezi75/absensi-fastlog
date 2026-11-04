@@ -84,7 +84,7 @@ class PayrollController extends Controller
         $employeeId = $request->query('employee_id');
         $periode = $request->query('periode', date('Y-m'));
 
-        $employee = Employee::with('salaryGrade')->find($employeeId);
+        $employee = Employee::nonAdmin()->with('salaryGrade')->find($employeeId);
         if (!$employee) {
             return response()->json(['error' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -317,12 +317,12 @@ class PayrollController extends Controller
     public function userSlip(Request $request): JsonResponse
     {
         $user = $request->user();
-        $employee = Employee::with('salaryGrade')
+        $employee = Employee::nonAdmin()->with('salaryGrade')
             ->where('user_id', $user->id)
             ->first();
 
         if (!$employee && $user->email) {
-            $employee = Employee::with('salaryGrade')
+            $employee = Employee::nonAdmin()->with('salaryGrade')
                 ->where('nama', $user->name)
                 ->first();
         }
@@ -614,7 +614,7 @@ class PayrollController extends Controller
             ->pluck('tanggal')
             ->toArray();
 
-        $employees = Employee::with(['salaryGrade', 'customSalaryComponents', 'lateCategory'])
+        $employees = Employee::nonAdmin()->with(['salaryGrade', 'customSalaryComponents', 'lateCategory'])
             ->orderByRaw('nama IS NULL, nama ASC')
             ->get();
 

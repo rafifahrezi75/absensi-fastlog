@@ -29,8 +29,8 @@ class DeviceController extends Controller
             ]
         );
 
-        $totalScans = AttendanceLog::count();
-        $totalEmployees = Employee::count();
+        $totalScans = AttendanceLog::nonAdmin()->count();
+        $totalEmployees = Employee::nonAdmin()->count();
         $lastSync = FingerspotSyncLog::latest('id')->first();
         
         $recentSyncLogs = FingerspotSyncLog::latest('id')

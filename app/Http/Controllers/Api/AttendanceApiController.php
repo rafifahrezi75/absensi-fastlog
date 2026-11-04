@@ -56,8 +56,8 @@ class AttendanceApiController extends Controller
         $type = $request->query('type', 'all');
         $date = $request->query('date') ?? $request->query('tanggal');
 
-        $anomaliesQuery = AttendanceAnomaly::with(['employee', 'attendance'])->latest('waktu_tap');
-        $overtimeQuery = OvertimeLog::with(['employee', 'attendance'])->latest('waktu_tap');
+        $anomaliesQuery = AttendanceAnomaly::nonAdmin()->with(['employee', 'attendance'])->latest('waktu_tap');
+        $overtimeQuery = OvertimeLog::nonAdmin()->with(['employee', 'attendance'])->latest('waktu_tap');
 
         if ($status !== 'all') {
             $statusVal = strtoupper($status) === 'PENDING' ? 'MENUNGGU' : strtoupper($status);
@@ -70,8 +70,8 @@ class AttendanceApiController extends Controller
             $overtimeQuery->whereDate('waktu_tap', $date);
         }
 
-        $pendingAnomaliesCount = AttendanceAnomaly::where('status', 'MENUNGGU')->count();
-        $pendingOvertimeCount = OvertimeLog::where('status', 'MENUNGGU')->count();
+        $pendingAnomaliesCount = AttendanceAnomaly::nonAdmin()->where('status', 'MENUNGGU')->count();
+        $pendingOvertimeCount = OvertimeLog::nonAdmin()->where('status', 'MENUNGGU')->count();
 
         $anomalies = ($type === 'overtime') ? [] : $anomaliesQuery->get();
         $overtimes = ($type === 'anomaly') ? [] : $overtimeQuery->get();

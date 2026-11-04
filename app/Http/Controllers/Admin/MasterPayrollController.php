@@ -285,7 +285,7 @@ class MasterPayrollController extends Controller
 
     public function indexEmployeeSalaries(): JsonResponse
     {
-        $employees = Employee::with(['salaryGrade', 'customSalaryComponents'])
+        $employees = Employee::nonAdmin()->with(['salaryGrade', 'customSalaryComponents'])
             ->orderByRaw('nama IS NULL, nama ASC')
             ->get();
 
@@ -414,7 +414,7 @@ class MasterPayrollController extends Controller
 
     public function showEmployeeSalary(string $id): JsonResponse
     {
-        $employee = Employee::with(['salaryGrade', 'customSalaryComponents'])->findOrFail($id);
+        $employee = Employee::nonAdmin()->with(['salaryGrade', 'customSalaryComponents'])->findOrFail($id);
 
         $stdGapok = ($employee->salaryGrade && (float)$employee->salaryGrade->gaji_pokok > 0)
             ? (float)$employee->salaryGrade->gaji_pokok 
@@ -510,7 +510,7 @@ class MasterPayrollController extends Controller
 
     public function updateEmployeeSalary(Request $request, string $id): JsonResponse
     {
-        $employee = Employee::with('salaryGrade')->findOrFail($id);
+        $employee = Employee::nonAdmin()->with('salaryGrade')->findOrFail($id);
 
         $validated = $request->validate([
             'is_gaji_pokok_custom' => 'required|boolean',
@@ -644,7 +644,7 @@ class MasterPayrollController extends Controller
 
     public function resetEmployeeSalary(string $id): JsonResponse
     {
-        $employee = Employee::findOrFail($id);
+        $employee = Employee::nonAdmin()->findOrFail($id);
         $employee->update(['gaji_pokok_kustom' => null]);
         EmployeeSalaryComponent::where('employee_id', $employee->id)->delete();
 

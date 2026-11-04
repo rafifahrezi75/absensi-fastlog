@@ -45,4 +45,14 @@ class Permission extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function scopeNonAdmin($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('employee_id')
+                ->orWhereHas('employee', function ($eq) {
+                    $eq->nonAdmin();
+                });
+        });
+    }
 }

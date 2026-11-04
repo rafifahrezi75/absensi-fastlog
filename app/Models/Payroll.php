@@ -52,4 +52,11 @@ class Payroll extends Model
     {
         return $this->belongsTo(Employee::class);
     }
+
+    public function scopeNonAdmin($query)
+    {
+        return $query->whereHas('employee', function ($eq) {
+            $eq->nonAdmin();
+        });
+    }
 }

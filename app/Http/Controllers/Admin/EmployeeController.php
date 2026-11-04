@@ -13,7 +13,7 @@ class EmployeeController extends Controller
 {
     public function index(): JsonResponse
     {
-        $employees = Employee::with(['salaryGrade', 'lateCategory'])->orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
+        $employees = Employee::nonAdmin()->with(['salaryGrade', 'lateCategory'])->orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
 
         return response()->json([
             'employees' => $employees,

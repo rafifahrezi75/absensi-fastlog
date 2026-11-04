@@ -35,4 +35,14 @@ class AttendanceLog extends Model
     {
         return $this->belongsTo(Device::class);
     }
+
+    public function scopeNonAdmin($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('employee_id')
+                ->orWhereHas('employee', function ($eq) {
+                    $eq->nonAdmin();
+                });
+        });
+    }
 }

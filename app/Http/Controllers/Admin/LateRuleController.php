@@ -19,7 +19,7 @@ class LateRuleController extends Controller
             ->orderBy('id', 'asc')
             ->get();
 
-        $exemptEmployees = Employee::where('is_exempt', true)
+        $exemptEmployees = Employee::nonAdmin()->where('is_exempt', true)
             ->select('id', 'nama', 'nik', 'pin', 'dept', 'jabatan', 'is_exempt')
             ->get();
 

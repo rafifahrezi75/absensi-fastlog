@@ -80,5 +80,21 @@ class Employee extends Model
         $defaultGrade = SalaryGrade::where('kode', 'GOL-03')->first() ?? SalaryGrade::first();
         return $defaultGrade ? (float)$defaultGrade->gaji_pokok : 5000000.0;
     }
+
+    public function scopeNonAdmin($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereDoesntHave('user', function ($uq) {
+                $uq->where('role', 'admin');
+            })
+            ->where(function ($nq) {
+                $nq->whereNull('nama')
+                    ->orWhere(function ($sub) {
+                        $sub->where('nama', 'not like', '%admin utama%')
+                            ->where('nama', 'not like', 'admin');
+                    });
+            });
+        });
+    }
 }
 

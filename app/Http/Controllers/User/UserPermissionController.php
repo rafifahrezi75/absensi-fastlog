@@ -19,8 +19,12 @@ use Illuminate\Support\Str;
 
 class UserPermissionController extends Controller
 {
-    protected function getOrCreateUserEmployee($user): Employee
+    protected function getOrCreateUserEmployee($user): ?Employee
     {
+        if ($user->role === 'admin') {
+            return null;
+        }
+
         if ($user->employee) {
             return $user->employee;
         }
@@ -50,6 +54,37 @@ class UserPermissionController extends Controller
     {
         $user = $request->user();
         $employee = $this->getOrCreateUserEmployee($user);
+
+        if (!$employee) {
+            return response()->json([
+                'user' => [
+                    'name' => $user->name,
+                    'dept' => 'Admin',
+                    'jabatan' => 'Administrator',
+                    'nik' => 'ADMIN',
+                ],
+                'counts' => [
+                    'izin' => 0,
+                    'sakit' => 0,
+                    'cuti' => 0,
+                    'lembur' => 0,
+                    'absensi' => 0,
+                    'menunggu' => 0,
+                    'disetujui' => 0,
+                    'ditolak' => 0,
+                    'total' => 0,
+                ],
+                'recent_history' => [],
+                'today_shift' => [
+                    'check_in' => '08:00',
+                    'check_out' => '17:00',
+                    'tolerance' => 0,
+                    'is_saturday' => false,
+                    'type' => 'Administrasi',
+                ],
+                'attendance_today' => null,
+            ]);
+        }
 
         $baseQuery = Permission::where(function ($q) use ($employee, $user) {
             $q->where('employee_id', $employee->id)
@@ -235,6 +270,12 @@ class UserPermissionController extends Controller
         $user = $request->user();
         $employee = $this->getOrCreateUserEmployee($user);
 
+        if (!$employee) {
+            return response()->json([
+                'permissions' => [],
+            ]);
+        }
+
         $filterJenis = $request->query('jenis');
         $filterStatus = $request->query('status');
         $search = $request->query('search');
@@ -324,6 +365,12 @@ class UserPermissionController extends Controller
 
         $user = $request->user();
         $employee = $this->getOrCreateUserEmployee($user);
+
+        if (!$employee) {
+            return response()->json([
+                'message' => 'Role admin tidak dapat mengajukan izin.',
+            ], 403);
+        }
 
         $start = Carbon::parse($validated['tanggal_mulai']);
         $end = Carbon::parse($validated['tanggal_selesai']);

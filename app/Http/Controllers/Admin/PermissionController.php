@@ -24,7 +24,7 @@ class PermissionController extends Controller
         $status = $request->query('status');
         $search = $request->query('search') ?? $request->query('cari');
 
-        $query = Permission::with('employee')
+        $query = Permission::nonAdmin()->with('employee')
             ->where('category', '!=', 'absensi')
             ->latest('created_at');
 
@@ -58,7 +58,7 @@ class PermissionController extends Controller
 
         $permissions = $query->get();
 
-        $overtimeQuery = OvertimeLog::with('employee')->latest('waktu_tap');
+        $overtimeQuery = OvertimeLog::nonAdmin()->with('employee')->latest('waktu_tap');
 
         if (!empty($status) && $status !== 'all') {
             $statusUpper = match(strtoupper($status)) {
@@ -177,7 +177,7 @@ class PermissionController extends Controller
             return response()->json(['success' => false, 'message' => 'Tanggal mulai wajib diisi.'], 422);
         }
 
-        $employee = Employee::findOrFail($validated['employee_id']);
+        $employee = Employee::nonAdmin()->findOrFail($validated['employee_id']);
 
         $existing = Permission::where('employee_id', $employee->id)
             ->whereIn(DB::raw('LOWER(status)'), ['menunggu', 'pending', 'disetujui', 'approved'])

@@ -47,7 +47,7 @@ class ReportController extends Controller
             $end = Carbon::parse($endDate)->endOfDay();
         }
 
-        $query = Employee::query()->whereIn('status', ['active', 'aktif']);
+        $query = Employee::nonAdmin()->whereIn('status', ['active', 'aktif']);
 
         if (!empty($dept)) {
             $query->where('dept', $dept);
@@ -130,7 +130,7 @@ class ReportController extends Controller
             $groupedLogs[$pinKey][] = $log->scan_at;
         }
 
-        $departments = Employee::whereNotNull('dept')
+        $departments = Employee::nonAdmin()->whereNotNull('dept')
             ->where('dept', '!=', '')
             ->distinct()
             ->pluck('dept')
@@ -839,7 +839,7 @@ class ReportController extends Controller
 
     public function employeeDetail(Request $request, $id): JsonResponse
     {
-        $employee = Employee::findOrFail($id);
+        $employee = Employee::nonAdmin()->findOrFail($id);
         $startDate = $request->input('start_date') ?: Carbon::now()->startOfMonth()->format('Y-m-d');
         $endDate = $request->input('end_date') ?: Carbon::now()->endOfMonth()->format('Y-m-d');
 
@@ -849,7 +849,7 @@ class ReportController extends Controller
 
     public function employeePdf(Request $request, $id)
     {
-        $employee = Employee::findOrFail($id);
+        $employee = Employee::nonAdmin()->findOrFail($id);
         $startDate = $request->input('start_date') ?: Carbon::now()->startOfMonth()->format('Y-m-d');
         $endDate = $request->input('end_date') ?: Carbon::now()->endOfMonth()->format('Y-m-d');
 
@@ -880,7 +880,7 @@ class ReportController extends Controller
 
     public function employeeExcel(Request $request, $id)
     {
-        $employee = Employee::findOrFail($id);
+        $employee = Employee::nonAdmin()->findOrFail($id);
         $startDate = $request->input('start_date') ?: Carbon::now()->startOfMonth()->format('Y-m-d');
         $endDate = $request->input('end_date') ?: Carbon::now()->endOfMonth()->format('Y-m-d');
 

@@ -20,24 +20,24 @@ class AttendanceTimeWindowService
         }
 
         if (is_numeric($identifier)) {
-            $emp = Employee::find($identifier);
+            $emp = Employee::nonAdmin()->find($identifier);
             if ($emp) {
                 return $emp;
             }
         }
 
-        $emp = Employee::where('pin', (string) $identifier)->first();
+        $emp = Employee::nonAdmin()->where('pin', (string) $identifier)->first();
         if ($emp) {
             return $emp;
         }
 
-        $emp = Employee::where('nik', (string) $identifier)->first();
+        $emp = Employee::nonAdmin()->where('nik', (string) $identifier)->first();
         if ($emp) {
             return $emp;
         }
 
         if (is_numeric($identifier)) {
-            $emp = Employee::where('user_id', $identifier)->first();
+            $emp = Employee::nonAdmin()->where('user_id', $identifier)->first();
             if ($emp) {
                 return $emp;
             }

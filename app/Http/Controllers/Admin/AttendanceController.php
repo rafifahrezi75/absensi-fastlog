@@ -27,7 +27,8 @@ class AttendanceController extends Controller
         $filterStatus = $request->query('status');
         $search = $request->query('search');
 
-        $query = AttendanceLog::with([
+        $query = AttendanceLog::nonAdmin()
+            ->with([
                 'employee:id,nik,nama,dept,jabatan,tipe_staf,late_category_id,is_exempt',
                 'device:id,name'
             ])
@@ -113,11 +114,13 @@ class AttendanceController extends Controller
         $satTol = (int)$targetSched['saturday_tolerance'];
 
         $categoriesList = ['izin', 'sakit', 'cuti', 'dinas', 'dispensasi_payroll'];
-        $totalApprovedIzin = Permission::whereIn('status', ['disetujui', 'approved'])
+        $totalApprovedIzin = Permission::nonAdmin()
+            ->whereIn('status', ['disetujui', 'approved'])
             ->whereIn('category', $categoriesList)
             ->count();
 
-        $izinCountQuery = Permission::whereIn('status', ['disetujui', 'approved'])
+        $izinCountQuery = Permission::nonAdmin()
+            ->whereIn('status', ['disetujui', 'approved'])
             ->whereIn('category', $categoriesList)
             ->where(function ($q) use ($targetDate) {
                 $q->whereDate('tanggal_mulai', '<=', $targetDate)
@@ -139,13 +142,14 @@ class AttendanceController extends Controller
         }
         $izinCount = $izinCountQuery->count();
 
-        $activeEmployeesQuery = Employee::whereIn('status', ['active', 'aktif']);
+        $activeEmployeesQuery = Employee::nonAdmin()->whereIn('status', ['active', 'aktif']);
         if (!empty($filterDept)) {
             $activeEmployeesQuery->where('dept', $filterDept);
         }
         $activeEmployeesCount = $activeEmployeesQuery->count();
 
-        $dayLogsQuery = AttendanceLog::with('employee:id,is_exempt,dept')
+        $dayLogsQuery = AttendanceLog::nonAdmin()
+            ->with('employee:id,is_exempt,dept')
             ->whereDate('scan_at', $targetDate);
         if (!empty($filterDept)) {
             $dayLogsQuery->whereHas('employee', function ($eq) use ($filterDept) {
@@ -192,10 +196,11 @@ class AttendanceController extends Controller
             'izin' => $izinCount,
             'total_izin_disetujui' => $totalApprovedIzin,
             'belum_pulang' => $belumPulangToday,
-            'total_karyawan' => $activeEmployeesCount > 0 ? $activeEmployeesCount : Employee::count(),
+            'total_karyawan' => $activeEmployeesCount > 0 ? $activeEmployeesCount : Employee::nonAdmin()->count(),
         ];
 
-        $izinBulanCount = Permission::whereIn('status', ['disetujui', 'approved'])
+        $izinBulanCount = Permission::nonAdmin()
+            ->whereIn('status', ['disetujui', 'approved'])
             ->whereIn('category', $categoriesList)
             ->where(function ($q) use ($startOfMonth, $endOfMonth) {
                 $q->whereDate('tanggal_mulai', '<=', $endOfMonth)
@@ -216,7 +221,8 @@ class AttendanceController extends Controller
         $monthGroupedByPin = [];
         $monthGroupedByEmp = [];
 
-        $monthLogsQuery = AttendanceLog::where('scan_at', '>=', $startOfMonth . ' 00:00:00')
+        $monthLogsQuery = AttendanceLog::nonAdmin()
+            ->where('scan_at', '>=', $startOfMonth . ' 00:00:00')
             ->where('scan_at', '<=', $endOfMonth . ' 23:59:59');
 
         if (!empty($search) || !empty($filterDept)) {
@@ -270,7 +276,7 @@ class AttendanceController extends Controller
         }
 
         $monthlyStats = [
-            'total_karyawan' => $activeEmployeesCount > 0 ? $activeEmployeesCount : Employee::count(),
+            'total_karyawan' => $activeEmployeesCount > 0 ? $activeEmployeesCount : Employee::nonAdmin()->count(),
             'hadir' => count($monthHadirPins),
             'terlambat' => count($monthLatePins),
             'izin' => $izinBulanCount,
@@ -538,7 +544,8 @@ class AttendanceController extends Controller
 
         $isOnlyAttendance = in_array($filterStatus, ['hadir', 'ontime', 'terlambat', 'late']);
         if (!$isOnlyAttendance) {
-            $permQuery = Permission::with('employee:id,nik,nama,dept,pin')
+            $permQuery = Permission::nonAdmin()
+                ->with('employee:id,nik,nama,dept,pin')
                 ->whereIn(DB::raw('LOWER(status)'), ['disetujui', 'approved'])
                 ->whereIn(DB::raw('LOWER(category)'), ['izin', 'sakit', 'cuti', 'dispensasi_payroll', 'dinas']);
 
@@ -713,9 +720,9 @@ class AttendanceController extends Controller
             'alasan' => 'nullable|string|max:500',
         ]);
 
-        $employee = Employee::find($validated['karyawan_id'])
-            ?? Employee::where('pin', (string)$validated['karyawan_id'])->first()
-            ?? Employee::where('nik', (string)$validated['karyawan_id'])->first();
+        $employee = Employee::nonAdmin()->find($validated['karyawan_id'])
+            ?? Employee::nonAdmin()->where('pin', (string)$validated['karyawan_id'])->first()
+            ?? Employee::nonAdmin()->where('nik', (string)$validated['karyawan_id'])->first();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Karyawan tidak ditemukan.'], 404);
@@ -809,13 +816,13 @@ class AttendanceController extends Controller
 
         $employee = null;
         if ($employeeId) {
-            $employee = Employee::find($employeeId);
+            $employee = Employee::nonAdmin()->find($employeeId);
         }
         if (!$employee && $pin) {
-            $employee = Employee::where('pin', (string)$pin)->first();
+            $employee = Employee::nonAdmin()->where('pin', (string)$pin)->first();
         }
         if (!$employee && $employeeId) {
-            $employee = Employee::where('nik', (string)$employeeId)->first();
+            $employee = Employee::nonAdmin()->where('nik', (string)$employeeId)->first();
         }
 
         $finalPin = $employee ? ($employee->pin ?? (string)$employee->id) : (string)$pin;
@@ -938,10 +945,10 @@ class AttendanceController extends Controller
 
         $employee = null;
         if ($employeeId) {
-            $employee = Employee::find($employeeId);
+            $employee = Employee::nonAdmin()->find($employeeId);
         }
         if (!$employee && $pin) {
-            $employee = Employee::where('pin', (string)$pin)->first();
+            $employee = Employee::nonAdmin()->where('pin', (string)$pin)->first();
         }
 
         $finalPin = $employee ? ($employee->pin ?? (string)$employee->id) : (string)$pin;

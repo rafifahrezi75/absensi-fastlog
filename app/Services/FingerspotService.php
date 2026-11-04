@@ -105,8 +105,8 @@ class FingerspotService
 
     public function syncAllUserInfo(): array
     {
-        $employees = Employee::whereNotNull('pin')->get();
-        $missingEmployees = Employee::whereNotNull('pin')
+        $employees = Employee::nonAdmin()->whereNotNull('pin')->get();
+        $missingEmployees = Employee::nonAdmin()->whereNotNull('pin')
             ->where(function ($q) {
                 $q->whereNull('nama')->orWhere('nama', '');
             })->get();
@@ -119,7 +119,7 @@ class FingerspotService
 
         $startTime = time();
         while ((time() - $startTime) < 6) {
-            $remainingMissing = Employee::whereNotNull('pin')
+            $remainingMissing = Employee::nonAdmin()->whereNotNull('pin')
                 ->where(function ($q) {
                     $q->whereNull('nama')->orWhere('nama', '');
                 })->count();
@@ -130,7 +130,7 @@ class FingerspotService
             usleep(400000);
         }
 
-        $allEmployees = Employee::orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
+        $allEmployees = Employee::nonAdmin()->orderByRaw('nama IS NULL, nama ASC, CAST(pin AS UNSIGNED) ASC')->get();
         $totalEmployees = $allEmployees->count();
         $syncedCount = $allEmployees->whereNotNull('nama')->where('nama', '!=', '')->count();
 
