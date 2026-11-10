@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Attendance;
-use App\Models\AttendanceAnomaly;
+use App\Models\Employee;
+use App\Models\OperationalSchedule;
 use App\Models\OvertimeLog;
+use App\Models\SystemSetting;
 use App\Services\AttendanceTimeWindowService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -15,308 +16,149 @@ class AttendanceApiController extends Controller
 {
     public function tap(Request $request, AttendanceTimeWindowService $service): JsonResponse
     {
-        $validated = $request->validate([
-            'employee_id' => 'nullable',
-            'pin' => 'nullable',
-            'user_id' => 'nullable',
-            'nik' => 'nullable',
-            'tap_time' => 'nullable|date',
-            'waktu_tap' => 'nullable|date',
-            'reason' => 'nullable|string|max:500',
-            'alasan' => 'nullable|string|max:500',
-        ]);
-
-        $identifier = $validated['employee_id'] 
-            ?? $validated['pin'] 
-            ?? $validated['user_id'] 
-            ?? $validated['nik'] 
-            ?? ($request->user()?->id);
+        $identifier = $request->input('pin')
+            ?? $request->input('employee_id')
+            ?? $request->input('nik')
+            ?? $request->input('user_id')
+            ?? $request->input('cloud_id');
 
         if (!$identifier) {
             return response()->json([
                 'success' => false,
-                'status' => 'IDENTIFIKASI_TIDAK_VALID',
-                'message' => 'Identifikasi karyawan (employee_id, pin, atau user_id) wajib disertakan.',
+                'status' => 'INVALID_PAYLOAD',
+                'message' => 'PIN, NIK, atau ID Karyawan wajib diisi.',
             ], 422);
         }
 
-        $tapTime = $validated['waktu_tap'] ?? $validated['tap_time'] ?? null;
-        $reason = $validated['alasan'] ?? $validated['reason'] ?? null;
+        $tapTime = $request->input('waktu_tap')
+            ?? $request->input('tap_time')
+            ?? $request->input('timestamp')
+            ?? $request->input('jam');
 
-        $result = $service->processTap($identifier, $tapTime, $reason);
+        $reason = $request->input('alasan') ?? $request->input('reason');
+        $ignoreCooldown = $request->boolean('ignore_cooldown', false);
 
-        $httpCode = $result['success'] ? 200 : 400;
+        $result = $service->processTap($identifier, $tapTime, $reason, $ignoreCooldown);
+
+        $httpCode = match ($result['status'] ?? null) {
+            'EMPLOYEE_NOT_FOUND' => 404,
+            'COOLDOWN' => 429,
+            default => $result['success'] ? 200 : 400,
+        };
 
         return response()->json($result, $httpCode);
     }
 
-    public function getAnomalies(Request $request): JsonResponse
+    public function getOvertimeLogs(Request $request): JsonResponse
     {
         $status = $request->query('status', 'MENUNGGU');
-        $type = $request->query('type', 'all');
         $date = $request->query('date') ?? $request->query('tanggal');
 
-        $anomaliesQuery = AttendanceAnomaly::nonAdmin()->with(['employee', 'attendance'])->latest('waktu_tap');
         $overtimeQuery = OvertimeLog::nonAdmin()->with(['employee', 'attendance'])->latest('waktu_tap');
 
         if ($status !== 'all') {
             $statusVal = strtoupper($status) === 'PENDING' ? 'MENUNGGU' : strtoupper($status);
-            $anomaliesQuery->where('status', $statusVal);
             $overtimeQuery->where('status', $statusVal);
         }
 
         if ($date) {
-            $anomaliesQuery->whereDate('waktu_tap', $date);
             $overtimeQuery->whereDate('waktu_tap', $date);
         }
 
-        $pendingAnomaliesCount = AttendanceAnomaly::nonAdmin()->where('status', 'MENUNGGU')->count();
         $pendingOvertimeCount = OvertimeLog::nonAdmin()->where('status', 'MENUNGGU')->count();
-
-        $anomalies = ($type === 'overtime') ? [] : $anomaliesQuery->get();
-        $overtimes = ($type === 'anomaly') ? [] : $overtimeQuery->get();
+        $overtimes = $overtimeQuery->get();
 
         return response()->json([
             'success' => true,
             'counts' => [
-                'pending_anomalies' => $pendingAnomaliesCount,
                 'pending_overtime' => $pendingOvertimeCount,
-                'total_pending' => $pendingAnomaliesCount + $pendingOvertimeCount,
+                'total_pending' => $pendingOvertimeCount,
             ],
-            'anomalies' => $anomalies,
             'overtime' => $overtimes,
         ]);
     }
 
+    public function getAnomalies(Request $request): JsonResponse
+    {
+        return $this->getOvertimeLogs($request);
+    }
+
     public function approve(Request $request, string|int $id, AttendanceTimeWindowService $service): JsonResponse
     {
-        $type = $request->input('type');
         $adminNote = $request->input('catatan_admin') ?? $request->input('admin_note');
-        $as = $request->input('as', 'permission');
         $durationMinutes = $request->input('durasi_menit') ?? $request->input('duration_minutes');
         $syncCheckout = $request->boolean('sync_checkout', true);
 
-        if ($type === 'overtime' || $type === 'lembur') {
-            $overtime = OvertimeLog::find($id);
-            if (!$overtime) {
-                return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
-            }
-            $res = $service->approveOvertime($overtime, [
-                'admin_note' => $adminNote,
-                'duration_minutes' => $durationMinutes,
-                'sync_checkout' => $syncCheckout,
-            ]);
-            return response()->json($res);
+        $cleanId = preg_replace('/^(ot_|perm_|db_perm_|anom_)/', '', (string)$id);
+        $overtime = OvertimeLog::find($cleanId);
+
+        if (!$overtime) {
+            return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
         }
 
-        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
-            $anomaly = AttendanceAnomaly::find($id);
-            if (!$anomaly) {
-                return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
-            }
-            $res = $service->approveAnomaly($anomaly, [
-                'as' => $as,
-                'admin_note' => $adminNote,
-            ]);
-            return response()->json($res);
-        }
+        $res = $service->approveOvertime($overtime, [
+            'admin_note' => $adminNote,
+            'duration_minutes' => $durationMinutes,
+            'sync_checkout' => $syncCheckout,
+        ]);
 
-        $anomaly = AttendanceAnomaly::find($id);
-        if ($anomaly) {
-            $res = $service->approveAnomaly($anomaly, [
-                'as' => $as,
-                'admin_note' => $adminNote,
-            ]);
-            return response()->json($res);
-        }
-
-        $overtime = OvertimeLog::find($id);
-        if ($overtime) {
-            $res = $service->approveOvertime($overtime, [
-                'admin_note' => $adminNote,
-                'duration_minutes' => $durationMinutes,
-                'sync_checkout' => $syncCheckout,
-            ]);
-            return response()->json($res);
-        }
-
-        return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
+        return response()->json($res);
     }
 
     public function reject(Request $request, string|int $id, AttendanceTimeWindowService $service): JsonResponse
     {
-        $type = $request->input('type');
         $adminNote = $request->input('catatan_admin') ?? $request->input('admin_note');
+        $cleanId = preg_replace('/^(ot_|perm_|db_perm_|anom_)/', '', (string)$id);
+        $overtime = OvertimeLog::find($cleanId);
 
-        if ($type === 'overtime' || $type === 'lembur') {
-            $overtime = OvertimeLog::find($id);
-            if (!$overtime) {
-                return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
-            }
-            $res = $service->rejectOvertime($overtime, $adminNote);
-            return response()->json($res);
+        if (!$overtime) {
+            return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
         }
 
-        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
-            $anomaly = AttendanceAnomaly::find($id);
-            if (!$anomaly) {
-                return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
-            }
-            $res = $service->rejectAnomaly($anomaly, $adminNote);
-            return response()->json($res);
-        }
-
-        $anomaly = AttendanceAnomaly::find($id);
-        if ($anomaly) {
-            $res = $service->rejectAnomaly($anomaly, $adminNote);
-            return response()->json($res);
-        }
-
-        $overtime = OvertimeLog::find($id);
-        if ($overtime) {
-            $res = $service->rejectOvertime($overtime, $adminNote);
-            return response()->json($res);
-        }
-
-        return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
+        $res = $service->rejectOvertime($overtime, $adminNote);
+        return response()->json($res);
     }
 
     public function update(Request $request, string|int $id): JsonResponse
     {
-        $type = $request->input('type') ?? $request->input('source');
+        $cleanId = preg_replace('/^(ot_|perm_|db_perm_|anom_)/', '', (string)$id);
         $status = $request->input('status');
+        $statusUpper = $status ? strtoupper($status) : null;
+        if ($statusUpper === 'PENDING') {
+            $statusUpper = 'MENUNGGU';
+        }
+
         $adminNote = $request->input('catatan_admin') ?? $request->input('admin_note');
-        $durationMinutes = $request->input('durasi_menit') ?? $request->input('duration_minutes');
+        $overtime = OvertimeLog::find($cleanId);
 
-        $statusUpper = match (strtoupper($status ?? '')) {
-            'DISETUJUI', 'APPROVED' => 'DISETUJUI',
-            'DITOLAK', 'REJECTED' => 'DITOLAK',
-            'MENUNGGU', 'PENDING' => 'MENUNGGU',
-            default => null,
-        };
-
-        if ($type === 'overtime' || $type === 'lembur') {
-            $overtime = OvertimeLog::find($id);
-            if (!$overtime) {
-                return response()->json(['success' => false, 'message' => 'Data lembur tidak ditemukan.'], 404);
-            }
-            if ($statusUpper) {
-                $overtime->status = $statusUpper;
-            }
-            if ($adminNote !== null) {
-                $overtime->catatan_admin = $adminNote;
-            }
-            if ($durationMinutes !== null) {
-                $overtime->durasi_menit = (int)$durationMinutes;
-            }
-            $overtime->save();
-
-            if ($statusUpper === 'DISETUJUI') {
-                $tapTime = Carbon::parse($overtime->waktu_tap);
-                $date = $tapTime->toDateString();
-                $attendance = Attendance::firstOrNew([
-                    'employee_id' => $overtime->employee_id,
-                    'tanggal' => $date,
-                ]);
-                if (!$attendance->exists) {
-                    $attendance->user_id = $overtime->user_id;
-                    $attendance->status = 'hadir';
-                }
-                if (!$attendance->jam_pulang) {
-                    $attendance->jam_pulang = $tapTime;
-                }
-                $attendance->save();
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Data lembur berhasil diperbarui.',
-                'overtime' => $overtime->load('employee'),
-            ]);
+        if (!$overtime) {
+            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
         }
 
-        if ($type === 'anomaly' || $type === 'di_luar_jadwal') {
-            $anomaly = AttendanceAnomaly::find($id);
-            if (!$anomaly) {
-                return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
-            }
-            if ($statusUpper) {
-                $anomaly->status = $statusUpper;
-            }
-            if ($adminNote !== null) {
-                $anomaly->catatan_admin = $adminNote;
-            }
-            $anomaly->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Data di luar jadwal berhasil diperbarui.',
-                'anomaly' => $anomaly->load('employee'),
-            ]);
+        if ($statusUpper) {
+            $overtime->status = $statusUpper;
         }
 
-        $overtime = OvertimeLog::find($id);
-        if ($overtime) {
-            if ($statusUpper) {
-                $overtime->status = $statusUpper;
-            }
-            if ($adminNote !== null) {
-                $overtime->catatan_admin = $adminNote;
-            }
-            $overtime->save();
-            return response()->json([
-                'success' => true,
-                'message' => 'Data lembur berhasil diperbarui.',
-                'overtime' => $overtime->load('employee'),
-            ]);
+        if ($adminNote !== null) {
+            $overtime->catatan_admin = $adminNote;
         }
 
-        $anomaly = AttendanceAnomaly::find($id);
-        if ($anomaly) {
-            if ($statusUpper) {
-                $anomaly->status = $statusUpper;
-            }
-            if ($adminNote !== null) {
-                $anomaly->catatan_admin = $adminNote;
-            }
-            $anomaly->save();
-            return response()->json([
-                'success' => true,
-                'message' => 'Data di luar jadwal berhasil diperbarui.',
-                'anomaly' => $anomaly->load('employee'),
-            ]);
-        }
+        $overtime->save();
 
-        return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
+        return response()->json([
+            'success' => true,
+            'message' => 'Data lembur berhasil diperbarui.',
+            'overtime' => $overtime->load('employee'),
+        ]);
     }
 
     public function destroy(Request $request, string|int $id): JsonResponse
     {
         $cleanId = preg_replace('/^(ot_|perm_|db_perm_|anom_)/', '', (string)$id);
-        $type = $request->input('type') ?? $request->query('type') ?? $request->input('source') ?? $request->query('source');
-
-        if (str_starts_with((string)$id, 'ot_') || $type === 'overtime' || $type === 'lembur') {
-            return response()->json(['success' => false, 'message' => 'Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.'], 403);
-        }
-
-        if (str_starts_with((string)$id, 'anom_') || $type === 'anomaly' || $type === 'di_luar_jadwal') {
-            $anomaly = AttendanceAnomaly::find($cleanId);
-            if (!$anomaly) {
-                return response()->json(['success' => false, 'message' => 'Data di luar jadwal tidak ditemukan.'], 404);
-            }
-            $anomaly->delete();
-            return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
-        }
-
         $overtime = OvertimeLog::find($cleanId);
+
         if ($overtime) {
             return response()->json(['success' => false, 'message' => 'Data lembur tidak dapat dihapus demi kepatuhan audit dan payroll.'], 403);
-        }
-
-        $anomaly = AttendanceAnomaly::find($cleanId);
-        if ($anomaly) {
-            $anomaly->delete();
-            return response()->json(['success' => true, 'message' => 'Data di luar jadwal berhasil dihapus.']);
         }
 
         return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);

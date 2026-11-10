@@ -8,19 +8,22 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureUserIsAdmin
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() || $request->user()->role !== 'admin') {
+        $user = $request->user();
+
+        if (! $user) {
             return response()->json([
-                'message' => 'Akses ditolak. Halaman ini khusus admin.',
-            ], 403);
+                'message' => 'Unauthenticated.',
+            ], 401);
         }
 
-        return $next($request);
+        if ($user->role === 'admin' || $user->hasRole('super_admin') || $user->roles()->where('name', '!=', 'karyawan')->exists() || $user->directPermissions()->exists()) {
+            return $next($request);
+        }
+
+        return response()->json([
+            'message' => 'Akses ditolak. Halaman ini khusus admin.',
+        ], 403);
     }
 }

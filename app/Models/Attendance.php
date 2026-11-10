@@ -41,11 +41,6 @@ class Attendance extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function anomalies(): HasMany
-    {
-        return $this->hasMany(AttendanceAnomaly::class);
-    }
-
     public function overtimeLogs(): HasMany
     {
         return $this->hasMany(OvertimeLog::class);

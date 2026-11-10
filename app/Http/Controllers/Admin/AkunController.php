@@ -10,42 +10,45 @@ use Illuminate\Validation\Rule;
 
 class AkunController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        $users = User::latest()->get();
+        $users = User::with('roles')->latest()->get();
 
         return response()->json([
             'users' => $users,
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users',
             'password' => 'required|string|min:8',
-            'role' => ['required', Rule::in(['admin', 'user'])],
+            'role' => ['nullable', Rule::in(['admin', 'user'])],
+            'role_ids' => ['nullable', 'array'],
+            'role_ids.*' => ['integer', 'exists:roles,id'],
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        $userData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'] ?? 'user',
+        ];
 
-        User::create($validated);
+        $user = User::create($userData);
+
+        if (! empty($validated['role_ids'])) {
+            $user->roles()->sync($validated['role_ids']);
+        }
 
         return response()->json([
             'message' => 'Akun berhasil ditambahkan.',
+            'user' => $user->load('roles'),
         ], 201);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $user = User::findOrFail($id);
@@ -53,43 +56,54 @@ class AkunController extends Controller
         $rules = [
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role' => ['required', Rule::in(['admin', 'user'])],
+            'role' => ['nullable', Rule::in(['admin', 'user'])],
+            'role_ids' => ['nullable', 'array'],
+            'role_ids.*' => ['integer', 'exists:roles,id'],
         ];
 
-        // Jika password diisi, maka divalidasi dan diubah
         if ($request->filled('password')) {
             $rules['password'] = 'required|string|min:8';
         }
 
         $validated = $request->validate($rules);
 
-        if ($request->filled('password')) {
-            $validated['password'] = Hash::make($validated['password']);
-        } else {
-            unset($validated['password']);
+        $userData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ];
+
+        if (isset($validated['role'])) {
+            $userData['role'] = $validated['role'];
         }
 
-        $user->update($validated);
+        if ($request->filled('password')) {
+            $userData['password'] = Hash::make($validated['password']);
+        }
+
+        $user->update($userData);
+
+        if (isset($validated['role_ids'])) {
+            $user->roles()->sync($validated['role_ids']);
+        }
 
         return response()->json([
             'message' => 'Akun berhasil diperbarui.',
+            'user' => $user->load('roles'),
         ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $user = User::findOrFail($id);
 
-        // Mencegah hapus diri sendiri (porting dari compro-fastlog)
         if (auth()->id() == $user->id) {
             return response()->json([
                 'message' => 'Anda tidak dapat menghapus akun Anda sendiri yang sedang login.',
             ], 422);
         }
 
+        $user->roles()->detach();
+        $user->directPermissions()->detach();
         $user->delete();
 
         return response()->json([

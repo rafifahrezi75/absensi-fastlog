@@ -9,9 +9,6 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Proses login (porting dari compro-fastlog).
-     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -20,12 +17,14 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
-
             $request->session()->regenerate();
+            $user = Auth::user()->load(['employee', 'roles']);
 
             return response()->json([
                 'message' => 'Login berhasil.',
-                'user' => Auth::user()->load('employee'),
+                'user' => $user,
+                'roles' => $user->roles->pluck('name')->values(),
+                'permissions' => $user->permissions(),
             ]);
         }
 
@@ -34,9 +33,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Logout (porting dari compro-fastlog).
-     */
     public function logout(Request $request)
     {
         Auth::logout();
@@ -50,13 +46,14 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Data user yang sedang login (untuk cek sesi SPA).
-     */
     public function me(Request $request)
     {
+        $user = $request->user()->load(['employee', 'roles']);
+
         return response()->json([
-            'user' => $request->user()->load('employee'),
+            'user' => $user,
+            'roles' => $user->roles->pluck('name')->values(),
+            'permissions' => $user->permissions(),
         ]);
     }
 

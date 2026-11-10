@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
     X, LayoutDashboard, Clock, FileCheck2,
     Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell,
-    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers, ChevronDown, ChevronRight, CalendarClock
+    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers, ChevronDown, ChevronRight, CalendarClock, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
@@ -14,10 +14,12 @@ const AdminLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const { user, logout } = useAuth();
+    const { user, logout, hasPermission } = useAuth();
     const location = useLocation();
     const isPayrollPath = location.pathname.startsWith('/admin/payroll') || location.pathname.startsWith('/admin/master-payroll');
     const [payrollMenuOpen, setPayrollMenuOpen] = useState(isPayrollPath);
+    const isAccessPath = location.pathname.startsWith('/admin/master-akun') || location.pathname.startsWith('/admin/roles') || location.pathname.startsWith('/admin/hak-akses');
+    const [accessMenuOpen, setAccessMenuOpen] = useState(isAccessPath);
 
     const handleLogout = (e) => {
         if (e) e.preventDefault();
@@ -56,7 +58,6 @@ const AdminLayout = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Check screen size
     useEffect(() => {
         const handleResize = () => {
             setIsMobile(window.innerWidth < 1024);
@@ -66,12 +67,11 @@ const AdminLayout = () => {
                 setSidebarOpen(true);
             }
         };
-        handleResize(); // Initial check
+        handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Close Notification Dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -136,14 +136,12 @@ const AdminLayout = () => {
         }
     };
 
-    // Styling untuk link navigasi dengan warna oranye Fastlog saat aktif
     const navLinkClass = ({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
             ? 'bg-[#FF7A3D] text-white shadow-md shadow-[#FF7A3D]/20'
             : 'text-white/60 hover:bg-white/10 hover:text-white'
         }`;
 
-    // Styling khusus untuk sub-menu agar terlihat menjorok ke dalam
     const subNavLinkClass = ({ isActive }) =>
         `flex items-center gap-3 pl-10 pr-3 py-2 mt-1 rounded-lg text-[13px] font-medium transition-all ${isActive
             ? 'bg-[#FF7A3D] text-white shadow-md shadow-[#FF7A3D]/20'
@@ -188,7 +186,6 @@ const AdminLayout = () => {
                     )}
                 </div>
 
-                {/* Navigasi Menu */}
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto hide-scrollbar">
                     <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mb-2">Utama</div>
 
@@ -196,66 +193,120 @@ const AdminLayout = () => {
                         <LayoutDashboard className="w-4 h-4" />
                         <span>Dasbor</span>
                     </NavLink>
-                    <NavLink to="/admin/attendance" className={navLinkClass}>
-                        <Clock className="w-4 h-4" />
-                        <span>Log Absensi</span>
-                    </NavLink>
-                    <NavLink to="/admin/permissions" className={navLinkClass}>
-                        <FileCheck2 className="w-4 h-4" />
-                        <span>Izin & Lembur</span>
-                    </NavLink>
+                    {hasPermission('attendance.view') && (
+                        <NavLink to="/admin/attendance" className={navLinkClass}>
+                            <Clock className="w-4 h-4" />
+                            <span>Log Absensi</span>
+                        </NavLink>
+                    )}
+                    {hasPermission('permissions.view') && (
+                        <NavLink to="/admin/permissions" className={navLinkClass}>
+                            <FileCheck2 className="w-4 h-4" />
+                            <span>Izin & Lembur</span>
+                        </NavLink>
+                    )}
 
-                    <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mt-5 mb-2">Kepegawaian & Gaji</div>
+                    {(hasPermission('employees.view') || hasPermission('payroll.view') || hasPermission('master_payroll.view') || hasPermission('reports.view') || hasPermission('settings.view')) && (
+                        <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mt-5 mb-2">Kepegawaian & Gaji</div>
+                    )}
 
-                    <NavLink to="/admin/employees" className={navLinkClass}>
-                        <Users className="w-4 h-4" />
-                        <span>Data Karyawan</span>
-                    </NavLink>
+                    {hasPermission('employees.view') && (
+                        <NavLink to="/admin/employees" className={navLinkClass}>
+                            <Users className="w-4 h-4" />
+                            <span>Data Karyawan</span>
+                        </NavLink>
+                    )}
                     
-                    <div>
-                        <button 
-                            onClick={() => setPayrollMenuOpen(!payrollMenuOpen)}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isPayrollPath ? 'bg-white/5 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <Wallet className="w-4 h-4" />
-                                <span>Penggajian</span>
+                    {(hasPermission('payroll.view') || hasPermission('master_payroll.view')) && (
+                        <div>
+                            <button 
+                                onClick={() => setPayrollMenuOpen(!payrollMenuOpen)}
+                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isPayrollPath ? 'bg-white/5 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Wallet className="w-4 h-4" />
+                                    <span>Penggajian</span>
+                                </div>
+                                {payrollMenuOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </button>
+                            
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${payrollMenuOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                {hasPermission('payroll.view') && (
+                                    <NavLink to="/admin/payroll" className={subNavLinkClass} end>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                        <span>Data Penggajian</span>
+                                    </NavLink>
+                                )}
+                                {hasPermission('master_payroll.view') && (
+                                    <NavLink to="/admin/master-payroll" className={subNavLinkClass}>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                        <span>Master Penggajian</span>
+                                    </NavLink>
+                                )}
                             </div>
-                            {payrollMenuOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        </button>
-                        
-                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${payrollMenuOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
-                            <NavLink to="/admin/payroll" className={subNavLinkClass} end>
-                                <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
-                                <span>Data Penggajian</span>
-                            </NavLink>
-                            <NavLink to="/admin/master-payroll" className={subNavLinkClass}>
-                                <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
-                                <span>Master Penggajian</span>
-                            </NavLink>
                         </div>
-                    </div>
+                    )}
 
-                    <NavLink to="/admin/reports" className={navLinkClass}>
-                        <FileBarChart className="w-4 h-4" />
-                        <span>Laporan Presensi</span>
-                    </NavLink>
+                    {hasPermission('reports.view') && (
+                        <NavLink to="/admin/reports" className={navLinkClass}>
+                            <FileBarChart className="w-4 h-4" />
+                            <span>Laporan Presensi</span>
+                        </NavLink>
+                    )}
 
-                    <NavLink to="/admin/settings" className={navLinkClass}>
-                        <CalendarClock className="w-4 h-4" />
-                        <span>Aturan Kerja & Lembur</span>
-                    </NavLink>
+                    {hasPermission('settings.view') && (
+                        <NavLink to="/admin/settings" className={navLinkClass}>
+                            <CalendarClock className="w-4 h-4" />
+                            <span>Aturan Kerja & Lembur</span>
+                        </NavLink>
+                    )}
 
-                    <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">Sistem & Perangkat</div>
+                    {(hasPermission('master_akun.view') || hasPermission('master_role.view') || hasPermission('hak_akses.view') || hasPermission('devices.view')) && (
+                        <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mt-5 mb-2">Sistem & Perangkat</div>
+                    )}
 
-                    <NavLink to="/admin/master-akun" className={navLinkClass}>
-                        <UserCog className="w-4 h-4" />
-                        <span>Master Akun</span>
-                    </NavLink>
-                    <NavLink to="/admin/devices" className={navLinkClass}>
-                        <Cpu className="w-4 h-4" />
-                        <span>Mesin Sidik Jari</span>
-                    </NavLink>
+                    {(hasPermission('master_akun.view') || hasPermission('master_role.view') || hasPermission('hak_akses.view')) && (
+                        <div>
+                            <button 
+                                onClick={() => setAccessMenuOpen(!accessMenuOpen)}
+                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isAccessPath ? 'bg-white/5 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <ShieldCheck className="w-4 h-4" />
+                                    <span>Manajemen Akses</span>
+                                </div>
+                                {accessMenuOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </button>
+                            
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${accessMenuOpen ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                {hasPermission('master_akun.view') && (
+                                    <NavLink to="/admin/master-akun" className={subNavLinkClass}>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                        <span>Master Akun</span>
+                                    </NavLink>
+                                )}
+                                {hasPermission('master_role.view') && (
+                                    <NavLink to="/admin/roles" className={subNavLinkClass}>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                        <span>Master Role</span>
+                                    </NavLink>
+                                )}
+                                {hasPermission('hak_akses.view') && (
+                                    <NavLink to="/admin/hak-akses" className={subNavLinkClass}>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-current opacity-60"></div>
+                                        <span>Matriks Hak Akses</span>
+                                    </NavLink>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {hasPermission('devices.view') && (
+                        <NavLink to="/admin/devices" className={navLinkClass}>
+                            <Cpu className="w-4 h-4" />
+                            <span>Mesin Sidik Jari</span>
+                        </NavLink>
+                    )}
                 </nav>
 
                 <div className="p-4 border-t border-white/10 flex items-center justify-between bg-[#042028]">

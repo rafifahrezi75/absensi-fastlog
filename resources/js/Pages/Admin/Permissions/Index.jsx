@@ -309,20 +309,10 @@ const Permissions = () => {
   const executeStatusUpdate = async (item, type, extra = {}) => {
     const newStatus = type === 'approve' ? 'approved' : 'rejected';
     try {
-      if (item.source === 'anomaly') {
+      if (item.source === 'overtime') {
         const endpoint = type === 'approve'
-          ? `/api/admin/anomalies/${item.rawId}/approve`
-          : `/api/admin/anomalies/${item.rawId}/reject`;
-        await api.post(endpoint, {
-          type: 'anomaly',
-          as: extra.as || 'permission',
-          catatan_admin: extra.note || undefined,
-          admin_note: extra.note || undefined
-        });
-      } else if (item.source === 'overtime') {
-        const endpoint = type === 'approve'
-          ? `/api/admin/anomalies/${item.rawId}/approve`
-          : `/api/admin/anomalies/${item.rawId}/reject`;
+          ? `/api/admin/overtime-logs/${item.rawId}/approve`
+          : `/api/admin/overtime-logs/${item.rawId}/reject`;
         await api.post(endpoint, {
           type: 'overtime',
           catatan_admin: extra.note || undefined,
@@ -399,8 +389,8 @@ const Permissions = () => {
     try {
       setDeleteModal(p => ({ ...p, loading: true }));
       const { rawId, source } = deleteModal.item;
-      if (source === 'overtime' || source === 'anomaly') {
-        await api.delete(`/api/admin/anomalies/${rawId}`, {
+      if (source === 'overtime') {
+        await api.delete(`/api/admin/overtime-logs/${rawId}`, {
           params: { type: source, source: source }
         });
       } else {
@@ -501,8 +491,8 @@ const Permissions = () => {
         payload.durasi = editModal.durasi;
       }
 
-      if (source === 'overtime' || source === 'anomaly') {
-        await api.put(`/api/admin/anomalies/${rawId}`, payload);
+      if (source === 'overtime') {
+        await api.put(`/api/admin/overtime-logs/${rawId}`, payload);
       } else {
         await api.put(`/api/admin/permissions/${rawId}`, payload);
       }
@@ -951,49 +941,6 @@ const Permissions = () => {
                   Kategori: <span className="font-medium text-slate-800 capitalize">{actionModal.item.category.replace('_', ' ')}</span>
                 </div>
               </div>
-
-              {actionModal.type === 'approve' && actionModal.item.source === 'anomaly' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Setujui &amp; Perlakukan Sebagai:
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActionModal(p => ({ ...p, as: 'permission' }))}
-                      className={`p-2.5 rounded-xl border text-xs font-medium text-center transition cursor-pointer ${
-                        actionModal.as === 'permission'
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      Izin Keluar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActionModal(p => ({ ...p, as: 'check_in' }))}
-                      className={`p-2.5 rounded-xl border text-xs font-medium text-center transition cursor-pointer ${
-                        actionModal.as === 'check_in'
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      Jam Masuk
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActionModal(p => ({ ...p, as: 'check_out' }))}
-                      className={`p-2.5 rounded-xl border text-xs font-medium text-center transition cursor-pointer ${
-                        actionModal.as === 'check_out'
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold'
-                          : 'border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      Jam Pulang
-                    </button>
-                  </div>
-                </div>
-              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">

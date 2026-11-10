@@ -9,7 +9,19 @@
     <link rel="preload" as="image" href="/images/front-end/logo3.webp" type="image/webp">
     <title>FastLog - Absensi</title>
     <script>
-        window.__INITIAL_USER__ = @json(Auth::check() ? Auth::user()->load('employee') : null);
+        @php
+            $initialAuth = null;
+            if (Auth::check()) {
+                $u = Auth::user()->load(['employee', 'roles']);
+                $initialAuth = [
+                    'user' => $u,
+                    'roles' => $u->roles->pluck('name')->values(),
+                    'permissions' => $u->permissions(),
+                ];
+            }
+        @endphp
+        window.__INITIAL_AUTH__ = @json($initialAuth);
+        window.__INITIAL_USER__ = @json($initialAuth ? $initialAuth['user'] : null);
     </script>
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/main.jsx'])

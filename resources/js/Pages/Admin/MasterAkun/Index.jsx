@@ -3,10 +3,13 @@ import { Users, Plus, Search, ShieldCheck, Edit3, Trash2, CheckCircle2, XCircle,
 import ModalAkun from './Components/ModalAkun';
 import api from '../../../lib/api';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
+import { useAuth } from '../../../Contexts/AuthContext';
 
 const MasterAkun = () => {
+    const { hasPermission } = useAuth();
     const [modalData, setModalData] = useState({ isOpen: false, editing: null });
     const [users, setUsers] = useState([]);
+    const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
     const [search, setSearch] = useState('');
@@ -16,8 +19,12 @@ const MasterAkun = () => {
     const fetchUsers = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await api.get('/api/admin/akun');
-            setUsers(res.data.users || []);
+            const [resUsers, resRoles] = await Promise.all([
+                api.get('/api/admin/akun'),
+                api.get('/api/admin/roles').catch(() => ({ data: { roles: [] } }))
+            ]);
+            setUsers(resUsers.data.users || []);
+            setRoles(resRoles.data.roles || []);
         } catch (err) {
             showNotif(err.response?.data?.message || 'Gagal memuat data akun.', 'error');
         } finally {
@@ -100,25 +107,29 @@ const MasterAkun = () => {
     const filteredUsers = users.filter(user => {
         const matchSearch = (user.name || '').toLowerCase().includes(search.toLowerCase()) ||
             (user.email || '').toLowerCase().includes(search.toLowerCase());
-        const matchRole = !roleFilter || user.role === roleFilter;
+        const matchRole = !roleFilter ||
+            user.role === roleFilter ||
+            (user.roles && user.roles.some(r => r.name === roleFilter || String(r.id) === String(roleFilter)));
         return matchSearch && matchRole;
     });
 
-    const totalAdmin = users.filter(user => user.role === 'admin').length;
-    const totalUser = users.filter(user => user.role === 'user').length;
+    const totalAdmin = users.filter(user => user.role === 'admin' || (user.roles && user.roles.some(r => r.name !== 'karyawan'))).length;
+    const totalUser = users.filter(user => user.role === 'user' && (!user.roles || user.roles.every(r => r.name === 'karyawan'))).length;
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Master Akun</h1>
-                    <p className="text-sm text-slate-500">Kelola akun login admin dan karyawan. Registrasi akun hanya dilakukan dari halaman ini.</p>
+                    <p className="text-sm text-slate-500">Kelola akun login admin dan karyawan dengan penetapan multi-role terintegrasi.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button onClick={openModalTambah} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
-                        <Plus className="w-4 h-4" /> Tambah Akun
-                    </button>
-                </div>
+                {hasPermission('master_akun.create') && (
+                    <div className="flex items-center gap-3">
+                        <button onClick={openModalTambah} className="flex items-center gap-2 bg-[#FF7A3D] hover:bg-[#e0662d] text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">
+                            <Plus className="w-4 h-4" /> Tambah Akun
+                        </button>
+                    </div>
+                )}
             </div>
 
             {notif && notif.type === 'error' && (
@@ -138,14 +149,14 @@ const MasterAkun = () => {
                     <span className="text-[11px] text-slate-500">Akun Terdaftar</span>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Admin</span>
+                    <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Akses Manajemen</span>
                     <div className="text-2xl font-bold text-slate-900 mt-1">{totalAdmin}</div>
-                    <span className="text-[11px] text-indigo-600 font-medium">Akses Penuh Sistem</span>
+                    <span className="text-[11px] text-indigo-600 font-medium">Admin & Peran Khusus</span>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Karyawan (User)</span>
+                    <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Karyawan Reguler</span>
                     <div className="text-2xl font-bold text-slate-900 mt-1">{totalUser}</div>
-                    <span className="text-[11px] text-emerald-600 font-medium">Akses Absensi Mandiri</span>
+                    <span className="text-[11px] text-emerald-600 font-medium">Akses Portal Mandiri</span>
                 </div>
             </div>
 
@@ -157,13 +168,16 @@ const MasterAkun = () => {
                         placeholder="Cari nama atau email..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#FF7A3D] focus:ring-1 focus:ring-[#FF7A3D]"
                     />
                 </div>
-                <select className="border border-slate-300 rounded-lg pl-4 pr-10 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-600" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                <select className="border border-slate-300 rounded-lg pl-4 pr-10 py-2 text-sm focus:outline-none focus:border-[#FF7A3D] focus:ring-1 focus:ring-[#FF7A3D] text-slate-600" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
                     <option value="">Semua Role</option>
-                    <option value="admin">Admin</option>
-                    <option value="user">Karyawan (User)</option>
+                    <option value="admin">Admin Portal</option>
+                    <option value="user">User Portal</option>
+                    {roles.map(r => (
+                        <option key={r.id} value={r.name}>{r.label}</option>
+                    ))}
                 </select>
             </div>
 
@@ -174,7 +188,7 @@ const MasterAkun = () => {
                             <tr>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Nama Akun</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Email</th>
-                                <th scope="col" className="px-6 py-3.5 font-semibold">Role</th>
+                                <th scope="col" className="px-6 py-3.5 font-semibold">Penugasan Role</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Dibuat</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
                             </tr>
@@ -184,7 +198,7 @@ const MasterAkun = () => {
                                 <tr>
                                     <td colSpan="5" className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
-                                            <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                                            <Loader2 className="w-8 h-8 text-[#FF7A3D] animate-spin" />
                                             <p className="text-sm text-slate-400">Memuat data akun...</p>
                                         </div>
                                     </td>
@@ -214,23 +228,34 @@ const MasterAkun = () => {
                                     <tr key={user.id} className="hover:bg-slate-50 transition">
                                         <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs">
+                                                <div className="w-9 h-9 rounded-full bg-[#052B35]/10 text-[#052B35] font-bold flex items-center justify-center text-xs">
                                                     {user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                                                 </div>
                                                 <div className="font-semibold text-sm">{user.name || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-xs font-medium text-slate-800 whitespace-nowrap">{user.email || <span className="text-slate-300 italic">-</span>}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {user.role === 'admin' ? (
-                                                <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-full text-[11px] font-semibold">
-                                                    <ShieldCheck className="w-3 h-3" /> Admin
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[11px] font-semibold">
-                                                    <Users className="w-3 h-3" /> Karyawan
-                                                </span>
-                                            )}
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-wrap gap-1.5 max-w-sm">
+                                                {user.roles && user.roles.length > 0 ? (
+                                                    user.roles.map(r => (
+                                                        <span key={r.id} className="inline-flex items-center gap-1 bg-orange-50 text-[#052B35] border border-orange-200 px-2 py-0.5 rounded text-[11px] font-semibold">
+                                                            <ShieldCheck className="w-3 h-3 text-[#FF7A3D]" />
+                                                            {r.label}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    user.role === 'admin' ? (
+                                                        <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
+                                                            <ShieldCheck className="w-3 h-3" /> Admin
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
+                                                            <Users className="w-3 h-3" /> Karyawan
+                                                        </span>
+                                                    )
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
                                             {user.created_at
@@ -239,12 +264,16 @@ const MasterAkun = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => openModalEdit(user)} title="Edit Akun" className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-                                                    <Edit3 className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => handleDelete(user)} title="Hapus Akun" className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                {hasPermission('master_akun.update') && (
+                                                    <button onClick={() => openModalEdit(user)} title="Edit Akun" className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+                                                        <Edit3 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {hasPermission('master_akun.delete') && (
+                                                    <button onClick={() => handleDelete(user)} title="Hapus Akun" className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

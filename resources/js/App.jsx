@@ -17,6 +17,8 @@ const RekapPreview = lazy(() => import('./Pages/Admin/Reports/RekapPreview'));
 const EmployeeReportDetail = lazy(() => import('./Pages/Admin/Reports/Detail'));
 const EmployeePreview = lazy(() => import('./Pages/Admin/Reports/EmployeePreview'));
 const MasterAkun = lazy(() => import('./Pages/Admin/MasterAkun/Index'));
+const Roles = lazy(() => import('./Pages/Admin/Roles/Index'));
+const HakAkses = lazy(() => import('./Pages/Admin/HakAkses/Index'));
 const Devices = lazy(() => import('./Pages/Admin/Devices/Index'));
 const Settings = lazy(() => import('./Pages/Admin/Settings/Index'));
 
@@ -36,7 +38,12 @@ const LoadingFallback = () => (
     </div>
 );
 
-const homePath = (user) => (user?.role === 'admin' ? '/admin/dashboard' : '/user/home');
+const homePath = (user, roles = []) => {
+    if (user?.role === 'admin' || (roles && roles.some(r => r !== 'karyawan'))) {
+        return '/admin/dashboard';
+    }
+    return '/user/home';
+};
 
 const RequireAuth = ({ children }) => {
     const { user, loading } = useAuth();
@@ -57,17 +64,25 @@ const RequireAuth = ({ children }) => {
 };
 
 const RequireRole = ({ role, children }) => {
-    const { user } = useAuth();
+    const { user, roles, hasRole } = useAuth();
+
+    if (role === 'admin') {
+        const canAccessAdmin = user?.role === 'admin' || hasRole('super_admin') || (roles && roles.some(r => r !== 'karyawan'));
+        if (!canAccessAdmin) {
+            return <Navigate to="/user/home" replace />;
+        }
+        return children;
+    }
 
     if (user?.role !== role) {
-        return <Navigate to={homePath(user)} replace />;
+        return <Navigate to={homePath(user, roles)} replace />;
     }
 
     return children;
 };
 
 const GuestOnly = ({ children }) => {
-    const { user, loading } = useAuth();
+    const { user, roles, loading } = useAuth();
 
     if (loading) {
         return (
@@ -78,14 +93,14 @@ const GuestOnly = ({ children }) => {
     }
 
     if (user) {
-        return <Navigate to={homePath(user)} replace />;
+        return <Navigate to={homePath(user, roles)} replace />;
     }
 
     return children;
 };
 
 const RootRedirect = () => {
-    const { user, loading } = useAuth();
+    const { user, roles, loading } = useAuth();
 
     if (loading) {
         return (
@@ -99,7 +114,7 @@ const RootRedirect = () => {
         return <Navigate to="/login" replace />;
     }
 
-    return <Navigate to={homePath(user)} replace />;
+    return <Navigate to={homePath(user, roles)} replace />;
 };
 
 function App() {
@@ -128,6 +143,8 @@ function App() {
                             <Route path="reports/:employeeId" element={<EmployeeReportDetail />} />
                             <Route path="reports/:employeeId/preview" element={<EmployeePreview />} />
                             <Route path="master-akun" element={<MasterAkun />} />
+                            <Route path="roles" element={<Roles />} />
+                            <Route path="hak-akses" element={<HakAkses />} />
                             <Route path="devices" element={<Devices />} />
                             <Route path="settings" element={<Settings />} />
                         </Route>

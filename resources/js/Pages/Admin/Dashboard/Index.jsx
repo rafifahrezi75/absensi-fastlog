@@ -407,7 +407,7 @@ const Dashboard = () => {
         const cat = (p.category || p.kategori || '').toLowerCase();
         const st = (p.status || '').toLowerCase();
         const isApproved = ['disetujui', 'approved'].includes(st);
-        const isCategory = ['dinas', 'izin', 'sakit', 'cuti', 'dispensasi_payroll'].includes(cat) || (!['lembur', 'di_luar_jadwal'].includes(cat) && p.source !== 'overtime' && p.source !== 'anomaly');
+        const isCategory = ['dinas', 'izin', 'sakit', 'cuti', 'dispensasi_payroll'].includes(cat) || (!['lembur', 'di_luar_jadwal'].includes(cat) && p.source !== 'overtime');
         if (!isApproved || !isCategory) return false;
 
         const tglMulai = p.tanggal_mulai ? String(p.tanggal_mulai).slice(0, 10) : '';

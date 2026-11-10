@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Attendance;
-use App\Models\AttendanceAnomaly;
 use App\Models\Employee;
 use App\Models\OperationalSchedule;
 use App\Models\OvertimeLog;
@@ -50,14 +49,6 @@ class AttendanceTimeWindowService
     {
         $windowStart = $tapTime->copy()->subSeconds(59);
         $windowEnd = $tapTime->copy()->addSeconds(59);
-
-        $hasRecentAnomaly = AttendanceAnomaly::where('employee_id', $employeeId)
-            ->whereBetween('waktu_tap', [$windowStart, $windowEnd])
-            ->exists();
-
-        if ($hasRecentAnomaly) {
-            return true;
-        }
 
         $hasRecentOvertime = OvertimeLog::where('employee_id', $employeeId)
             ->whereBetween('waktu_tap', [$windowStart, $windowEnd])
@@ -180,28 +171,6 @@ class AttendanceTimeWindowService
         ];
     }
 
-    protected function handleAnomaly(Employee $employee, Carbon $tapTime, string $date, ?string $reason): array
-    {
-        $attendance = Attendance::where('employee_id', $employee->id)->where('tanggal', $date)->first();
-
-        $anomaly = AttendanceAnomaly::create([
-            'employee_id' => $employee->id,
-            'user_id' => $employee->user_id,
-            'attendance_id' => $attendance?->id,
-            'waktu_tap' => $tapTime,
-            'alasan' => $reason,
-            'status' => 'MENUNGGU',
-        ]);
-
-        return [
-            'success' => true,
-            'window' => 'DI_LUAR_JADWAL',
-            'action' => 'DI_LUAR_JADWAL_TERCATAT',
-            'message' => 'Tap terdeteksi pada rentang di luar jadwal. Menunggu persetujuan admin.',
-            'anomaly' => $anomaly->load('employee'),
-        ];
-    }
-
     protected function handleCheckOut(Employee $employee, Carbon $tapTime, string $date): array
     {
         $attendance = Attendance::firstOrNew([
@@ -303,62 +272,6 @@ class AttendanceTimeWindowService
             'action' => 'LEMBUR_TERCATAT',
             'message' => 'Tap lembur berhasil dicatat (' . $eval['nama_tipe'] . ' - Rp ' . number_format($eval['nominal'], 0, ',', '.') . '). Menunggu persetujuan admin.',
             'overtime' => $overtime->load('employee'),
-        ];
-    }
-
-    public function approveAnomaly(AttendanceAnomaly $anomaly, array $options = []): array
-    {
-        $as = $options['as'] ?? 'permission';
-        $adminNote = $options['admin_note'] ?? null;
-
-        $anomaly->status = 'DISETUJUI';
-        $anomaly->catatan_admin = $adminNote;
-        $anomaly->save();
-
-        $tapTime = Carbon::parse($anomaly->waktu_tap);
-        $date = $tapTime->toDateString();
-
-        $attendance = Attendance::firstOrNew([
-            'employee_id' => $anomaly->employee_id,
-            'tanggal' => $date,
-        ]);
-
-        if (!$attendance->exists) {
-            $attendance->user_id = $anomaly->user_id;
-            $attendance->status = 'hadir';
-        }
-
-        if ($as === 'check_in' || $as === 'jam_masuk') {
-            $attendance->jam_masuk = $tapTime;
-            $attendance->save();
-        } elseif ($as === 'check_out' || $as === 'jam_pulang') {
-            $attendance->jam_pulang = $tapTime;
-            $attendance->save();
-        }
-
-        if (!$anomaly->attendance_id && $attendance->exists) {
-            $anomaly->attendance_id = $attendance->id;
-            $anomaly->save();
-        }
-
-        return [
-            'success' => true,
-            'message' => 'Data di luar jadwal berhasil disetujui.',
-            'anomaly' => $anomaly,
-            'attendance' => $attendance,
-        ];
-    }
-
-    public function rejectAnomaly(AttendanceAnomaly $anomaly, ?string $adminNote = null): array
-    {
-        $anomaly->status = 'DITOLAK';
-        $anomaly->catatan_admin = $adminNote;
-        $anomaly->save();
-
-        return [
-            'success' => true,
-            'message' => 'Data di luar jadwal telah ditolak.',
-            'anomaly' => $anomaly,
         ];
     }
 
