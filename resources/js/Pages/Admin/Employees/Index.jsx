@@ -3,9 +3,17 @@ import { useSearchParams } from 'react-router-dom';
 import { Users, Plus, Search, Download, CheckCircle2, AlertCircle, Edit3, Trash2, UserX, Loader2, RefreshCw, X } from 'lucide-react';
 import ModalKaryawan from './Components/ModalKaryawan';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Employees = () => {
+    const { hasPermission } = useAuth();
+    const canSyncCloud = hasPermission('employees.sync_cloud');
+    const canExport = hasPermission('employees.export');
+    const canCreate = hasPermission('employees.create');
+    const canUpdate = hasPermission('employees.update');
+    const canDelete = hasPermission('employees.delete');
+    const canRowAction = canUpdate || canDelete;
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [syncingCloud, setSyncingCloud] = useState(false);
@@ -96,9 +104,11 @@ const Employees = () => {
 
     useEffect(() => {
         loadEmployees();
-        loadSalaryGrades();
-        loadLateCategories();
-    }, [loadEmployees, loadSalaryGrades, loadLateCategories]);
+        if (canCreate || canUpdate) {
+            loadSalaryGrades();
+            loadLateCategories();
+        }
+    }, [loadEmployees, loadSalaryGrades, loadLateCategories, canCreate, canUpdate]);
 
     useEffect(() => {
         if (notif) {
@@ -287,27 +297,33 @@ const Employees = () => {
                     <p className="text-sm text-slate-500">Kelola informasi pegawai dan pemetaan ID mesin fingerprint.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        disabled={syncingCloud}
-                        onClick={handleSyncCloud}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${syncingCloud ? 'animate-spin' : ''}`} />
-                        <span>{syncingCloud ? 'Menyinkronkan Karyawan...' : 'Sinkron Data Karyawan'}</span>
-                    </button>
-                    <button
-                        onClick={handleExport}
-                        className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
-                    >
-                        <Download className="w-4 h-4" /> Ekspor Data
-                    </button>
-                    <button
-                        onClick={() => handleOpenModal()}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
-                    >
-                        <Plus className="w-4 h-4" /> Tambah Karyawan
-                    </button>
+                    {canSyncCloud && (
+                        <button
+                            type="button"
+                            disabled={syncingCloud}
+                            onClick={handleSyncCloud}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${syncingCloud ? 'animate-spin' : ''}`} />
+                            <span>{syncingCloud ? 'Menyinkronkan Karyawan...' : 'Sinkron Data Karyawan'}</span>
+                        </button>
+                    )}
+                    {canExport && (
+                        <button
+                            onClick={handleExport}
+                            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
+                        >
+                            <Download className="w-4 h-4" /> Ekspor Data
+                        </button>
+                    )}
+                    {canCreate && (
+                        <button
+                            onClick={() => handleOpenModal()}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" /> Tambah Karyawan
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -379,13 +395,15 @@ const Employees = () => {
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Jabatan</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Golongan Gaji</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Status Sinkronisasi</th>
-                                <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
+                                {canRowAction && (
+                                    <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="6" className="py-16 text-center">
+                                    <td colSpan={canRowAction ? 7 : 6} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                                             <p className="text-sm font-medium text-slate-600">Memuat data karyawan...</p>
@@ -456,29 +474,35 @@ const Employees = () => {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <button
-                                                    onClick={() => handleOpenModal(emp)}
-                                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                                                    title="Ubah Data"
-                                                >
-                                                    <Edit3 className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteEmployee(emp.id, emp.nama)}
-                                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                                    title="Hapus"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
+                                        {canRowAction && (
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {canUpdate && (
+                                                        <button
+                                                            onClick={() => handleOpenModal(emp)}
+                                                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                                                            title="Ubah Data"
+                                                        >
+                                                            <Edit3 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    {canDelete && (
+                                                        <button
+                                                            onClick={() => handleDeleteEmployee(emp.id, emp.nama)}
+                                                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                                            title="Hapus"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" className="py-16 text-center">
+                                    <td colSpan={canRowAction ? 7 : 6} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
                                                 <UserX className="w-7 h-7 text-slate-300" />

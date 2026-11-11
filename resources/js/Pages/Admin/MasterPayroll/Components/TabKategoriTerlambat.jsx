@@ -21,7 +21,12 @@ const TabKategoriTerlambat = ({
     allEmployees = [],
     onOpenModal,
     onDeleteCategory,
-    onToggleExemption
+    onToggleExemption,
+    canViewRules = true,
+    canCreate = true,
+    canUpdate = true,
+    canDelete = true,
+    canManageExemption = true
 }) => {
     const [searchExempt, setSearchExempt] = useState('');
     const [quickSearchEmp, setQuickSearchEmp] = useState('');
@@ -55,7 +60,9 @@ const TabKategoriTerlambat = ({
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {canViewRules && (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gradient-to-br from-indigo-50 to-white p-5 rounded-xl border border-indigo-100 shadow-sm flex items-start justify-between">
                     <div>
                         <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider block mb-1">
@@ -115,13 +122,15 @@ const TabKategoriTerlambat = ({
                         Aturan penalti per kejadian berdasarkan kelompok jabatan dan durasi menit terlambat.
                     </p>
                 </div>
-                <button
-                    onClick={() => onOpenModal(null)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition shadow-sm cursor-pointer"
-                >
-                    <Plus className="w-4 h-4" />
-                    Tambah Kategori Baru
-                </button>
+                {canCreate && (
+                    <button
+                        onClick={() => onOpenModal(null)}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition shadow-sm cursor-pointer"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Tambah Kategori Baru
+                    </button>
+                )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -157,14 +166,16 @@ const TabKategoriTerlambat = ({
                                     </div>
 
                                     <div className="flex items-center gap-1.5">
-                                        <button
-                                            onClick={() => onOpenModal(cat)}
-                                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition"
-                                            title="Edit Kategori & Tiers"
-                                        >
-                                            <Edit3 className="w-4 h-4" />
-                                        </button>
-                                        {!cat.is_locked && (
+                                        {canUpdate && (
+                                            <button
+                                                onClick={() => onOpenModal(cat)}
+                                                className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition"
+                                                title="Edit Kategori & Tiers"
+                                            >
+                                                <Edit3 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        {canDelete && !cat.is_locked && (
                                             <button
                                                 onClick={() => onDeleteCategory(cat.id, cat.nama)}
                                                 className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition"
@@ -285,18 +296,22 @@ const TabKategoriTerlambat = ({
 
                         <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                             <span>Karyawan terhubung langsung: <strong className="text-slate-700">{cat.employees_count || 0}</strong></span>
-                            <button
-                                onClick={() => onOpenModal(cat)}
-                                className="font-semibold text-indigo-600 hover:text-indigo-800 transition"
-                            >
-                                Kelola Aturan &rarr;
-                            </button>
+                            {canUpdate && (
+                                <button
+                                    onClick={() => onOpenModal(cat)}
+                                    className="font-semibold text-indigo-600 hover:text-indigo-800 transition"
+                                >
+                                    Kelola Aturan &rarr;
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}
             </div>
+                </>
+            )}
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-8">
+            <div className={`bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden ${canViewRules ? 'mt-8' : ''}`}>
                 <div className="p-5 bg-gradient-to-r from-amber-50/80 to-white border-b border-amber-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-sm">
@@ -326,53 +341,55 @@ const TabKategoriTerlambat = ({
                     </div>
                 </div>
 
-                <div className="p-5 border-b border-slate-100 bg-slate-50/40">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                        <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">
-                            Cepat Tambah Pengecualian Karyawan:
-                        </span>
-                        <div className="relative flex-1 max-w-md">
-                            <input
-                                type="text"
-                                placeholder="Ketik nama karyawan untuk menambahkan..."
-                                value={quickSearchEmp}
-                                onChange={(e) => setQuickSearchEmp(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                            />
-                            {candidatesForExemption.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto divide-y divide-slate-100">
-                                    {candidatesForExemption.slice(0, 6).map(candidate => (
-                                        <div
-                                            key={candidate.id}
-                                            className="p-2.5 hover:bg-slate-50 flex items-center justify-between text-xs transition"
-                                        >
-                                            <div>
-                                                <div className="font-semibold text-slate-800">{candidate.nama}</div>
-                                                <div className="text-[10px] text-slate-400">
-                                                    PIN: #{candidate.idFinger || candidate.pin || '-'} | Dept: {candidate.dept || '-'}
-                                                </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    onToggleExemption(candidate.id);
-                                                    setQuickSearchEmp('');
-                                                }}
-                                                className={`px-2.5 py-1 rounded text-xs font-semibold transition ${
-                                                    candidate.is_exempt
-                                                        ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
-                                                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                                                }`}
+                {canManageExemption && (
+                    <div className="p-5 border-b border-slate-100 bg-slate-50/40">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">
+                                Cepat Tambah Pengecualian Karyawan:
+                            </span>
+                            <div className="relative flex-1 max-w-md">
+                                <input
+                                    type="text"
+                                    placeholder="Ketik nama karyawan untuk menambahkan..."
+                                    value={quickSearchEmp}
+                                    onChange={(e) => setQuickSearchEmp(e.target.value)}
+                                    className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                />
+                                {candidatesForExemption.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto divide-y divide-slate-100">
+                                        {candidatesForExemption.slice(0, 6).map(candidate => (
+                                            <div
+                                                key={candidate.id}
+                                                className="p-2.5 hover:bg-slate-50 flex items-center justify-between text-xs transition"
                                             >
-                                                {candidate.is_exempt ? 'Batalkan Pengecualian' : '+ Beri Bebas Aturan'}
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                                <div>
+                                                    <div className="font-semibold text-slate-800">{candidate.nama}</div>
+                                                    <div className="text-[10px] text-slate-400">
+                                                        PIN: #{candidate.idFinger || candidate.pin || '-'} | Dept: {candidate.dept || '-'}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        onToggleExemption(candidate.id);
+                                                        setQuickSearchEmp('');
+                                                    }}
+                                                    className={`px-2.5 py-1 rounded text-xs font-semibold transition ${
+                                                        candidate.is_exempt
+                                                            ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                                                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                                                    }`}
+                                                >
+                                                    {candidate.is_exempt ? 'Batalkan Pengecualian' : '+ Beri Bebas Aturan'}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left">
@@ -383,7 +400,9 @@ const TabKategoriTerlambat = ({
                                 <th className="px-5 py-3">Departemen</th>
                                 <th className="px-5 py-3">Jabatan</th>
                                 <th className="px-5 py-3">Status Pengkhususan</th>
-                                <th className="px-5 py-3 text-center">Tindakan</th>
+                                {canManageExemption && (
+                                    <th className="px-5 py-3 text-center">Tindakan</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -407,21 +426,23 @@ const TabKategoriTerlambat = ({
                                                 <ShieldCheck className="w-3 h-3 text-amber-600" /> Bebas Denda & Lembur
                                             </span>
                                         </td>
-                                        <td className="px-5 py-3 text-center">
-                                            <button
-                                                type="button"
-                                                onClick={() => onToggleExemption(emp.id)}
-                                                className="px-2.5 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 font-medium transition cursor-pointer text-xs"
-                                                title="Hapus status pengkhususan karyawan"
-                                            >
-                                                Hapus Pengkhususan
-                                            </button>
-                                        </td>
+                                        {canManageExemption && (
+                                            <td className="px-5 py-3 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onToggleExemption(emp.id)}
+                                                    className="px-2.5 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 font-medium transition cursor-pointer text-xs"
+                                                    title="Hapus status pengkhususan karyawan"
+                                                >
+                                                    Hapus Pengkhususan
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" className="text-center py-8 text-slate-400 italic">
+                                    <td colSpan={canManageExemption ? 6 : 5} className="text-center py-8 text-slate-400 italic">
                                         {searchExempt
                                             ? 'Tidak ada karyawan khusus yang cocok dengan pencarian.'
                                             : 'Belum ada karyawan yang diberi pengkhususan (semua karyawan mengikuti aturan keterlambatan dan lembur reguler).'}

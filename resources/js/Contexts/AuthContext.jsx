@@ -56,14 +56,16 @@ export const AuthProvider = ({ children }) => {
 
     const hasPermission = (permission) => {
         if (!user) return false;
-        if (user.role === 'admin' || roles.includes('super_admin')) return true;
+        if (Array.isArray(permission)) {
+            return permission.some((item) => permissions.includes(item));
+        }
         return permissions.includes(permission);
     };
 
     const hasRole = (role) => {
         if (!user) return false;
-        if (user.role === 'admin' && (role === 'super_admin' || role === 'admin')) return true;
         if (Array.isArray(role)) return role.some(r => roles.includes(r));
+        if (roles.length === 0 && user.role === 'admin' && (role === 'super_admin' || role === 'admin')) return true;
         return roles.includes(role);
     };
 

@@ -157,13 +157,15 @@ const RolesIndex = () => {
                                 <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tipe</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold text-center">Jumlah Pengguna</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold text-center">Matriks Hak Akses</th>
-                                <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
+                                {(hasPermission('hak_akses.view') || hasPermission('master_role.update') || hasPermission('master_role.delete')) && (
+                                    <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="6" className="py-16 text-center">
+                                    <td colSpan={(hasPermission('hak_akses.view') || hasPermission('master_role.update') || hasPermission('master_role.delete')) ? 6 : 5} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <Loader2 className="w-8 h-8 text-[#FF7A3D] animate-spin" />
                                             <p className="text-sm text-slate-400">Memuat data role...</p>
@@ -172,7 +174,7 @@ const RolesIndex = () => {
                                 </tr>
                             ) : roles.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="py-16 text-center">
+                                    <td colSpan={(hasPermission('hak_akses.view') || hasPermission('master_role.update') || hasPermission('master_role.delete')) ? 6 : 5} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <Shield className="w-10 h-10 text-slate-300" />
                                             <p className="text-sm font-semibold text-slate-500">Belum ada role yang tersedia.</p>
@@ -225,37 +227,39 @@ const RolesIndex = () => {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {hasPermission('hak_akses.view') && role.show_in_matrix !== false && (
-                                                    <button
-                                                        onClick={() => navigate(`/admin/hak-akses?role_id=${role.id}`)}
-                                                        title="Atur Matriks Hak Akses"
-                                                        className="p-2 text-slate-400 hover:text-[#FF7A3D] hover:bg-orange-50 rounded-lg transition"
-                                                    >
-                                                        <KeyRound className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                {hasPermission('master_role.update') && (
-                                                    <button
-                                                        onClick={() => openModalEdit(role)}
-                                                        title="Edit Role"
-                                                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                                                    >
-                                                        <Edit3 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                {hasPermission('master_role.delete') && !role.is_system && (
-                                                    <button
-                                                        onClick={() => handleDelete(role)}
-                                                        title="Hapus Role"
-                                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
+                                        {(hasPermission('hak_akses.view') || hasPermission('master_role.update') || hasPermission('master_role.delete')) && (
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {hasPermission('hak_akses.view') && role.show_in_matrix !== false && (
+                                                        <button
+                                                            onClick={() => navigate(`/admin/hak-akses?role_id=${role.id}`)}
+                                                            title="Atur Matriks Hak Akses"
+                                                            className="p-2 text-slate-400 hover:text-[#FF7A3D] hover:bg-orange-50 rounded-lg transition"
+                                                        >
+                                                            <KeyRound className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('master_role.update') && (
+                                                        <button
+                                                            onClick={() => openModalEdit(role)}
+                                                            title="Edit Role"
+                                                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                                                        >
+                                                            <Edit3 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('master_role.delete') && !role.is_system && (
+                                                        <button
+                                                            onClick={() => handleDelete(role)}
+                                                            title="Hapus Role"
+                                                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             )}

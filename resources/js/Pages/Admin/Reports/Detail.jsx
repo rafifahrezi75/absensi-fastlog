@@ -7,6 +7,7 @@ import {
     DollarSign, Award, Layers
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 
 const formatIDR = (val) => {
     return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
@@ -15,6 +16,9 @@ const formatIDR = (val) => {
 const EmployeeReportDetail = () => {
     const { employeeId } = useParams();
     const navigate = useNavigate();
+    const { hasPermission } = useAuth();
+    const canExportPdf = hasPermission('reports.export');
+    const canExportExcel = hasPermission('reports.export_excel');
     const [searchParams, setSearchParams] = useSearchParams();
 
     const initialStart = searchParams.get('start_date') || (() => {
@@ -265,24 +269,30 @@ const EmployeeReportDetail = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
-                    <button
-                        onClick={handleExportExcel}
-                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
-                        title="Unduh Rekap Presensi Karyawan ke File Excel"
-                    >
-                        <FileSpreadsheet className="w-4 h-4" />
-                        <span>Export Excel</span>
-                    </button>
-                    <button
-                        onClick={handlePrint}
-                        className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer"
-                        title="Buka PDF Laporan Presensi di Tab Baru"
-                    >
-                        <Printer className="w-4 h-4" />
-                        <span>Cetak</span>
-                    </button>
-                </div>
+                {(canExportExcel || canExportPdf) && (
+                    <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
+                        {canExportExcel && (
+                            <button
+                                onClick={handleExportExcel}
+                                className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm"
+                                title="Unduh Rekap Presensi Karyawan ke File Excel"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" />
+                                <span>Export Excel</span>
+                            </button>
+                        )}
+                        {canExportPdf && (
+                            <button
+                                onClick={handlePrint}
+                                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer"
+                                title="Buka PDF Laporan Presensi di Tab Baru"
+                            >
+                                <Printer className="w-4 h-4" />
+                                <span>Cetak</span>
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">

@@ -11,7 +11,7 @@ const kategoriBadgeColor = (kategori) => {
     return 'bg-blue-50 text-blue-700 border-blue-200';
 };
 
-const ModalKelolaTindakan = ({ isOpen, onClose, tindakanList, onSave, onDelete }) => {
+const ModalKelolaTindakan = ({ isOpen, onClose, tindakanList, onSave, onDelete, canCreate = true, canUpdate = true, canDelete = true }) => {
     const [form, setForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [activeGroup, setActiveGroup] = useState('Tepat Waktu');
@@ -67,6 +67,7 @@ const ModalKelolaTindakan = ({ isOpen, onClose, tindakanList, onSave, onDelete }
                     </button>
                 </div>
 
+                {(editingId ? canUpdate : canCreate) && (
                 <form onSubmit={handleSubmit} className="px-6 py-4 bg-indigo-50/40 border-b border-slate-100 shrink-0 space-y-3">
                     <p className="text-xs font-semibold text-slate-500">
                         {editingId ? 'Edit tindakan yang dipilih' : 'Tambah tindakan baru'}
@@ -110,6 +111,7 @@ const ModalKelolaTindakan = ({ isOpen, onClose, tindakanList, onSave, onDelete }
                         </div>
                     </div>
                 </form>
+                )}
 
                 <div className="overflow-y-auto flex-1 thin-scrollbar [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
                   {/* Category tabs */}
@@ -158,12 +160,16 @@ const ModalKelolaTindakan = ({ isOpen, onClose, tindakanList, onSave, onDelete }
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <button type="button" onClick={() => handleEditClick(item)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button type="button" onClick={() => { if (window.confirm(`Hapus tindakan "${item.nama}"?`)) onDelete(item.id); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canUpdate && (
+                              <button type="button" onClick={() => handleEditClick(item)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button type="button" onClick={() => { if (window.confirm(`Hapus tindakan "${item.nama}"?`)) onDelete(item.id); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))

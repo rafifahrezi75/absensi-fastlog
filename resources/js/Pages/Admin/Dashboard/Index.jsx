@@ -21,6 +21,7 @@ import {
   Calendar
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 import { dashboardMockRecentLogs, dashboardMockAbsentEmployees, dashboardMockStats, KATEGORI_TINDAKAN, INITIAL_TINDAKAN } from './data/dashboardMock';
 import ModalKelolaTindakan from './Components/ModalKelolaTindakan';
 import ModalEksekusiTindakan from './Components/ModalEksekusiTindakan';
@@ -248,6 +249,17 @@ const formatCategoryLabel = (val) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canSyncFingerprint = hasPermission('attendance.fetch');
+  const canViewAttendance = hasPermission('attendance.view');
+  const canViewPermissions = hasPermission('permissions.view');
+  const canManageTindakan = hasPermission(['master_tindakan.view', 'master_tindakan.create', 'master_tindakan.update', 'master_tindakan.delete']);
+  const canCreateTindakan = hasPermission('master_tindakan.create');
+  const canUpdateTindakan = hasPermission('master_tindakan.update');
+  const canDeleteTindakan = hasPermission('master_tindakan.delete');
+  const canDrilldown = hasPermission('dashboard.drilldown');
+  const canViewHrActions = hasPermission('employee_hr_actions.view');
+  const canExecuteHrActions = hasPermission('employee_hr_actions.create');
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [stats, setStats] = useState({
@@ -424,7 +436,9 @@ const Dashboard = () => {
 
   const level1Data = useMemo(() => ({
     title: `Evaluasi Kedisiplinan & Kehadiran (${filterBulan || 'Bulan Ini'})`,
-    subtitle: "Klik pada salah satu batang status untuk melihat rincian kriteria keparahannya.",
+    subtitle: canDrilldown
+      ? "Klik pada salah satu batang status untuk melihat rincian kriteria keparahannya."
+      : "Ringkasan distribusi status kehadiran dan kedisiplinan karyawan.",
     categories: ['Tepat Waktu', 'Terlambat', 'Izin / Sakit / Dinas', 'Tanpa Ket. (Alpa)'],
     series: [
       {
@@ -437,7 +451,7 @@ const Dashboard = () => {
         ]
       }
     ]
-  }), [ontimePegawaiCount, latePegawaiCount, izinPegawaiCount, alpaPegawaiCount, filterBulan]);
+  }), [ontimePegawaiCount, latePegawaiCount, izinPegawaiCount, alpaPegawaiCount, filterBulan, canDrilldown]);
 
   const level2Data = useMemo(() => ({
     'Tepat Waktu': {
@@ -634,6 +648,7 @@ const Dashboard = () => {
   };
 
   const handleChartClick = (event, chartContext, config) => {
+    if (!canDrilldown) return;
     const clickedIndex = config.dataPointIndex;
     if (clickedIndex === undefined || clickedIndex === -1) return;
 
@@ -647,6 +662,7 @@ const Dashboard = () => {
       setSelectedCategory(categoryName);
       setDrillLevel(3);
     } else if (drillLevel === 3) {
+      if (!canViewHrActions && !canExecuteHrActions) return;
       const currentLevel3 = level3Data[selectedCategory] || { categories: [] };
       const tindakanNama = currentLevel3.categories[clickedIndex];
       openEksekusiModal(selectedCategory, tindakanNama || 'Semua Tindakan');
@@ -770,6 +786,14 @@ const Dashboard = () => {
     setSelectedCategory('');
   };
 
+  useEffect(() => {
+    if (!canDrilldown && drillLevel !== 1) {
+      setDrillLevel(1);
+      setSelectedStatus('');
+      setSelectedCategory('');
+    }
+  }, [canDrilldown, drillLevel]);
+
   const handleBackToLevel1 = () => {
     setDrillLevel(1);
     setSelectedStatus('');
@@ -781,16 +805,18 @@ const Dashboard = () => {
     setSelectedCategory('');
   };
 
-  const barChartOptions = useMemo(() => ({
-    chart: {
-      type: 'bar',
-      toolbar: { show: false },
-      fontFamily: 'Inter, sans-serif',
-      events: {
-        dataPointSelection: handleChartClick
+  const barChartOptions = useMemo(() => {
+    const isChartClickable = canDrilldown && (drillLevel < 3 || canViewHrActions || canExecuteHrActions);
+    return {
+      chart: {
+        type: 'bar',
+        toolbar: { show: false },
+        fontFamily: 'Inter, sans-serif',
+        events: isChartClickable ? {
+          dataPointSelection: handleChartClick
+        } : {},
+        cursor: isChartClickable ? 'pointer' : 'default'
       },
-      cursor: 'pointer'
-    },
     plotOptions: {
       bar: {
         borderRadius: 8,
@@ -878,7 +904,8 @@ const Dashboard = () => {
         }
       }
     ]
-  }), [drillLevel, activeChart.categories, handleChartClick, chartRefreshKey]);
+    };
+  }, [drillLevel, activeChart.categories, handleChartClick, chartRefreshKey, canDrilldown, canViewHrActions, canExecuteHrActions]);
 
   const onTimeCount = Math.max(0, (stats.hadir || 0) - (stats.terlambat || 0));
 
@@ -937,15 +964,17 @@ const Dashboard = () => {
           <p className="text-sm text-slate-500">Ringkasan aktivitas absensi real-time, evaluasi kedisiplinan, dan monitoring mesin.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleSyncFingerprint}
-            disabled={isSyncing}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Syncing...' : 'Sync Fingerprint'}
-          </button>
+          {canSyncFingerprint && (
+            <button
+              type="button"
+              onClick={handleSyncFingerprint}
+              disabled={isSyncing}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing...' : 'Sync Fingerprint'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -1005,8 +1034,8 @@ const Dashboard = () => {
         </div>
 
         <div
-          onClick={handleGoToPermissions}
-          className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-between cursor-pointer hover:border-blue-200"
+          onClick={canViewPermissions ? handleGoToPermissions : undefined}
+          className={`group bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_10px_28px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 flex items-center justify-between ${canViewPermissions ? 'cursor-pointer hover:border-blue-200' : ''}`}
         >
           <div>
             <p className="text-xs font-semibold uppercase text-blue-600 tracking-wider">Dinas / Izin / Sakit</p>
@@ -1049,14 +1078,16 @@ const Dashboard = () => {
                   <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-2 pointer-events-none" />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setIsKelolaTindakanOpen(true)}
-                  title="Kelola Tindakan HR"
-                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
-                >
-                  <Settings2 className="w-4 h-4" />
-                </button>
+                {canManageTindakan && (
+                  <button
+                    type="button"
+                    onClick={() => setIsKelolaTindakanOpen(true)}
+                    title="Kelola Tindakan HR"
+                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                  </button>
+                )}
 
                 {drillLevel > 1 && (
                   <div className="flex items-center gap-1.5">
@@ -1106,17 +1137,29 @@ const Dashboard = () => {
           </div>
 
           <div className="pt-3 mt-1 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <div className="flex items-center gap-1.5 font-medium">
-              <span className="text-slate-400">Navigasi:</span>
-              <span className={drillLevel === 1 ? 'text-indigo-600 font-bold' : ''}>Status Utama</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              <span className={drillLevel === 2 ? 'text-indigo-600 font-bold' : ''}>{selectedStatus || 'Kategori'}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              <span className={drillLevel === 3 ? 'text-indigo-600 font-bold' : ''}>{selectedCategory || 'Tindakan HR'}</span>
-            </div>
-            <span className="text-[11px] text-slate-400 italic">
-              {drillLevel < 3 ? 'Tip: Klik batang grafik untuk drill-down' : 'Tip: Klik batang untuk membuka & mengeksekusi daftar pegawai'}
-            </span>
+            {canDrilldown ? (
+              <>
+                <div className="flex items-center gap-1.5 font-medium">
+                  <span className="text-slate-400">Navigasi:</span>
+                  <span className={drillLevel === 1 ? 'text-indigo-600 font-bold' : ''}>Status Utama</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <span className={drillLevel === 2 ? 'text-indigo-600 font-bold' : ''}>{selectedStatus || 'Kategori'}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <span className={drillLevel === 3 ? 'text-indigo-600 font-bold' : ''}>{selectedCategory || 'Tindakan HR'}</span>
+                </div>
+                <span className="text-[11px] text-slate-400 italic">
+                  {drillLevel < 3
+                    ? 'Tip: Klik batang grafik untuk drill-down'
+                    : (canViewHrActions || canExecuteHrActions
+                        ? 'Tip: Klik batang untuk membuka & mengeksekusi daftar pegawai'
+                        : 'Ringkasan distribusi tindakan HR pegawai')}
+                </span>
+              </>
+            ) : (
+              <span className="text-[11px] text-slate-400 italic">
+                Ringkasan status utama kedisiplinan pegawai
+              </span>
+            )}
           </div>
         </div>
 
@@ -1174,13 +1217,15 @@ const Dashboard = () => {
               <h2 className="font-bold text-slate-900">Log Absensi Masuk Terkini</h2>
               <p className="text-xs text-slate-500">Hasil tap mesin fingerprint secara real-time dari database.</p>
             </div>
-            <button
-              type="button"
-              onClick={handleGoToAttendance}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition cursor-pointer"
-            >
-              Lihat Semua Log →
-            </button>
+            {canViewAttendance && (
+              <button
+                type="button"
+                onClick={handleGoToAttendance}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition cursor-pointer"
+              >
+                Lihat Semua Log →
+              </button>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left text-slate-600">
@@ -1278,6 +1323,9 @@ const Dashboard = () => {
         tindakanList={tindakanList}
         onSave={handleSaveTindakan}
         onDelete={handleDeleteTindakan}
+        canCreate={canCreateTindakan}
+        canUpdate={canUpdateTindakan}
+        canDelete={canDeleteTindakan}
       />
 
       <ModalEksekusiTindakan
@@ -1293,6 +1341,7 @@ const Dashboard = () => {
         opsiTindakan={opsiTindakanUntukModal}
         onChangeAction={handleChangeTindakanAksi}
         onBatchApply={handleBatchApply}
+        canExecute={canExecuteHrActions}
       />
     </div>
   );

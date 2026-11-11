@@ -112,6 +112,12 @@ const AdminLayout = () => {
         }
         setShowNotifications(false);
         const targetUrl = item.data?.action_url || '/admin/permissions';
+        if (targetUrl.startsWith('/admin/permissions') && !hasPermission('permissions.view')) {
+            return;
+        }
+        if (targetUrl.startsWith('/admin/attendance') && !hasPermission('attendance.view')) {
+            return;
+        }
         navigate(targetUrl);
     };
 
@@ -187,12 +193,16 @@ const AdminLayout = () => {
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto hide-scrollbar">
-                    <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mb-2">Utama</div>
+                    {(hasPermission('dashboard.view') || hasPermission('attendance.view') || hasPermission('permissions.view')) && (
+                        <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mb-2">Utama</div>
+                    )}
 
-                    <NavLink to="/admin/dashboard" className={navLinkClass}>
-                        <LayoutDashboard className="w-4 h-4" />
-                        <span>Dasbor</span>
-                    </NavLink>
+                    {hasPermission('dashboard.view') && (
+                        <NavLink to="/admin/dashboard" className={navLinkClass}>
+                            <LayoutDashboard className="w-4 h-4" />
+                            <span>Dasbor</span>
+                        </NavLink>
+                    )}
                     {hasPermission('attendance.view') && (
                         <NavLink to="/admin/attendance" className={navLinkClass}>
                             <Clock className="w-4 h-4" />
@@ -206,7 +216,7 @@ const AdminLayout = () => {
                         </NavLink>
                     )}
 
-                    {(hasPermission('employees.view') || hasPermission('payroll.view') || hasPermission('master_payroll.view') || hasPermission('reports.view') || hasPermission('settings.view')) && (
+                    {(hasPermission('employees.view') || hasPermission('payroll.view') || hasPermission('master_payroll.view') || hasPermission('reports.view') || hasPermission('settings.view') || hasPermission('settings.holidays') || hasPermission('late_rules.view') || hasPermission('late_rules.exemption') || hasPermission('overtime_rules.view')) && (
                         <div className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 mt-5 mb-2">Kepegawaian & Gaji</div>
                     )}
 
@@ -254,7 +264,7 @@ const AdminLayout = () => {
                         </NavLink>
                     )}
 
-                    {hasPermission('settings.view') && (
+                    {(hasPermission('settings.view') || hasPermission('settings.holidays') || hasPermission('late_rules.view') || hasPermission('late_rules.exemption') || hasPermission('overtime_rules.view')) && (
                         <NavLink to="/admin/settings" className={navLinkClass}>
                             <CalendarClock className="w-4 h-4" />
                             <span>Aturan Kerja & Lembur</span>
@@ -424,17 +434,19 @@ const AdminLayout = () => {
                                         )}
                                     </div>
 
-                                    <div className="p-2.5 border-t border-slate-100 bg-slate-50 text-center">
-                                        <button
-                                            onClick={() => {
-                                                setShowNotifications(false);
-                                                navigate('/admin/permissions');
-                                            }}
-                                            className="text-xs font-semibold text-[#FF7A3D] hover:text-orange-700 transition block w-full text-center"
-                                        >
-                                            Lihat Semua Kelola Izin & Lembur
-                                        </button>
-                                    </div>
+                                    {hasPermission('permissions.view') && (
+                                        <div className="p-2.5 border-t border-slate-100 bg-slate-50 text-center">
+                                            <button
+                                                onClick={() => {
+                                                    setShowNotifications(false);
+                                                    navigate('/admin/permissions');
+                                                }}
+                                                className="text-xs font-semibold text-[#FF7A3D] hover:text-orange-700 transition block w-full text-center"
+                                            >
+                                                Lihat Semua Kelola Izin & Lembur
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

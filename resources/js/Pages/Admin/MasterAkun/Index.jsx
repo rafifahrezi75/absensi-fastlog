@@ -190,13 +190,15 @@ const MasterAkun = () => {
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Email</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Penugasan Role</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Dibuat</th>
-                                <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
+                                {(hasPermission('master_akun.update') || hasPermission('master_akun.delete')) && (
+                                    <th scope="col" className="px-6 py-3.5 font-semibold text-center">Tindakan</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="5" className="py-16 text-center">
+                                    <td colSpan={(hasPermission('master_akun.update') || hasPermission('master_akun.delete')) ? 5 : 4} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <Loader2 className="w-8 h-8 text-[#FF7A3D] animate-spin" />
                                             <p className="text-sm text-slate-400">Memuat data akun...</p>
@@ -205,7 +207,7 @@ const MasterAkun = () => {
                                 </tr>
                             ) : filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="py-16 text-center">
+                                    <td colSpan={(hasPermission('master_akun.update') || hasPermission('master_akun.delete')) ? 5 : 4} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
                                                 <UserX className="w-7 h-7 text-slate-300" />
@@ -262,20 +264,22 @@ const MasterAkun = () => {
                                                 ? new Date(user.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
                                                 : <span className="text-slate-300 italic">-</span>}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center justify-center gap-2">
-                                                {hasPermission('master_akun.update') && (
-                                                    <button onClick={() => openModalEdit(user)} title="Edit Akun" className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-                                                        <Edit3 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                {hasPermission('master_akun.delete') && (
-                                                    <button onClick={() => handleDelete(user)} title="Hapus Akun" className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
+                                        {(hasPermission('master_akun.update') || hasPermission('master_akun.delete')) && (
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {hasPermission('master_akun.update') && (
+                                                        <button onClick={() => openModalEdit(user)} title="Edit Akun" className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+                                                            <Edit3 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    {hasPermission('master_akun.delete') && (
+                                                        <button onClick={() => handleDelete(user)} title="Hapus Akun" className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             )}

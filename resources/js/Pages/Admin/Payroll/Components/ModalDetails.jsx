@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, Clock, AlertTriangle, Calendar, ShieldCheck, Loader2 } from 'lucide-react';
 import api from '../../../../lib/api';
 
-const ModalDetails = ({ isOpen, onClose, employee, periode, onDataChanged }) => {
+const ModalDetails = ({ isOpen, onClose, employee, periode, onDataChanged, canDispense = false }) => {
     const [details, setDetails] = useState([]);
     const [loading, setLoading] = useState(false);
     const [updatingDate, setUpdatingDate] = useState(null);
@@ -142,7 +142,7 @@ const ModalDetails = ({ isOpen, onClose, employee, periode, onDataChanged }) => 
                                                 )}
                                             </div>
 
-                                            {isActionable && (
+                                            {canDispense && isActionable && (
                                                 <button
                                                     onClick={() => handleToggleDispensation(item)}
                                                     disabled={isUpdating}

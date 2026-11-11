@@ -6,9 +6,15 @@ import {
     Loader2, X, Send, Database, HardDrive, Smartphone
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const DevicesIndex = () => {
+    const { hasPermission } = useAuth();
+    const canUpdate = hasPermission('devices.update');
+    const canPing = hasPermission('devices.ping');
+    const canSync = hasPermission('devices.sync');
+    const canSyncUsers = hasPermission('devices.sync_users');
     const [deviceData, setDeviceData] = useState(null);
     const [stats, setStats] = useState(null);
     const [recentSyncLogs, setRecentSyncLogs] = useState([]);
@@ -183,34 +189,40 @@ const DevicesIndex = () => {
                     <p className="text-sm text-slate-500">Monitoring terminal biometrik Fingerspot, status telemetri, dan sinkronisasi cloud.</p>
                 </div>
                 <div className="flex items-center gap-2.5 shrink-0 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
-                    <button
-                        type="button"
-                        onClick={handlePing}
-                        disabled={pingLoading}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-xs cursor-pointer disabled:opacity-60 whitespace-nowrap"
-                    >
-                        <Radio className={`w-3.5 h-3.5 text-indigo-600 ${pingLoading ? 'animate-pulse' : ''}`} />
-                        <span>{pingLoading ? 'Menguji Ping...' : 'Uji Koneksi (Ping)'}</span>
-                    </button>
+                    {canPing && (
+                        <button
+                            type="button"
+                            onClick={handlePing}
+                            disabled={pingLoading}
+                            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition shadow-xs cursor-pointer disabled:opacity-60 whitespace-nowrap"
+                        >
+                            <Radio className={`w-3.5 h-3.5 text-indigo-600 ${pingLoading ? 'animate-pulse' : ''}`} />
+                            <span>{pingLoading ? 'Menguji Ping...' : 'Uji Koneksi (Ping)'}</span>
+                        </button>
+                    )}
 
-                    <button
-                        type="button"
-                        onClick={handleSyncUsers}
-                        disabled={syncUserLoading}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition shadow-xs cursor-pointer disabled:opacity-60 whitespace-nowrap"
-                    >
-                        <Users className={`w-3.5 h-3.5 ${syncUserLoading ? 'animate-spin' : ''}`} />
-                        <span>{syncUserLoading ? 'Menyinkronkan Karyawan...' : 'Sinkron Data Karyawan'}</span>
-                    </button>
+                    {canSyncUsers && (
+                        <button
+                            type="button"
+                            onClick={handleSyncUsers}
+                            disabled={syncUserLoading}
+                            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition shadow-xs cursor-pointer disabled:opacity-60 whitespace-nowrap"
+                        >
+                            <Users className={`w-3.5 h-3.5 ${syncUserLoading ? 'animate-spin' : ''}`} />
+                            <span>{syncUserLoading ? 'Menyinkronkan Karyawan...' : 'Sinkron Data Karyawan'}</span>
+                        </button>
+                    )}
 
-                    <button
-                        type="button"
-                        onClick={() => setIsFetchLogOpen(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm cursor-pointer whitespace-nowrap"
-                    >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        <span>Sync Log Absensi</span>
-                    </button>
+                    {canSync && (
+                        <button
+                            type="button"
+                            onClick={() => setIsFetchLogOpen(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm cursor-pointer whitespace-nowrap"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Sync Log Absensi</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -283,13 +295,15 @@ const DevicesIndex = () => {
 
                     <div className="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 relative">
                         <span>Aktivitas: {deviceData?.last_activity}</span>
-                        <button
-                            type="button"
-                            onClick={() => setIsEditOpen(true)}
-                            className="inline-flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-semibold transition cursor-pointer"
-                        >
-                            <Edit3 className="w-3.5 h-3.5" /> Ubah Info
-                        </button>
+                        {canUpdate && (
+                            <button
+                                type="button"
+                                onClick={() => setIsEditOpen(true)}
+                                className="inline-flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-semibold transition cursor-pointer"
+                            >
+                                <Edit3 className="w-3.5 h-3.5" /> Ubah Info
+                            </button>
+                        )}
                     </div>
                 </div>
 

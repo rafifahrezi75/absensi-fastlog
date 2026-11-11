@@ -15,15 +15,38 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 import ModalKategoriLembur from './Components/ModalKategoriLembur';
 import ModalKategoriTerlambat from '../MasterPayroll/Components/ModalKategoriTerlambat';
 import TabKategoriTerlambat from '../MasterPayroll/Components/TabKategoriTerlambat';
 
 const Settings = () => {
+    const { hasPermission } = useAuth();
+    const canViewSettings = hasPermission('settings.view');
+    const canUpdateSettings = hasPermission('settings.update');
+    const canManageHolidays = hasPermission('settings.holidays');
+    const canViewLateRules = hasPermission('late_rules.view');
+    const canCreateLateRules = hasPermission('late_rules.create');
+    const canUpdateLateRules = hasPermission('late_rules.update');
+    const canDeleteLateRules = hasPermission('late_rules.delete');
+    const canManageExemption = hasPermission('late_rules.exemption');
+    const canViewOvertimeRules = hasPermission('overtime_rules.view');
+    const canCreateOvertimeRules = hasPermission('overtime_rules.create');
+    const canUpdateOvertimeRules = hasPermission('overtime_rules.update');
+    const canDeleteOvertimeRules = hasPermission('overtime_rules.delete');
+
+    const firstAllowedTab = canViewSettings
+        ? 'schedule'
+        : ((canViewLateRules || canManageExemption)
+            ? 'late_rules'
+            : (canViewOvertimeRules
+                ? 'overtime'
+                : (canManageHolidays ? 'holidays' : 'schedule')));
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState('schedule');
+    const [activeTab, setActiveTab] = useState(firstAllowedTab);
     const [errorMsg, setErrorMsg] = useState(null);
 
     const [settings, setSettings] = useState({
@@ -92,18 +115,30 @@ const Settings = () => {
     }, []);
 
     useEffect(() => {
+        const isAllowed =
+            ((activeTab === 'schedule' || activeTab === 'holidays') && canViewSettings) ||
+            (activeTab === 'late_rules' && canViewLateRules) ||
+            (activeTab === 'overtime' && canViewOvertimeRules);
+        if (!isAllowed) {
+            setActiveTab(firstAllowedTab);
+        }
+    }, [activeTab, canViewSettings, canViewLateRules, canViewOvertimeRules, firstAllowedTab]);
+
+    useEffect(() => {
         const loadAll = async () => {
             setLoading(true);
-            await Promise.all([
-                fetchSettings(),
-                fetchLateRules(),
-                fetchAllEmployees(),
-                fetchOvertimeRules()
-            ]);
+            const tasks = [];
+            if (canViewSettings) tasks.push(fetchSettings());
+            if (canViewLateRules) {
+                tasks.push(fetchLateRules());
+                tasks.push(fetchAllEmployees());
+            }
+            if (canViewOvertimeRules) tasks.push(fetchOvertimeRules());
+            await Promise.all(tasks);
             setLoading(false);
         };
         loadAll();
-    }, [fetchSettings, fetchLateRules, fetchAllEmployees, fetchOvertimeRules]);
+    }, [canViewSettings, canViewLateRules, canViewOvertimeRules, fetchSettings, fetchLateRules, fetchAllEmployees, fetchOvertimeRules]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -333,42 +368,50 @@ const Settings = () => {
                     </div>
 
                     <div className="flex flex-wrap bg-slate-100 p-1 rounded-lg w-full lg:w-fit">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('schedule')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'schedule' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                        >
-                            <Clock className="w-3.5 h-3.5" />
-                            Jam Kerja
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('late_rules')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'late_rules' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                        >
-                            <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                            Kategori Terlambat
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('overtime')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'overtime' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                        >
-                            <Briefcase className="w-3.5 h-3.5" />
-                            Aturan Lembur
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('holidays')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'holidays' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-                        >
-                            <Calendar className="w-3.5 h-3.5" />
-                            Hari Libur
-                        </button>
+                        {canViewSettings && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('schedule')}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'schedule' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                            >
+                                <Clock className="w-3.5 h-3.5" />
+                                Jam Kerja
+                            </button>
+                        )}
+                        {(canViewLateRules || canManageExemption) && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('late_rules')}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'late_rules' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                            >
+                                <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                                Kategori Terlambat
+                            </button>
+                        )}
+                        {canViewOvertimeRules && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('overtime')}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'overtime' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                            >
+                                <Briefcase className="w-3.5 h-3.5" />
+                                Aturan Lembur
+                            </button>
+                        )}
+                        {(canViewSettings || canManageHolidays) && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('holidays')}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${activeTab === 'holidays' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                            >
+                                <Calendar className="w-3.5 h-3.5" />
+                                Hari Libur
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {activeTab === 'schedule' && (
+                {canViewSettings && activeTab === 'schedule' && (
                     <div>
                         <div className="p-6 space-y-6">
                             <div className="space-y-4">
@@ -383,7 +426,8 @@ const Settings = () => {
                                         name="effective_date"
                                         value={settings.effective_date || new Date().toISOString().slice(0, 10)}
                                         onChange={handleChange}
-                                        className="w-full sm:w-60 text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                                        disabled={!canUpdateSettings}
+                                        className="w-full sm:w-60 text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition disabled:bg-slate-100 disabled:cursor-not-allowed"
                                     />
                                     <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
                                         Perubahan jam masuk/pulang akan berlaku mulai tanggal ini ke depan. Data absensi dan laporan presensi sebelum tanggal ini tetap aman menggunakan jadwal sebelumnya.
@@ -406,7 +450,8 @@ const Settings = () => {
                                             name="normal_check_in"
                                             value={settings.normal_check_in || ''}
                                             onChange={handleChange}
-                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                                            disabled={!canUpdateSettings}
+                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition disabled:bg-slate-100 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                     <div>
@@ -416,7 +461,8 @@ const Settings = () => {
                                             name="normal_check_out"
                                             value={settings.normal_check_out || ''}
                                             onChange={handleChange}
-                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                                            disabled={!canUpdateSettings}
+                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition disabled:bg-slate-100 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                 </div>
@@ -437,7 +483,8 @@ const Settings = () => {
                                             name="saturday_check_in"
                                             value={settings.saturday_check_in || ''}
                                             onChange={handleChange}
-                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                                            disabled={!canUpdateSettings}
+                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition disabled:bg-slate-100 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                     <div>
@@ -447,7 +494,8 @@ const Settings = () => {
                                             name="saturday_check_out"
                                             value={settings.saturday_check_out || ''}
                                             onChange={handleChange}
-                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                                            disabled={!canUpdateSettings}
+                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition disabled:bg-slate-100 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                 </div>
@@ -485,20 +533,22 @@ const Settings = () => {
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
                             <span className="text-xs text-slate-500">Jadwal operasional jam masuk dan pulang kerja kantor.</span>
-                            <button
-                                type="button"
-                                onClick={saveSettings}
-                                disabled={saving}
-                                className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-50"
-                            >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                <span>{saving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
-                            </button>
+                            {canUpdateSettings && (
+                                <button
+                                    type="button"
+                                    onClick={saveSettings}
+                                    disabled={saving}
+                                    className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-50"
+                                >
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    <span>{saving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}
 
-                {activeTab === 'late_rules' && (
+                {(canViewLateRules || canManageExemption) && activeTab === 'late_rules' && (
                     <div className="p-6">
                         <TabKategoriTerlambat
                             categories={lateCategories}
@@ -507,11 +557,16 @@ const Settings = () => {
                             onOpenModal={openModalLateRule}
                             onDeleteCategory={handleDeleteLateCategory}
                             onToggleExemption={handleToggleExemption}
+                            canViewRules={canViewLateRules}
+                            canCreate={canCreateLateRules}
+                            canUpdate={canUpdateLateRules}
+                            canDelete={canDeleteLateRules}
+                            canManageExemption={canManageExemption}
                         />
                     </div>
                 )}
 
-                {activeTab === 'overtime' && (
+                {canViewOvertimeRules && activeTab === 'overtime' && (
                     <div className="p-6 space-y-6">
                         <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
                             <div>
@@ -523,27 +578,31 @@ const Settings = () => {
                                     Kelola standar kategori lembur dinamis untuk Staf Kantor, Staf Lapangan, maupun divisi lainnya. Setiap standar dapat disesuaikan jam mulai dan tarif flat harian untuk hari kerja, akhir pekan, dan hari libur nasional.
                                 </p>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => openModalOvertimeRule(null)}
-                                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm transition shrink-0 cursor-pointer"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Tambah Kategori Lembur
-                            </button>
+                            {canCreateOvertimeRules && (
+                                <button
+                                    type="button"
+                                    onClick={() => openModalOvertimeRule(null)}
+                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm transition shrink-0 cursor-pointer"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Tambah Kategori Lembur
+                                </button>
+                            )}
                         </div>
 
                         {overtimeCategories.length === 0 ? (
                             <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                                 <AlertCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                                 <p className="text-xs text-slate-500 font-medium">Belum ada standar kategori lembur terdaftar.</p>
-                                <button
-                                    type="button"
-                                    onClick={() => openModalOvertimeRule(null)}
-                                    className="mt-3 inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
-                                >
-                                    <Plus className="w-3.5 h-3.5" /> Tambah Standar Sekarang
-                                </button>
+                                {canCreateOvertimeRules && (
+                                    <button
+                                        type="button"
+                                        onClick={() => openModalOvertimeRule(null)}
+                                        className="mt-3 inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" /> Tambah Standar Sekarang
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -577,15 +636,17 @@ const Settings = () => {
                                                 </div>
 
                                                 <div className="flex items-center gap-1 shrink-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openModalOvertimeRule(cat)}
-                                                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
-                                                        title="Edit Standar Kategori"
-                                                    >
-                                                        <Edit3 className="w-4 h-4" />
-                                                    </button>
-                                                    {!cat.is_locked && (
+                                                    {canUpdateOvertimeRules && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openModalOvertimeRule(cat)}
+                                                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                                                            title="Edit Standar Kategori"
+                                                        >
+                                                            <Edit3 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                    {canDeleteOvertimeRules && !cat.is_locked && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleDeleteOvertimeCategory(cat.id, cat.nama)}
@@ -685,54 +746,56 @@ const Settings = () => {
 
 
 
-                {activeTab === 'holidays' && (
+                {(canViewSettings || canManageHolidays) && activeTab === 'holidays' && (
                     <div className="p-6 space-y-6">
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Tambah Hari Libur & Tanggal Merah</h3>
-                            <form onSubmit={addHoliday} className="space-y-4">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Tanggal</label>
-                                        <input
-                                            type="date"
-                                            required
-                                            value={newHolidayDate}
-                                            onChange={(e) => setNewHolidayDate(e.target.value)}
-                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition bg-white"
-                                        />
+                        {canManageHolidays && (
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Tambah Hari Libur & Tanggal Merah</h3>
+                                <form onSubmit={addHoliday} className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Tanggal</label>
+                                            <input
+                                                type="date"
+                                                required
+                                                value={newHolidayDate}
+                                                onChange={(e) => setNewHolidayDate(e.target.value)}
+                                                className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition bg-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Keterangan Libur</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="Contoh: Hari Raya Idul Fitri"
+                                                value={newHolidayDesc}
+                                                onChange={(e) => setNewHolidayDesc(e.target.value)}
+                                                className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition bg-white"
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Keterangan Libur</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            placeholder="Contoh: Hari Raya Idul Fitri"
-                                            value={newHolidayDesc}
-                                            onChange={(e) => setNewHolidayDesc(e.target.value)}
-                                            className="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition bg-white"
-                                        />
-                                    </div>
-                                </div>
 
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
-                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer select-none">
-                                        <input
-                                            type="checkbox"
-                                            checked={isNational}
-                                            onChange={(e) => setIsNational(e.target.checked)}
-                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                        />
-                                        Kategori Libur Nasional
-                                    </label>
-                                    <button
-                                        type="submit"
-                                        className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-4 rounded-lg transition shadow-sm cursor-pointer"
-                                    >
-                                        <Plus className="w-3.5 h-3.5" /> Tambah Tanggal Libur
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer select-none">
+                                            <input
+                                                type="checkbox"
+                                                checked={isNational}
+                                                onChange={(e) => setIsNational(e.target.checked)}
+                                                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                            />
+                                            Kategori Libur Nasional
+                                        </label>
+                                        <button
+                                            type="submit"
+                                            className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 px-4 rounded-lg transition shadow-sm cursor-pointer"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" /> Tambah Tanggal Libur
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
 
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -769,14 +832,16 @@ const Settings = () => {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => deleteHoliday(holiday.id)}
-                                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                                                title="Hapus"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {canManageHolidays && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteHoliday(holiday.id)}
+                                                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                                    title="Hapus"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

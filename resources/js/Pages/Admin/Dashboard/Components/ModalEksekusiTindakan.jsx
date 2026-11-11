@@ -14,6 +14,7 @@ const ModalEksekusiTindakan = ({
     opsiTindakan = [],
     onChangeAction,
     onBatchApply,
+    canExecute = true,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeCategoryTab, setActiveCategoryTab] = useState(defaultKategori || 'Semua');
@@ -196,7 +197,7 @@ const ModalEksekusiTindakan = ({
                             />
                         </div>
 
-                        {onBatchApply && batchOptions.length > 0 && selectedPins.length > 0 && (
+                        {canExecute && onBatchApply && batchOptions.length > 0 && selectedPins.length > 0 && (
                             <div className="flex items-center gap-1.5 bg-indigo-50/80 px-2 py-1 rounded-lg border border-indigo-100 flex-wrap">
                                 <span className="text-[11px] font-bold text-indigo-800">
                                     {selectedPins.length} Dipilih
@@ -275,18 +276,20 @@ const ModalEksekusiTindakan = ({
                             <table className="w-full text-left text-xs border-collapse">
                                 <thead className="sticky top-0 z-10 bg-slate-100 text-slate-600 text-[11px] font-semibold uppercase tracking-wider border-b border-slate-200">
                                     <tr>
-                                        <th className="py-2 px-2.5 w-8 text-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={isAllSelected}
-                                                ref={(el) => {
-                                                    if (el) el.indeterminate = isSomeSelected;
-                                                }}
-                                                onChange={toggleSelectAll}
-                                                className="w-3.5 h-3.5 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                                                title="Pilih Semua Pegawai"
-                                            />
-                                        </th>
+                                        {canExecute && (
+                                            <th className="py-2 px-2.5 w-8 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isAllSelected}
+                                                    ref={(el) => {
+                                                        if (el) el.indeterminate = isSomeSelected;
+                                                    }}
+                                                    onChange={toggleSelectAll}
+                                                    className="w-3.5 h-3.5 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                                    title="Pilih Semua Pegawai"
+                                                />
+                                            </th>
+                                        )}
                                         <th className="py-2 px-3">Pegawai</th>
                                         <th className="py-2 px-2.5 text-center whitespace-nowrap">Tanggal</th>
                                         <th className="py-2 px-2.5 text-center whitespace-nowrap">Jam Masuk</th>
@@ -315,14 +318,16 @@ const ModalEksekusiTindakan = ({
                                                 className={`transition ${isChecked ? 'bg-indigo-50/50' : 'hover:bg-slate-50/80'
                                                     }`}
                                             >
-                                                <td className="py-2 px-2.5 text-center">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isChecked}
-                                                        onChange={() => toggleSelectPin(item.pin)}
-                                                        className="w-3.5 h-3.5 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                                                    />
-                                                </td>
+                                                {canExecute && (
+                                                    <td className="py-2 px-2.5 text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={() => toggleSelectPin(item.pin)}
+                                                            className="w-3.5 h-3.5 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                                        />
+                                                    </td>
+                                                )}
 
                                                 <td className="py-2 px-3 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
@@ -377,25 +382,34 @@ const ModalEksekusiTindakan = ({
                                                 </td>
 
                                                 <td className="py-2 px-3 text-right whitespace-nowrap">
-                                                    <select
-                                                        value={currentAksi}
-                                                        onChange={(e) => handleSelectChange(item.pin, e.target.value, item.kategori)}
-                                                        className={`text-xs border rounded-lg py-1 px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer font-medium ${isNoAction
-                                                                ? 'bg-slate-50 text-slate-700 border-slate-300'
-                                                                : 'bg-emerald-50 text-emerald-900 border-emerald-300 font-semibold'
-                                                            }`}
-                                                    >
-                                                        {itemOptions.map((opt) => (
-                                                            <option key={opt} value={opt}>
-                                                                {opt}
-                                                            </option>
-                                                        ))}
-                                                        {currentAksi && !itemOptions.includes(currentAksi) && currentAksi !== 'Tidak Ada Tindakan' && (
-                                                            <option value={currentAksi} disabled>
-                                                                {currentAksi} (Nonaktif)
-                                                            </option>
-                                                        )}
-                                                    </select>
+                                                    {canExecute ? (
+                                                        <select
+                                                            value={currentAksi}
+                                                            onChange={(e) => handleSelectChange(item.pin, e.target.value, item.kategori)}
+                                                            className={`text-xs border rounded-lg py-1 px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer font-medium ${isNoAction
+                                                                    ? 'bg-slate-50 text-slate-700 border-slate-300'
+                                                                    : 'bg-emerald-50 text-emerald-900 border-emerald-300 font-semibold'
+                                                                }`}
+                                                        >
+                                                            {itemOptions.map((opt) => (
+                                                                <option key={opt} value={opt}>
+                                                                    {opt}
+                                                                </option>
+                                                            ))}
+                                                            {currentAksi && !itemOptions.includes(currentAksi) && currentAksi !== 'Tidak Ada Tindakan' && (
+                                                                <option value={currentAksi} disabled>
+                                                                    {currentAksi} (Nonaktif)
+                                                                </option>
+                                                            )}
+                                                        </select>
+                                                    ) : (
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium border ${isNoAction
+                                                            ? 'bg-slate-50 text-slate-600 border-slate-200'
+                                                            : 'bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold'
+                                                            }`}>
+                                                            {currentAksi}
+                                                        </span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

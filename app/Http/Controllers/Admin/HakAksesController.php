@@ -76,7 +76,7 @@ class HakAksesController extends Controller
             ->pluck('id')
             ->toArray();
 
-        if ($user->hasRole('super_admin') || $user->role === 'admin') {
+        if ($user->hasRole('super_admin')) {
             $safePermissionIds = array_unique(array_merge($requestedIds, $protectedPermissionIds));
         } else {
             $safePermissionIds = $requestedIds;

@@ -5,9 +5,17 @@ import { Download, Plus, Search, Calendar, Filter, FileText, Check, X, Clock, Fi
 import ModalKoreksi from './Components/ModalKoreksi';
 import ModalTambahManual from './Components/ModalTambah';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Attendance = () => {
+    const { hasPermission } = useAuth();
+    const canFetch = hasPermission('attendance.fetch');
+    const canManual = hasPermission('attendance.manual');
+    const canKoreksi = hasPermission('attendance.koreksi');
+    const canDelete = hasPermission('attendance.delete');
+    const canLateDetail = hasPermission('attendance.late_detail');
+    const canRowAction = canKoreksi || canDelete;
     const [modalData, setModalData] = useState({
         isOpen: false,
         employee_id: null,
@@ -73,12 +81,13 @@ const Attendance = () => {
     const hoverTimerRef = useRef(null);
 
     const handleBadgeMouseEnter = useCallback((type, row, e) => {
+        if (!canLateDetail) return;
         if (hoverTimerRef.current) {
             clearTimeout(hoverTimerRef.current);
         }
         const rect = e.currentTarget.getBoundingClientRect();
         setHoverPopover({ type, row, rect });
-    }, []);
+    }, [canLateDetail]);
 
     const handleBadgeMouseLeave = useCallback(() => {
         hoverTimerRef.current = setTimeout(() => {
@@ -331,22 +340,26 @@ const Attendance = () => {
                     <p className="text-sm text-slate-500">Pantau kehadiran harian, keterlambatan, jam pulang, dan sinkronisasi mesin online.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button 
-                        type="button"
-                        disabled={fetchingCloud}
-                        onClick={openSyncModal}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${fetchingCloud ? 'animate-spin' : ''}`} />
-                        <span>{fetchingCloud ? 'Syncing Log Absensi...' : 'Sync Log Absensi'}</span>
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={() => setIsTambahOpen(true)}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
-                    >
-                        <Plus className="w-4 h-4" /> Tambah Manual
-                    </button>
+                    {canFetch && (
+                        <button 
+                            type="button"
+                            disabled={fetchingCloud}
+                            onClick={openSyncModal}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${fetchingCloud ? 'animate-spin' : ''}`} />
+                            <span>{fetchingCloud ? 'Syncing Log Absensi...' : 'Sync Log Absensi'}</span>
+                        </button>
+                    )}
+                    {canManual && (
+                        <button 
+                            type="button"
+                            onClick={() => setIsTambahOpen(true)}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" /> Tambah Manual
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -482,13 +495,15 @@ const Attendance = () => {
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Jam Keluar</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Keterangan</th>
                                 <th scope="col" className="px-6 py-3.5 font-semibold">Log Lokasi</th>
-                                <th scope="col" className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                {canRowAction && (
+                                    <th scope="col" className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="7" className="py-16 text-center">
+                                    <td colSpan={canRowAction ? 7 : 6} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                                             <p className="text-sm font-medium text-slate-600">Memuat data absensi...</p>
@@ -544,19 +559,25 @@ const Attendance = () => {
                                                     </div>
                                                 )}
                                                 {(row.status === 'late' || row.status === 'terlambat') && (
-                                                    <div 
-                                                        onMouseEnter={(e) => handleBadgeMouseEnter('late', row, e)}
-                                                        onMouseLeave={handleBadgeMouseLeave}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer hover:bg-amber-200/80 transition"
-                                                    >
-                                                        <span>Telat {row.minutesLate} Mnt</span>
-                                                        {row.late_info?.tier_order && (
-                                                            <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
-                                                                Kat {row.late_info.tier_order}
-                                                            </span>
-                                                        )}
-                                                        {row.late_info && <Info className="w-3.5 h-3.5 text-amber-700" />}
-                                                    </div>
+                                                    canLateDetail ? (
+                                                        <div 
+                                                            onMouseEnter={(e) => handleBadgeMouseEnter('late', row, e)}
+                                                            onMouseLeave={handleBadgeMouseLeave}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 cursor-pointer hover:bg-amber-200/80 transition"
+                                                        >
+                                                            <span>Telat {row.minutesLate} Mnt</span>
+                                                            {row.late_info?.tier_order && (
+                                                                <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-bold">
+                                                                    Kat {row.late_info.tier_order}
+                                                                </span>
+                                                            )}
+                                                            {row.late_info && <Info className="w-3.5 h-3.5 text-amber-700" />}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200">
+                                                            Telat {row.minutesLate} Mnt
+                                                        </span>
+                                                    )
                                                 )}
                                                 {row.status === 'izin' && (
                                                     <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full border border-blue-200">
@@ -577,21 +598,23 @@ const Attendance = () => {
                                                 <span className="text-slate-300 italic text-xs">-</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-center whitespace-nowrap">
-                                            <button 
-                                                type="button"
-                                                onClick={() => openModalKoreksi(row)} 
-                                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" 
-                                                title="Koreksi Data"
-                                            >
-                                                <FileText className="w-4 h-4" />
-                                            </button>
-                                        </td>
+                                        {canRowAction && (
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => openModalKoreksi(row)} 
+                                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" 
+                                                    title="Koreksi Data"
+                                                >
+                                                    <FileText className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="py-16 text-center">
+                                    <td colSpan={canRowAction ? 7 : 6} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
                                                 <CalendarX className="w-7 h-7 text-slate-300" />
@@ -672,6 +695,8 @@ const Attendance = () => {
                 isOpen={modalData.isOpen} 
                 onClose={closeModalKoreksi} 
                 data={modalData} 
+                canKoreksi={canKoreksi}
+                canDelete={canDelete}
                 onSuccess={(msg) => {
                     showSuccess(msg);
                     loadAttendance();
@@ -798,7 +823,7 @@ const Attendance = () => {
                 </div>
             )}
 
-            {hoverPopover && createPortal(
+            {canLateDetail && hoverPopover && createPortal(
                 <div
                     onMouseEnter={handlePopoverMouseEnter}
                     onMouseLeave={handlePopoverMouseLeave}

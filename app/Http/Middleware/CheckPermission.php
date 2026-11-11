@@ -18,8 +18,12 @@ class CheckPermission
             ], 401);
         }
 
-        if ($user->hasPermission($permission)) {
-            return $next($request);
+        $requiredPermissions = array_filter(array_map('trim', explode('|', $permission)));
+
+        foreach ($requiredPermissions as $required) {
+            if ($user->hasPermission($required)) {
+                return $next($request);
+            }
         }
 
         return response()->json([

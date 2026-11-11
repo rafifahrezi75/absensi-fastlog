@@ -48,6 +48,10 @@ class User extends Authenticatable
             return $direct->unique()->values();
         }
 
+        if ($this->role === 'admin' && ! $this->roles()->exists()) {
+            return AppPermission::pluck('name');
+        }
+
         return $this->roles()
             ->with('permissions')
             ->get()
@@ -60,10 +64,6 @@ class User extends Authenticatable
 
     public function hasPermission(string $permission): bool
     {
-        if ($this->role === 'admin' || $this->hasRole('super_admin')) {
-            return true;
-        }
-
         return $this->permissions()->contains($permission);
     }
 

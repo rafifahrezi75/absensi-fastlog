@@ -3,7 +3,7 @@ import { X, Clock, Calendar, User, FileText, Trash2, Loader2, AlertCircle, Camer
 import api from '../../../../lib/api';
 import { showConfirm } from '../../../../lib/swal';
 
-const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
+const ModalKoreksi = ({ isOpen, onClose, data, onSuccess, canKoreksi = true, canDelete = true }) => {
     const [jamMasuk, setJamMasuk] = useState('');
     const [jamKeluar, setJamKeluar] = useState('');
     const [alasan, setAlasan] = useState('');
@@ -289,8 +289,8 @@ const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
                                                 type="time"
                                                 value={jamMasuk}
                                                 onChange={(e) => setJamMasuk(e.target.value)}
-                                                disabled={submitting || deleting}
-                                                className="w-full text-xs font-mono bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none cursor-pointer"
+                                                disabled={!canKoreksi || submitting || deleting}
+                                                className="w-full text-xs font-mono bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed"
                                             />
                                         </div>
 
@@ -302,8 +302,8 @@ const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
                                                 type="time"
                                                 value={jamKeluar}
                                                 onChange={(e) => setJamKeluar(e.target.value)}
-                                                disabled={submitting || deleting}
-                                                className="w-full text-xs font-mono bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none cursor-pointer"
+                                                disabled={!canKoreksi || submitting || deleting}
+                                                className="w-full text-xs font-mono bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed"
                                             />
                                         </div>
                                     </div>
@@ -317,9 +317,9 @@ const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
                                         rows="4"
                                         value={alasan}
                                         onChange={(e) => setAlasan(e.target.value)}
-                                        disabled={submitting || deleting}
+                                        disabled={!canKoreksi || submitting || deleting}
                                         placeholder="Tuliskan catatan alasan koreksi..."
-                                        className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none resize-none"
+                                        className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none resize-none disabled:cursor-not-allowed"
                                     ></textarea>
                                 </div>
 
@@ -361,8 +361,8 @@ const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
                                         type="time"
                                         value={jamMasuk}
                                         onChange={(e) => setJamMasuk(e.target.value)}
-                                        disabled={submitting || deleting}
-                                        className="w-full text-xs font-mono bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none cursor-pointer"
+                                        disabled={!canKoreksi || submitting || deleting}
+                                        className="w-full text-xs font-mono bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none cursor-pointer disabled:cursor-not-allowed"
                                     />
                                 </div>
 
@@ -374,8 +374,8 @@ const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
                                         type="time"
                                         value={jamKeluar}
                                         onChange={(e) => setJamKeluar(e.target.value)}
-                                        disabled={submitting || deleting}
-                                        className="w-full text-xs font-mono bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none cursor-pointer"
+                                        disabled={!canKoreksi || submitting || deleting}
+                                        className="w-full text-xs font-mono bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none cursor-pointer disabled:cursor-not-allowed"
                                     />
                                 </div>
                             </div>
@@ -388,28 +388,32 @@ const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
                                     rows="3"
                                     value={alasan}
                                     onChange={(e) => setAlasan(e.target.value)}
-                                    disabled={submitting || deleting}
+                                    disabled={!canKoreksi || submitting || deleting}
                                     placeholder="Contoh: Lupa scan keluar / Mesin finger maintenance"
-                                    className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none resize-none"
+                                    className="w-full text-xs bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none resize-none disabled:cursor-not-allowed"
                                 ></textarea>
                             </div>
                         </>
                     )}
 
                     <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <button
-                            type="button"
-                            onClick={handleDelete}
-                            disabled={submitting || deleting}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
-                        >
-                            {deleting ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
+                        <div>
+                            {canDelete && (
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    disabled={submitting || deleting}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
+                                >
+                                    {deleting ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    )}
+                                    Hapus Log
+                                </button>
                             )}
-                            Hapus Log
-                        </button>
+                        </div>
 
                         <div className="flex items-center gap-2">
                             <button
@@ -420,14 +424,16 @@ const ModalKoreksi = ({ isOpen, onClose, data, onSuccess }) => {
                             >
                                 Batal
                             </button>
-                            <button
-                                type="submit"
-                                disabled={submitting || deleting}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition cursor-pointer disabled:opacity-50"
-                            >
-                                {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                                Simpan Perubahan
-                            </button>
+                            {canKoreksi && (
+                                <button
+                                    type="submit"
+                                    disabled={submitting || deleting}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition cursor-pointer disabled:opacity-50"
+                                >
+                                    {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                    Simpan Perubahan
+                                </button>
+                            )}
                         </div>
                     </div>
                 </form>

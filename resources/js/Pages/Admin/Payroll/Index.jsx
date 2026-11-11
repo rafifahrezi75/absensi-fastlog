@@ -6,6 +6,7 @@ import ModalDetails from './Components/ModalDetails';
 import DeductionPopover from './Components/DeductionPopover';
 import AllowancePopover from './Components/AllowancePopover';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const getLateTiers = (item) => {
@@ -67,6 +68,16 @@ const getLateTiers = (item) => {
 
 const Payroll = () => {
     const navigate = useNavigate();
+    const { hasPermission } = useAuth();
+    const canAllowanceDetail = hasPermission('payroll.allowance_detail');
+    const canDeductionDetail = hasPermission('payroll.deduction_detail');
+    const canAttendanceDetail = hasPermission('payroll.attendance_detail');
+    const canDispense = hasPermission('payroll.dispense');
+    const canSlipDetail = hasPermission('payroll.slip_detail');
+    const canPay = hasPermission('payroll.pay');
+    const canRecalculate = hasPermission('payroll.recalculate');
+    const canExport = hasPermission('payroll.export');
+    const canRowActions = canAttendanceDetail || canSlipDetail || canPay;
     const [searchParams, setSearchParams] = useSearchParams();
 
     const getInitialFilter = (key, fallback) => {
@@ -318,20 +329,24 @@ const Payroll = () => {
                     <p className="text-sm text-slate-500">Kalkulasi gaji otomatis berdasarkan golongan master, rekap absensi, keterlambatan, dan jam lembur.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleExportCSV}
-                        className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-                    >
-                        <Download className="w-4 h-4" /> Export Slip Gaji
-                    </button>
-                    <button
-                        onClick={handleRecalculatePayroll}
-                        disabled={loading}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm disabled:opacity-50"
-                    >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
-                        Hitung Payroll Bulan Ini
-                    </button>
+                    {canExport && (
+                        <button
+                            onClick={handleExportCSV}
+                            className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                        >
+                            <Download className="w-4 h-4" /> Export Slip Gaji
+                        </button>
+                    )}
+                    {canRecalculate && (
+                        <button
+                            onClick={handleRecalculatePayroll}
+                            disabled={loading}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm disabled:opacity-50"
+                        >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
+                            Hitung Payroll Bulan Ini
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -418,13 +433,15 @@ const Payroll = () => {
                                 <th className="px-6 py-3.5 font-semibold">Potongan</th>
                                 <th className="px-6 py-3.5 font-semibold">Total Diterima (THP)</th>
                                 <th className="px-6 py-3.5 font-semibold">Status</th>
-                                <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                {canRowActions && (
+                                    <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="7" className="py-16 text-center">
+                                    <td colSpan={canRowActions ? 7 : 6} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                                             <p className="text-sm font-medium text-slate-600">Memuat kalkulasi payroll...</p>
@@ -459,7 +476,7 @@ const Payroll = () => {
                                                     <div className="font-semibold font-mono text-emerald-600">
                                                         {(item.bonus || 0) > 0 ? `+ ${formatIDR(item.bonus || 0)}` : <span className="text-slate-400 font-normal">Rp 0</span>}
                                                     </div>
-                                                    {((item.bonus || 0) > 0 || (item.tunjangan_details && item.tunjangan_details.length > 0)) && (
+                                                    {canAllowanceDetail && ((item.bonus || 0) > 0 || (item.tunjangan_details && item.tunjangan_details.length > 0)) && (
                                                         <AllowancePopover item={item} formatIDR={formatIDR} />
                                                     )}
                                                 </div>
@@ -468,7 +485,7 @@ const Payroll = () => {
                                                 {(item.potongan || 0) > 0 ? (
                                                     <div>
                                                         <div className="font-semibold font-mono text-rose-600">- {formatIDR(item.potongan || 0)}</div>
-                                                        {(item.potongan_alpa > 0 || item.potongan_terlambat > 0 || item.potongan_lainnya > 0) && (
+                                                        {canDeductionDetail && (item.potongan_alpa > 0 || item.potongan_terlambat > 0 || item.potongan_lainnya > 0) && (
                                                             <DeductionPopover item={item} lateTiers={lateTiers} formatIDR={formatIDR} />
                                                         )}
                                                     </div>
@@ -488,45 +505,51 @@ const Payroll = () => {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-center whitespace-nowrap">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => openModalDetails(item)}
-                                                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
-                                                        title="Rincian Absensi & Dispensasi"
-                                                    >
-                                                        <CalendarCheck2 className="w-3.5 h-3.5 text-indigo-600" /> Rincian
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            const params = new URLSearchParams();
-                                                            if (periode) params.set('periode', periode);
-                                                            if (selectedDept) params.set('dept', selectedDept);
-                                                            if (selectedStatus) params.set('status', selectedStatus);
-                                                            if (searchQuery) params.set('search', searchQuery);
-                                                            navigate(`/admin/payroll/${item.payroll_id || item.id}?${params.toString()}`);
-                                                        }}
-                                                        className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
-                                                        title="Buka Halaman Detail & Preview PDF"
-                                                    >
-                                                        <FileText className="w-3.5 h-3.5" /> Detail Slip
-                                                    </button>
-                                                    {item.status !== 'paid' && (
-                                                        <button
-                                                            onClick={() => handleTandaiDibayar(item)}
-                                                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
-                                                        >
-                                                            <CheckCircle className="w-3.5 h-3.5" /> Bayar
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
+                                            {canRowActions && (
+                                                <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {canAttendanceDetail && (
+                                                            <button
+                                                                onClick={() => openModalDetails(item)}
+                                                                className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
+                                                                title="Rincian Absensi & Dispensasi"
+                                                            >
+                                                                <CalendarCheck2 className="w-3.5 h-3.5 text-indigo-600" /> Rincian
+                                                            </button>
+                                                        )}
+                                                        {canSlipDetail && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    const params = new URLSearchParams();
+                                                                    if (periode) params.set('periode', periode);
+                                                                    if (selectedDept) params.set('dept', selectedDept);
+                                                                    if (selectedStatus) params.set('status', selectedStatus);
+                                                                    if (searchQuery) params.set('search', searchQuery);
+                                                                    navigate(`/admin/payroll/${item.payroll_id || item.id}?${params.toString()}`);
+                                                                }}
+                                                                className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
+                                                                title="Buka Halaman Detail & Preview PDF"
+                                                            >
+                                                                <FileText className="w-3.5 h-3.5" /> Detail Slip
+                                                            </button>
+                                                        )}
+                                                        {canPay && item.status !== 'paid' && (
+                                                            <button
+                                                                onClick={() => handleTandaiDibayar(item)}
+                                                                className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer"
+                                                            >
+                                                                <CheckCircle className="w-3.5 h-3.5" /> Bayar
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     );
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="py-16 text-center">
+                                    <td colSpan={canRowActions ? 7 : 6} className="py-16 text-center">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
                                                 <ReceiptText className="w-7 h-7 text-slate-300" />
@@ -556,6 +579,7 @@ const Payroll = () => {
                 onClose={closeModalDetails}
                 employee={detailModal.employee}
                 periode={periode}
+                canDispense={canDispense}
                 onDataChanged={fetchPayroll}
             />
         </div>

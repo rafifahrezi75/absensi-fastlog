@@ -4,9 +4,18 @@ import ModalGolongan from './Components/ModalGolongan';
 import ModalKomponen from './Components/ModalKomponen';
 import PanelAturGaji from './Components/PanelAturGaji';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const MasterPayroll = () => {
+    const { hasPermission } = useAuth();
+    const canCreate = hasPermission('master_payroll.create');
+    const canUpdate = hasPermission('master_payroll.update');
+    const canDelete = hasPermission('master_payroll.delete');
+    const canEmployeeSalary = hasPermission('master_payroll.employee_salary');
+    const canResetSalary = hasPermission('master_payroll.reset_salary');
+    const canRowActions = canUpdate || canDelete;
+    const canEmpRowActions = canEmployeeSalary || canResetSalary;
     const [activeTab, setActiveTab] = useState('gaji_karyawan');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -249,7 +258,7 @@ const MasterPayroll = () => {
                     <p className="text-sm text-slate-500">Kelola gaji karyawan, master golongan gaji, dan komponen penggajian.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {activeTab !== 'gaji_karyawan' && (
+                    {activeTab !== 'gaji_karyawan' && canCreate && (
                         <button
                             onClick={() => {
                                 if (activeTab === 'golongan') openModalGolongan();
@@ -350,7 +359,9 @@ const MasterPayroll = () => {
                                             <th className="px-6 py-3.5 font-semibold">Gaji Pokok</th>
                                             <th className="px-6 py-3.5 font-semibold">Tarif Lembur / Jam</th>
                                             <th className="px-6 py-3.5 font-semibold">Status</th>
-                                            <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                            {canRowActions && (
+                                                <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -370,21 +381,27 @@ const MasterPayroll = () => {
                                                             {item.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <button onClick={() => openModalGolongan(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" title="Ubah">
-                                                                <Edit3 className="w-4 h-4" />
-                                                            </button>
-                                                            <button onClick={() => handleDeleteGolongan(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                                    {canRowActions && (
+                                                        <td className="px-6 py-4 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                {canUpdate && (
+                                                                    <button onClick={() => openModalGolongan(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" title="Ubah">
+                                                                        <Edit3 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                                {canDelete && (
+                                                                    <button onClick={() => handleDeleteGolongan(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus">
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="6" className="py-12 text-center">
+                                                <td colSpan={canRowActions ? 6 : 5} className="py-12 text-center">
                                                     <div className="flex flex-col items-center gap-2">
                                                         <Layers className="w-8 h-8 text-slate-300" />
                                                         <p className="text-sm font-medium text-slate-500">Tidak ada data golongan gaji</p>
@@ -412,7 +429,9 @@ const MasterPayroll = () => {
                                                 <th className="px-6 py-3.5 font-semibold">Tipe</th>
                                                 <th className="px-6 py-3.5 font-semibold">Nilai / Formula</th>
                                                 <th className="px-6 py-3.5 font-semibold">Status</th>
-                                                <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                                {canRowActions && (
+                                                    <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
@@ -441,21 +460,27 @@ const MasterPayroll = () => {
                                                                 {item.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-center">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <button onClick={() => openModalKomponen(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" title="Ubah">
-                                                                    <Edit3 className="w-4 h-4" />
-                                                                </button>
-                                                                <button onClick={() => handleDeleteKomponen(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus">
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </td>
+                                                        {canRowActions && (
+                                                            <td className="px-6 py-4 text-center">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    {canUpdate && (
+                                                                        <button onClick={() => openModalKomponen(item)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer" title="Ubah">
+                                                                            <Edit3 className="w-4 h-4" />
+                                                                        </button>
+                                                                    )}
+                                                                    {canDelete && (
+                                                                        <button onClick={() => handleDeleteKomponen(item.id, item.nama)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Hapus">
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        )}
                                                     </tr>
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="5" className="py-12 text-center">
+                                                    <td colSpan={canRowActions ? 5 : 4} className="py-12 text-center">
                                                         <div className="flex flex-col items-center gap-2">
                                                             <Layers className="w-8 h-8 text-slate-300" />
                                                             <p className="text-sm font-medium text-slate-500">Tidak ada data komponen gaji</p>
@@ -516,13 +541,15 @@ const MasterPayroll = () => {
                                                 <th className="px-6 py-3.5 font-semibold">Golongan</th>
                                                 <th className="px-6 py-3.5 font-semibold">Gaji Pokok</th>
                                                 <th className="px-6 py-3.5 font-semibold">Status</th>
-                                                <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                                {canEmpRowActions && (
+                                                    <th className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                                                )}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
                                             {loadingEmployees ? (
                                                 <tr>
-                                                    <td colSpan="5" className="py-12 text-center">
+                                                    <td colSpan={canEmpRowActions ? 5 : 4} className="py-12 text-center">
                                                         <div className="flex flex-col items-center gap-2">
                                                             <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
                                                             <p className="text-sm font-medium text-slate-500">Memuat data gaji karyawan...</p>
@@ -574,32 +601,36 @@ const MasterPayroll = () => {
                                                                 </span>
                                                             )}
                                                         </td>
-                                                        <td className="px-6 py-4 text-center whitespace-nowrap">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <button 
-                                                                    onClick={() => openPanelAturGaji(emp.id)} 
-                                                                    className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer" 
-                                                                    title="Atur Gaji Karyawan"
-                                                                >
-                                                                    <Edit3 className="w-3.5 h-3.5" />
-                                                                    <span>Atur Gaji</span>
-                                                                </button>
-                                                                {emp.status === 'disesuaikan' && (
-                                                                    <button 
-                                                                        onClick={() => handleResetEmployeeSalary(emp)} 
-                                                                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer" 
-                                                                        title="Kembalikan ke standar"
-                                                                    >
-                                                                        <RotateCcw className="w-4 h-4" />
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </td>
+                                                        {canEmpRowActions && (
+                                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    {canEmployeeSalary && (
+                                                                        <button 
+                                                                            onClick={() => openPanelAturGaji(emp.id)} 
+                                                                            className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition inline-flex items-center gap-1 cursor-pointer" 
+                                                                            title="Atur Gaji Karyawan"
+                                                                        >
+                                                                            <Edit3 className="w-3.5 h-3.5" />
+                                                                            <span>Atur Gaji</span>
+                                                                        </button>
+                                                                    )}
+                                                                    {canResetSalary && emp.status === 'disesuaikan' && (
+                                                                        <button 
+                                                                            onClick={() => handleResetEmployeeSalary(emp)} 
+                                                                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer" 
+                                                                            title="Kembalikan ke standar"
+                                                                        >
+                                                                            <RotateCcw className="w-4 h-4" />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        )}
                                                     </tr>
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="5" className="py-12 text-center">
+                                                    <td colSpan={canEmpRowActions ? 5 : 4} className="py-12 text-center">
                                                         <div className="flex flex-col items-center gap-2">
                                                             <Users className="w-8 h-8 text-slate-300" />
                                                             <p className="text-sm font-medium text-slate-500">Tidak ada data karyawan yang sesuai</p>

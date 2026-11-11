@@ -2,11 +2,16 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FileSpreadsheet, Printer, Search, TableProperties, Loader2, ChevronRight } from 'lucide-react';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 
 const dayNamesIndo = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
 const Reports = () => {
     const navigate = useNavigate();
+    const { hasPermission } = useAuth();
+    const canExportPdf = hasPermission('reports.export');
+    const canExportExcel = hasPermission('reports.export_excel');
+    const canEmployeeDetail = hasPermission('reports.employee_detail');
     const [searchParams, setSearchParams] = useSearchParams();
 
     const getInitialFilter = (key, fallback) => {
@@ -287,28 +292,34 @@ const Reports = () => {
                     <h1 className="text-2xl font-bold text-slate-900">Laporan Rekap Presensi & OT</h1>
                     <p className="text-sm text-slate-500">Rekapitulasi kehadiran dan jam lembur (Overtime) karyawan per periode.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleExportExcel}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-                    >
-                        <FileSpreadsheet className="w-4 h-4" /> Export Excel
-                    </button>
-                    <button
-                        onClick={() => {
-                            const params = new URLSearchParams();
-                            if (startDate) params.set('start_date', startDate);
-                            if (endDate) params.set('end_date', endDate);
-                            if (selectedDept) params.set('dept', selectedDept);
-                            if (searchQuery) params.set('search', searchQuery);
-                            navigate(`/admin/reports/preview?${params.toString()}`);
-                        }}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-                        title="Buka Pratinjau & Cetak PDF"
-                    >
-                        <Printer className="w-4 h-4" /> Cetak
-                    </button>
-                </div>
+                {(canExportExcel || canExportPdf) && (
+                    <div className="flex items-center gap-3">
+                        {canExportExcel && (
+                            <button
+                                onClick={handleExportExcel}
+                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" /> Export Excel
+                            </button>
+                        )}
+                        {canExportPdf && (
+                            <button
+                                onClick={() => {
+                                    const params = new URLSearchParams();
+                                    if (startDate) params.set('start_date', startDate);
+                                    if (endDate) params.set('end_date', endDate);
+                                    if (selectedDept) params.set('dept', selectedDept);
+                                    if (searchQuery) params.set('search', searchQuery);
+                                    navigate(`/admin/reports/preview?${params.toString()}`);
+                                }}
+                                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
+                                title="Buka Pratinjau & Cetak PDF"
+                            >
+                                <Printer className="w-4 h-4" /> Cetak
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -458,28 +469,30 @@ const Reports = () => {
                                     return (
                                         <tr
                                             key={emp.id}
-                                            onClick={() => {
+                                            onClick={canEmployeeDetail ? () => {
                                                 const params = new URLSearchParams();
                                                 if (startDate) params.set('start_date', startDate);
                                                 if (endDate) params.set('end_date', endDate);
                                                 if (selectedDept) params.set('dept', selectedDept);
                                                 if (searchQuery) params.set('search', searchQuery);
                                                 navigate(`/admin/reports/${emp.id}?${params.toString()}`);
-                                            }}
-                                            className="hover:bg-indigo-50/60 cursor-pointer transition group"
-                                            title="Klik untuk melihat detail laporan presensi karyawan ini"
+                                            } : undefined}
+                                            className={canEmployeeDetail ? 'hover:bg-indigo-50/60 cursor-pointer transition group' : 'hover:bg-slate-50 transition'}
+                                            title={canEmployeeDetail ? 'Klik untuk melihat detail laporan presensi karyawan ini' : undefined}
                                         >
-                                            <td className="px-4 py-2 text-left font-semibold border-r border-slate-200 sticky left-0 bg-white group-hover:bg-indigo-50/90 z-[5] shadow-sm transition">
+                                            <td className={`px-4 py-2 text-left font-semibold border-r border-slate-200 sticky left-0 bg-white z-[5] shadow-sm transition ${canEmployeeDetail ? 'group-hover:bg-indigo-50/90' : ''}`}>
                                                 <div className="flex items-center justify-between gap-1.5">
                                                     <div className="flex items-center gap-1.5 min-w-0">
-                                                        <div className="text-slate-900 group-hover:text-indigo-600 font-bold leading-tight truncate transition">{emp.nama}</div>
+                                                        <div className={`text-slate-900 font-bold leading-tight truncate transition ${canEmployeeDetail ? 'group-hover:text-indigo-600' : ''}`}>{emp.nama}</div>
                                                         {emp.is_exempt && (
                                                             <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 shrink-0" title="Bebas Denda & Lembur (Karyawan Khusus)">
                                                                 Khusus
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition shrink-0" />
+                                                    {canEmployeeDetail && (
+                                                        <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition shrink-0" />
+                                                    )}
                                                 </div>
                                                 <div className="text-[10px] font-normal text-slate-400">{emp.deptLabel}</div>
                                             </td>

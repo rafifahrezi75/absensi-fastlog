@@ -14,14 +14,17 @@ class AccessSeeder extends Seeder
     {
         $permissions = [
             ['name' => 'dashboard.view', 'label' => 'Lihat Dasbor & Statistik', 'group_name' => 'Dasbor'],
+            ['name' => 'dashboard.drilldown', 'label' => 'Grafik Drill-Down Kedisiplinan', 'group_name' => 'Dasbor'],
 
             ['name' => 'attendance.view', 'label' => 'Lihat Log Presensi', 'group_name' => 'Log Presensi'],
+            ['name' => 'attendance.late_detail', 'label' => 'Lihat Detail Denda & Toleransi Telat', 'group_name' => 'Log Presensi'],
             ['name' => 'attendance.fetch', 'label' => 'Tarik Data Log Presensi', 'group_name' => 'Log Presensi'],
             ['name' => 'attendance.manual', 'label' => 'Input Presensi Manual', 'group_name' => 'Log Presensi'],
             ['name' => 'attendance.koreksi', 'label' => 'Koreksi Jam Presensi', 'group_name' => 'Log Presensi'],
             ['name' => 'attendance.delete', 'label' => 'Hapus Log Presensi', 'group_name' => 'Log Presensi'],
 
             ['name' => 'permissions.view', 'label' => 'Lihat Izin & Lembur', 'group_name' => 'Izin & Lembur'],
+            ['name' => 'permissions.preview', 'label' => 'Lihat Lampiran Bukti Izin', 'group_name' => 'Izin & Lembur'],
             ['name' => 'permissions.create', 'label' => 'Buat Izin & Lembur', 'group_name' => 'Izin & Lembur'],
             ['name' => 'permissions.update', 'label' => 'Ubah Izin & Lembur', 'group_name' => 'Izin & Lembur'],
             ['name' => 'permissions.approve', 'label' => 'Setujui Izin & Lembur', 'group_name' => 'Izin & Lembur'],
@@ -33,15 +36,24 @@ class AccessSeeder extends Seeder
             ['name' => 'employees.update', 'label' => 'Ubah Data Karyawan', 'group_name' => 'Data Karyawan'],
             ['name' => 'employees.delete', 'label' => 'Hapus Data Karyawan', 'group_name' => 'Data Karyawan'],
             ['name' => 'employees.sync_cloud', 'label' => 'Sinkronisasi Mesin Cloud', 'group_name' => 'Data Karyawan'],
+            ['name' => 'employees.export', 'label' => 'Ekspor Data Karyawan (CSV)', 'group_name' => 'Data Karyawan'],
 
             ['name' => 'payroll.view', 'label' => 'Lihat Data Penggajian', 'group_name' => 'Penggajian'],
+            ['name' => 'payroll.allowance_detail', 'label' => 'Lihat Rincian Kompensasi (Tunjangan & Lembur)', 'group_name' => 'Penggajian'],
+            ['name' => 'payroll.deduction_detail', 'label' => 'Lihat Rincian Potongan & Denda', 'group_name' => 'Penggajian'],
+            ['name' => 'payroll.attendance_detail', 'label' => 'Lihat Rincian Presensi & Riwayat Telat', 'group_name' => 'Penggajian'],
+            ['name' => 'payroll.dispense', 'label' => 'Berikan & Cabut Dispensasi Denda', 'group_name' => 'Penggajian'],
+            ['name' => 'payroll.slip_detail', 'label' => 'Lihat Halaman Detail Slip Gaji', 'group_name' => 'Penggajian'],
             ['name' => 'payroll.pay', 'label' => 'Bayar & Cairkan Gaji', 'group_name' => 'Penggajian'],
             ['name' => 'payroll.recalculate', 'label' => 'Kalkulasi Ulang Gaji', 'group_name' => 'Penggajian'],
-            ['name' => 'payroll.export', 'label' => 'Cetak & Unduh Slip Gaji PDF', 'group_name' => 'Penggajian'],
+            ['name' => 'payroll.export', 'label' => 'Ekspor Data Payroll (CSV)', 'group_name' => 'Penggajian'],
+            ['name' => 'payroll.export_pdf', 'label' => 'Pratinjau, Cetak & Unduh Slip Gaji PDF', 'group_name' => 'Penggajian'],
 
             ['name' => 'master_payroll.view', 'label' => 'Lihat Master Penggajian', 'group_name' => 'Master Penggajian'],
             ['name' => 'master_payroll.create', 'label' => 'Tambah Master Penggajian', 'group_name' => 'Master Penggajian'],
-            ['name' => 'master_payroll.update', 'label' => 'Ubah Master Penggajian', 'group_name' => 'Master Penggajian'],
+            ['name' => 'master_payroll.update', 'label' => 'Ubah Golongan & Komponen Gaji', 'group_name' => 'Master Penggajian'],
+            ['name' => 'master_payroll.employee_salary', 'label' => 'Atur Gaji Karyawan Khusus', 'group_name' => 'Master Penggajian'],
+            ['name' => 'master_payroll.reset_salary', 'label' => 'Reset Gaji Karyawan ke Standar', 'group_name' => 'Master Penggajian'],
             ['name' => 'master_payroll.delete', 'label' => 'Hapus Master Penggajian', 'group_name' => 'Master Penggajian'],
 
             ['name' => 'master_tindakan.view', 'label' => 'Lihat Master Tindakan HR', 'group_name' => 'Master Tindakan HR'],
@@ -56,22 +68,27 @@ class AccessSeeder extends Seeder
             ['name' => 'late_rules.create', 'label' => 'Tambah Aturan Keterlambatan', 'group_name' => 'Aturan Keterlambatan'],
             ['name' => 'late_rules.update', 'label' => 'Ubah Aturan Keterlambatan', 'group_name' => 'Aturan Keterlambatan'],
             ['name' => 'late_rules.delete', 'label' => 'Hapus Aturan Keterlambatan', 'group_name' => 'Aturan Keterlambatan'],
+            ['name' => 'late_rules.exemption', 'label' => 'Kelola Karyawan Khusus (Bebas Denda & Lembur)', 'group_name' => 'Aturan Keterlambatan'],
 
             ['name' => 'overtime_rules.view', 'label' => 'Lihat Aturan Lembur', 'group_name' => 'Aturan Lembur'],
             ['name' => 'overtime_rules.create', 'label' => 'Tambah Aturan Lembur', 'group_name' => 'Aturan Lembur'],
             ['name' => 'overtime_rules.update', 'label' => 'Ubah Aturan Lembur', 'group_name' => 'Aturan Lembur'],
             ['name' => 'overtime_rules.delete', 'label' => 'Hapus Aturan Lembur', 'group_name' => 'Aturan Lembur'],
 
-            ['name' => 'reports.view', 'label' => 'Lihat Laporan Presensi', 'group_name' => 'Laporan Presensi'],
-            ['name' => 'reports.export', 'label' => 'Ekspor Rekap Laporan PDF & Excel', 'group_name' => 'Laporan Presensi'],
+            ['name' => 'reports.view', 'label' => 'Lihat Rekap Laporan Presensi', 'group_name' => 'Laporan Presensi'],
+            ['name' => 'reports.employee_detail', 'label' => 'Lihat Rincian Laporan Per Karyawan', 'group_name' => 'Laporan Presensi'],
+            ['name' => 'reports.export_excel', 'label' => 'Ekspor Excel Laporan Presensi', 'group_name' => 'Laporan Presensi'],
+            ['name' => 'reports.export', 'label' => 'Pratinjau & Cetak PDF Laporan', 'group_name' => 'Laporan Presensi'],
 
-            ['name' => 'settings.view', 'label' => 'Lihat Aturan Kerja & Hari Libur', 'group_name' => 'Aturan Kerja & Lembur'],
-            ['name' => 'settings.update', 'label' => 'Ubah Aturan Kerja & Hari Libur', 'group_name' => 'Aturan Kerja & Lembur'],
+            ['name' => 'settings.view', 'label' => 'Lihat Jam Kerja & Hari Libur', 'group_name' => 'Aturan Kerja & Lembur'],
+            ['name' => 'settings.update', 'label' => 'Ubah Jam Kerja Operasional', 'group_name' => 'Aturan Kerja & Lembur'],
+            ['name' => 'settings.holidays', 'label' => 'Kelola Hari Libur & Tanggal Merah', 'group_name' => 'Aturan Kerja & Lembur'],
 
             ['name' => 'devices.view', 'label' => 'Lihat Mesin Sidik Jari', 'group_name' => 'Mesin Sidik Jari'],
             ['name' => 'devices.update', 'label' => 'Ubah Pengaturan Mesin', 'group_name' => 'Mesin Sidik Jari'],
             ['name' => 'devices.ping', 'label' => 'Ping Mesin Sidik Jari', 'group_name' => 'Mesin Sidik Jari'],
-            ['name' => 'devices.sync', 'label' => 'Sinkronisasi Mesin Sidik Jari', 'group_name' => 'Mesin Sidik Jari'],
+            ['name' => 'devices.sync', 'label' => 'Sinkronisasi Log Absensi Mesin', 'group_name' => 'Mesin Sidik Jari'],
+            ['name' => 'devices.sync_users', 'label' => 'Sinkron Data Karyawan Mesin', 'group_name' => 'Mesin Sidik Jari'],
 
             ['name' => 'master_akun.view', 'label' => 'Lihat Master Akun', 'group_name' => 'Master Akun'],
             ['name' => 'master_akun.create', 'label' => 'Tambah Akun Pengguna', 'group_name' => 'Master Akun'],
@@ -87,12 +104,14 @@ class AccessSeeder extends Seeder
             ['name' => 'hak_akses.update', 'label' => 'Ubah Matriks Hak Akses', 'group_name' => 'Matriks Hak Akses'],
         ];
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        DB::table('app_permissions')->truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        $permissionNames = array_column($permissions, 'name');
+        AppPermission::whereNotIn('name', $permissionNames)->delete();
 
         foreach ($permissions as $p) {
-            AppPermission::create($p);
+            AppPermission::updateOrCreate(
+                ['name' => $p['name']],
+                ['label' => $p['label'], 'group_name' => $p['group_name']]
+            );
         }
 
         $superAdminRole = Role::updateOrCreate(
@@ -166,13 +185,24 @@ class AccessSeeder extends Seeder
 
         $direksiPermNames = [
             'dashboard.view',
+            'dashboard.drilldown',
             'attendance.view',
+            'attendance.late_detail',
             'permissions.view',
+            'permissions.preview',
             'permissions.approve',
             'employees.view',
+            'employees.export',
             'payroll.view',
+            'payroll.allowance_detail',
+            'payroll.deduction_detail',
+            'payroll.attendance_detail',
+            'payroll.slip_detail',
             'payroll.export',
+            'payroll.export_pdf',
             'reports.view',
+            'reports.employee_detail',
+            'reports.export_excel',
             'reports.export',
             'employee_hr_actions.view',
         ];
@@ -182,11 +212,14 @@ class AccessSeeder extends Seeder
 
         $hrdPermNames = [
             'dashboard.view',
+            'dashboard.drilldown',
             'attendance.view',
+            'attendance.late_detail',
             'attendance.fetch',
             'attendance.manual',
             'attendance.koreksi',
             'permissions.view',
+            'permissions.preview',
             'permissions.create',
             'permissions.update',
             'permissions.approve',
@@ -195,6 +228,7 @@ class AccessSeeder extends Seeder
             'employees.create',
             'employees.update',
             'employees.sync_cloud',
+            'employees.export',
             'master_tindakan.view',
             'master_tindakan.create',
             'master_tindakan.update',
@@ -203,16 +237,21 @@ class AccessSeeder extends Seeder
             'late_rules.view',
             'late_rules.create',
             'late_rules.update',
+            'late_rules.exemption',
             'overtime_rules.view',
             'overtime_rules.create',
             'overtime_rules.update',
             'reports.view',
+            'reports.employee_detail',
+            'reports.export_excel',
             'reports.export',
             'settings.view',
             'settings.update',
+            'settings.holidays',
             'devices.view',
             'devices.ping',
             'devices.sync',
+            'devices.sync_users',
             'master_akun.view',
         ];
         $hrdRole->permissions()->sync(
@@ -222,14 +261,25 @@ class AccessSeeder extends Seeder
         $financePermNames = [
             'dashboard.view',
             'payroll.view',
+            'payroll.allowance_detail',
+            'payroll.deduction_detail',
+            'payroll.attendance_detail',
+            'payroll.dispense',
+            'payroll.slip_detail',
             'payroll.pay',
             'payroll.recalculate',
             'payroll.export',
+            'payroll.export_pdf',
             'master_payroll.view',
             'master_payroll.create',
             'master_payroll.update',
+            'master_payroll.employee_salary',
+            'master_payroll.reset_salary',
             'employees.view',
+            'employees.export',
             'reports.view',
+            'reports.employee_detail',
+            'reports.export_excel',
             'reports.export',
         ];
         $financeRole->permissions()->sync(
@@ -239,10 +289,13 @@ class AccessSeeder extends Seeder
         $supervisorPermNames = [
             'dashboard.view',
             'attendance.view',
+            'attendance.late_detail',
             'permissions.view',
+            'permissions.preview',
             'permissions.create',
             'permissions.approve',
             'reports.view',
+            'reports.employee_detail',
         ];
         $supervisorRole->permissions()->sync(
             AppPermission::whereIn('name', $supervisorPermNames)->pluck('id')->toArray()

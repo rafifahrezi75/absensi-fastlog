@@ -22,9 +22,18 @@ import {
 import ModalPreview from './Components/ModalPreview';
 import ModalCreatePermission from './Components/ModalCreatePermission';
 import api from '../../../lib/api';
+import { useAuth } from '../../../Contexts/AuthContext';
 import { showSuccess, showError, showConfirm } from '../../../lib/swal';
 
 const Permissions = () => {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission('permissions.create');
+  const canUpdate = hasPermission('permissions.update');
+  const canApprove = hasPermission('permissions.approve');
+  const canReject = hasPermission('permissions.reject');
+  const canDelete = hasPermission('permissions.delete');
+  const canPreview = hasPermission('permissions.preview');
+  const hasRowActions = canApprove || canReject || canUpdate || canDelete;
   const [permissions, setPermissions] = useState([]);
   const [stats, setStats] = useState({
     pending: 0,
@@ -265,8 +274,10 @@ const Permissions = () => {
 
   useEffect(() => {
     loadData();
-    loadEmployees();
-  }, [loadData, loadEmployees]);
+    if (canCreate) {
+      loadEmployees();
+    }
+  }, [loadData, loadEmployees, canCreate]);
 
   useEffect(() => {
     if (notif) {
@@ -635,14 +646,16 @@ const Permissions = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Segarkan</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer shadow-sm whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Pengajuan</span>
-          </button>
+          {canCreate && (
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition cursor-pointer shadow-sm whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Pengajuan</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -735,13 +748,15 @@ const Permissions = () => {
                 <th scope="col" className="px-6 py-3.5 font-semibold">Waktu / Durasi</th>
                 <th scope="col" className="px-6 py-3.5 font-semibold">Keterangan</th>
                 <th scope="col" className="px-6 py-3.5 font-semibold text-center">Status</th>
-                <th scope="col" className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                {hasRowActions && (
+                  <th scope="col" className="px-6 py-3.5 font-semibold text-center">Aksi</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="py-16 text-center">
+                  <td colSpan={hasRowActions ? 7 : 6} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                       <p className="text-sm font-medium text-slate-600">Memuat data izin dan lembur...</p>
@@ -792,7 +807,7 @@ const Permissions = () => {
                           Belum ada keterangan
                         </span>
                       )}
-                      {item.attachment && (
+                      {item.attachment && canPreview && (
                         <div>
                           <button
                             type="button"
@@ -808,10 +823,10 @@ const Permissions = () => {
                     <td className="px-6 py-4 text-center whitespace-nowrap">
                       {renderStatusBadge(item.status)}
                     </td>
-                    <td className="px-6 py-4 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {['menunggu', 'pending'].includes(item.status) ? (
-                          <>
+                    {hasRowActions && (
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {['menunggu', 'pending'].includes(item.status) && canApprove && (
                             <button
                               type="button"
                               onClick={() => openActionModal(item, 'approve')}
@@ -820,6 +835,8 @@ const Permissions = () => {
                             >
                               <Check className="w-4 h-4" />
                             </button>
+                          )}
+                          {['menunggu', 'pending'].includes(item.status) && canReject && (
                             <button
                               type="button"
                               onClick={() => openActionModal(item, 'reject')}
@@ -828,6 +845,8 @@ const Permissions = () => {
                             >
                               <X className="w-4 h-4" />
                             </button>
+                          )}
+                          {canUpdate && (
                             <button
                               type="button"
                               onClick={() => openEditModal(item)}
@@ -836,46 +855,25 @@ const Permissions = () => {
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
-                            {(item.category || '').toLowerCase() !== 'lembur' && item.source !== 'overtime' && (
-                              <button
-                                type="button"
-                                onClick={() => openDeleteModal(item)}
-                                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                                title="Hapus Data"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <>
+                          )}
+                          {canDelete && (item.category || '').toLowerCase() !== 'lembur' && item.source !== 'overtime' && (
                             <button
                               type="button"
-                              onClick={() => openEditModal(item)}
-                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition cursor-pointer"
-                              title="Edit Detail"
+                              onClick={() => openDeleteModal(item)}
+                              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
+                              title="Hapus Data"
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
-                            {(item.category || '').toLowerCase() !== 'lembur' && item.source !== 'overtime' && (
-                              <button
-                                type="button"
-                                onClick={() => openDeleteModal(item)}
-                                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition cursor-pointer"
-                                title="Hapus Data"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-16 text-center">
+                  <td colSpan={hasRowActions ? 7 : 6} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
                         <Inbox className="w-7 h-7 text-slate-300" />
@@ -1267,7 +1265,9 @@ const Permissions = () => {
         }}
       />
 
-      <ModalPreview isOpen={modalData.isOpen} onClose={closeModalPreview} data={modalData} />
+      {canPreview && (
+        <ModalPreview isOpen={modalData.isOpen} onClose={closeModalPreview} data={modalData} />
+      )}
     </div>
   );
 };
