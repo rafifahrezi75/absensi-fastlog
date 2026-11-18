@@ -21,10 +21,6 @@ class UserPermissionController extends Controller
 {
     protected function getOrCreateUserEmployee($user): ?Employee
     {
-        if ($user->role === 'admin') {
-            return null;
-        }
-
         if ($user->employee) {
             return $user->employee;
         }
@@ -38,6 +34,10 @@ class UserPermissionController extends Controller
                 $employee->update(['user_id' => $user->id]);
             }
             return $employee;
+        }
+
+        if ($user->role === 'admin') {
+            return null;
         }
 
         return Employee::create([

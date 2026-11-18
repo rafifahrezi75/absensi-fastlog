@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Clock, LogOut, Menu, User, Bell, Check, FileText, AlertCircle, ShieldAlert, Wallet } from 'lucide-react';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { LayoutGrid, Clock, LogOut, Menu, User, Bell, Check, FileText, AlertCircle, ShieldAlert, Wallet, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
 import api from '../lib/api';
@@ -13,7 +13,7 @@ const UserLayout = () => {
     const [notifications, setNotifications] = useState([]);
     const notificationRef = useRef(null);
 
-    const { user, logout } = useAuth();
+    const { user, logout, canSwitchMode } = useAuth();
     const navigate = useNavigate();
 
     const fetchNotifications = async () => {
@@ -221,7 +221,18 @@ const UserLayout = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        {canSwitchMode && canSwitchMode() && (
+                            <Link
+                                to="/admin"
+                                className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-200 shadow-sm"
+                                title="Beralih ke Panel Admin"
+                            >
+                                <ShieldCheck className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+                                <span>Admin</span>
+                            </Link>
+                        )}
+
                         <div className="relative" ref={notificationRef}>
                             <button
                                 onClick={() => setShowNotifications(!showNotifications)}

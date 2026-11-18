@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
     X, LayoutDashboard, Clock, FileCheck2,
     Users, Wallet, FileBarChart, Cpu, Settings, LogOut, PanelLeft, Bell,
-    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers, ChevronDown, ChevronRight, CalendarClock, ShieldCheck
+    Check, AlertCircle, FileText, UserCheck, ShieldAlert, UserCog, Layers, ChevronDown, ChevronRight, CalendarClock, ShieldCheck, User
 } from 'lucide-react';
 import { useAuth } from '../Contexts/AuthContext';
 import LogoutModal from '../Components/LogoutModal';
@@ -14,7 +14,7 @@ const AdminLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const { user, logout, hasPermission } = useAuth();
+    const { user, logout, hasPermission, canSwitchMode } = useAuth();
     const location = useLocation();
     const isPayrollPath = location.pathname.startsWith('/admin/payroll') || location.pathname.startsWith('/admin/master-payroll');
     const [payrollMenuOpen, setPayrollMenuOpen] = useState(isPayrollPath);
@@ -350,9 +350,19 @@ const AdminLayout = () => {
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
 
-                        {/* ================= NOTIFICATION DROPDOWN ================= */}
+                        {canSwitchMode && canSwitchMode() && (
+                            <Link
+                                to="/user/home"
+                                className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-orange-50 text-[#FF7A3D] border border-orange-200 hover:bg-[#FF7A3D] hover:text-white hover:border-[#FF7A3D] transition-all duration-200 shadow-sm"
+                                title="Beralih ke Portal Karyawan"
+                            >
+                                <User className="w-3.5 h-3.5 text-[#FF7A3D] group-hover:text-white transition-colors" />
+                                <span>Karyawan</span>
+                            </Link>
+                        )}
+
                         <div className="relative" ref={notificationRef}>
                             <button
                                 onClick={toggleNotifications}

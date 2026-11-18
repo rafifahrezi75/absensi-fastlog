@@ -3,15 +3,19 @@ import { X, ShieldCheck } from 'lucide-react';
 import api from '../../../../lib/api';
 
 const ModalAkun = ({ isOpen, onClose, onSubmit, editing, processing }) => {
-    const [data, setData] = useState({ name: '', email: '', password: '', role: 'user', role_ids: [] });
+    const [data, setData] = useState({ name: '', email: '', password: '', role: 'user', role_ids: [], employee_id: '' });
     const [errors, setErrors] = useState({});
     const [showPassword, setShowPassword] = useState(false);
     const [availableRoles, setAvailableRoles] = useState([]);
+    const [availableEmployees, setAvailableEmployees] = useState([]);
 
     useEffect(() => {
         if (isOpen) {
             api.get('/api/admin/roles').then(res => {
                 setAvailableRoles(res.data.roles || []);
+            }).catch(() => {});
+            api.get('/api/admin/employees').then(res => {
+                setAvailableEmployees(res.data.employees || []);
             }).catch(() => {});
         }
     }, [isOpen]);
@@ -27,7 +31,8 @@ const ModalAkun = ({ isOpen, onClose, onSubmit, editing, processing }) => {
                     email: editing.email || '',
                     password: '',
                     role: editing.role || 'user',
-                    role_ids: initialRoleIds
+                    role_ids: initialRoleIds,
+                    employee_id: editing.employee?.id ? String(editing.employee.id) : ''
                 });
             } else {
                 setData({
@@ -35,7 +40,8 @@ const ModalAkun = ({ isOpen, onClose, onSubmit, editing, processing }) => {
                     email: '',
                     password: '',
                     role: 'user',
-                    role_ids: []
+                    role_ids: [],
+                    employee_id: ''
                 });
             }
         }
@@ -152,6 +158,23 @@ const ModalAkun = ({ isOpen, onClose, onSubmit, editing, processing }) => {
                                 </button>
                             </div>
                             {errors.password && <span className="text-[10px] text-rose-600 mt-1 block">{errors.password[0]}</span>}
+                        </div>
+
+                        <div>
+                            <label className="block font-medium text-slate-700 mb-1">Tautkan ke Data Karyawan (Opsional)</label>
+                            <select
+                                value={data.employee_id}
+                                onChange={(e) => setFormData('employee_id', e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-[#FF7A3D] focus:outline-none"
+                            >
+                                <option value="">-- Tidak Terhubung ke Karyawan --</option>
+                                {availableEmployees.map(emp => (
+                                    <option key={emp.id} value={emp.id}>
+                                        {emp.nik ? `${emp.nik} - ` : ''}{emp.nama} ({emp.dept || 'Umum'} / {emp.jabatan || 'Staff'})
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.employee_id && <span className="text-[10px] text-rose-600 mt-1 block">{errors.employee_id[0]}</span>}
                         </div>
 
                         <div>

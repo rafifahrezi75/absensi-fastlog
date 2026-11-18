@@ -317,12 +317,12 @@ class PayrollController extends Controller
     public function userSlip(Request $request): JsonResponse
     {
         $user = $request->user();
-        $employee = Employee::nonAdmin()->with('salaryGrade')
+        $employee = $user->employee ?: Employee::with('salaryGrade')
             ->where('user_id', $user->id)
             ->first();
 
-        if (!$employee && $user->email) {
-            $employee = Employee::nonAdmin()->with('salaryGrade')
+        if (!$employee && $user->name) {
+            $employee = Employee::with('salaryGrade')
                 ->where('nama', $user->name)
                 ->first();
         }

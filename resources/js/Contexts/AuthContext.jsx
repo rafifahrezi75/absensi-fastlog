@@ -69,8 +69,25 @@ export const AuthProvider = ({ children }) => {
         return roles.includes(role);
     };
 
+    const hasAdminAccess = () => {
+        if (!user) return false;
+        return user.role === 'admin'
+            || hasRole('super_admin')
+            || (roles && roles.some(r => r !== 'karyawan'))
+            || (permissions && permissions.length > 0);
+    };
+
+    const isAssignedKaryawan = () => {
+        if (!user) return false;
+        return Boolean(user.employee) || hasRole('karyawan');
+    };
+
+    const canSwitchMode = () => {
+        return Boolean(user) && hasAdminAccess() && isAssignedKaryawan();
+    };
+
     return (
-        <AuthContext.Provider value={{ user, roles, permissions, hasPermission, hasRole, refreshAuth, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, roles, permissions, hasPermission, hasRole, hasAdminAccess, isAssignedKaryawan, canSwitchMode, refreshAuth, loading, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

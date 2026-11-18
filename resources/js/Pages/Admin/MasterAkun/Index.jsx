@@ -233,7 +233,14 @@ const MasterAkun = () => {
                                                 <div className="w-9 h-9 rounded-full bg-[#052B35]/10 text-[#052B35] font-bold flex items-center justify-center text-xs">
                                                     {user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                                                 </div>
-                                                <div className="font-semibold text-sm">{user.name || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
+                                                <div>
+                                                    <div className="font-semibold text-sm">{user.name || <span className="text-slate-300 italic font-normal">Nama tidak tersedia</span>}</div>
+                                                    {user.employee && (
+                                                        <span className="inline-flex items-center gap-1 text-[10px] text-orange-600 font-medium bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100 mt-0.5">
+                                                            Karyawan: {user.employee.nama} ({user.employee.nik || user.employee.pin || 'Terkait'})
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-xs font-medium text-slate-800 whitespace-nowrap">{user.email || <span className="text-slate-300 italic">-</span>}</td>

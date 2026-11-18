@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -12,7 +13,7 @@ class AkunController extends Controller
 {
     public function index()
     {
-        $users = User::with('roles')->latest()->get();
+        $users = User::with(['roles', 'employee'])->latest()->get();
 
         return response()->json([
             'users' => $users,
@@ -28,6 +29,7 @@ class AkunController extends Controller
             'role' => ['nullable', Rule::in(['admin', 'user'])],
             'role_ids' => ['nullable', 'array'],
             'role_ids.*' => ['integer', 'exists:roles,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
         ]);
 
         $userData = [
@@ -43,9 +45,16 @@ class AkunController extends Controller
             $user->roles()->sync($validated['role_ids']);
         }
 
+        if (array_key_exists('employee_id', $validated)) {
+            Employee::where('user_id', $user->id)->update(['user_id' => null]);
+            if ($validated['employee_id']) {
+                Employee::where('id', $validated['employee_id'])->update(['user_id' => $user->id]);
+            }
+        }
+
         return response()->json([
             'message' => 'Akun berhasil ditambahkan.',
-            'user' => $user->load('roles'),
+            'user' => $user->load(['roles', 'employee']),
         ], 201);
     }
 
@@ -59,6 +68,7 @@ class AkunController extends Controller
             'role' => ['nullable', Rule::in(['admin', 'user'])],
             'role_ids' => ['nullable', 'array'],
             'role_ids.*' => ['integer', 'exists:roles,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
         ];
 
         if ($request->filled('password')) {
@@ -86,9 +96,16 @@ class AkunController extends Controller
             $user->roles()->sync($validated['role_ids']);
         }
 
+        if (array_key_exists('employee_id', $validated)) {
+            Employee::where('user_id', $user->id)->where('id', '!=', $validated['employee_id'] ?? 0)->update(['user_id' => null]);
+            if ($validated['employee_id']) {
+                Employee::where('id', $validated['employee_id'])->update(['user_id' => $user->id]);
+            }
+        }
+
         return response()->json([
             'message' => 'Akun berhasil diperbarui.',
-            'user' => $user->load('roles'),
+            'user' => $user->load(['roles', 'employee']),
         ]);
     }
 
