@@ -11,15 +11,21 @@ class AdminUserSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         User::updateOrCreate(
             ['email' => 'admin@fastlogem.co.id'],
             [
                 'name' => 'Admin Utama',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'bizdev@fastlogem.co.id'],
+            [
+                'name' => 'Rafi Pratama (BizDev)',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
             ]

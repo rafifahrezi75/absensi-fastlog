@@ -104,9 +104,6 @@ class AccessSeeder extends Seeder
             ['name' => 'hak_akses.update', 'label' => 'Ubah Matriks Hak Akses', 'group_name' => 'Matriks Hak Akses'],
         ];
 
-        $permissionNames = array_column($permissions, 'name');
-        AppPermission::whereNotIn('name', $permissionNames)->delete();
-
         foreach ($permissions as $p) {
             AppPermission::updateOrCreate(
                 ['name' => $p['name']],
@@ -117,52 +114,74 @@ class AccessSeeder extends Seeder
         $superAdminRole = Role::updateOrCreate(
             ['name' => 'super_admin'],
             [
-                'label' => 'Super Admin',
-                'description' => 'Akses penuh ke seluruh modul sistem, hak akses, dan konfigurasi master.',
+                'label' => 'Super Admin / BizDev',
+                'description' => 'Akses penuh seluruh 74 permissions sistem FastLog.',
                 'is_system' => true,
                 'is_active' => true,
                 'show_in_matrix' => true,
             ]
         );
 
-        $direksiRole = Role::updateOrCreate(
-            ['name' => 'direksi'],
+        $dirutRole = Role::updateOrCreate(
+            ['name' => 'direktur_utama'],
             [
-                'label' => 'Direksi / Pimpinan',
-                'description' => 'Akses pengawasan eksekutif: dasbor, presensi, persetujuan izin, laporan, dan penggajian.',
+                'label' => 'Direktur Utama',
+                'description' => 'Pimpinan eksekutif: Dasbor KPI, drilldown, tindakan HR, rekap payroll, dan laporan eksekutif.',
                 'is_system' => true,
                 'is_active' => true,
                 'show_in_matrix' => true,
             ]
         );
 
-        $hrdRole = Role::updateOrCreate(
-            ['name' => 'hrd'],
+        $dirFinanceRole = Role::updateOrCreate(
+            ['name' => 'direktur_finance'],
             [
-                'label' => 'HRD & General Affair',
-                'description' => 'Pengelolaan data pegawai, monitoring absensi, verifikasi izin, aturan kerja, dan tindakan kedisiplinan.',
+                'label' => 'Direktur Finance & Accounting',
+                'description' => 'Direksi keuangan: Penggajian penuh, master payroll, aturan denda/lembur, dan laporan finansial.',
                 'is_system' => true,
                 'is_active' => true,
                 'show_in_matrix' => true,
             ]
         );
 
-        $financeRole = Role::updateOrCreate(
-            ['name' => 'finance'],
+        $dirOpsMktRole = Role::updateOrCreate(
+            ['name' => 'direktur_ops_mkt'],
             [
-                'label' => 'Finance & Payroll',
-                'description' => 'Pengelolaan kompensasi, master gaji, kalkulasi payroll bulanan, dan pencairan gaji pegawai.',
+                'label' => 'Direktur Operasional & Marketing',
+                'description' => 'Direksi operasional & marketing: Dasbor, presensi, izin/lembur, tindakan HR, aturan kerja, dan laporan.',
                 'is_system' => true,
                 'is_active' => true,
                 'show_in_matrix' => true,
             ]
         );
 
-        $supervisorRole = Role::updateOrCreate(
-            ['name' => 'supervisor_ops'],
+        $gmRole = Role::updateOrCreate(
+            ['name' => 'general_manager'],
             [
-                'label' => 'Supervisor Operasional',
-                'description' => 'Pengawasan kehadiran lapangan, pemantauan anomali, dan rekomendasi lembur regu kerja.',
+                'label' => 'General Manager',
+                'description' => 'Manajemen lintas divisi: Dasbor, monitoring presensi, approval izin manajerial, tindakan HR, dan laporan.',
+                'is_system' => true,
+                'is_active' => true,
+                'show_in_matrix' => true,
+            ]
+        );
+
+        $spvFinanceRole = Role::updateOrCreate(
+            ['name' => 'spv_finance'],
+            [
+                'label' => 'Supervisor Finance & Accounting',
+                'description' => 'Supervisi penggajian: Operasional payroll, master payroll, denda, lembur, dan rekapitulasi gaji.',
+                'is_system' => true,
+                'is_active' => true,
+                'show_in_matrix' => true,
+            ]
+        );
+
+        $spvOpsRole = Role::updateOrCreate(
+            ['name' => 'spv_operasional'],
+            [
+                'label' => 'Supervisor Operasional, CS & GA',
+                'description' => 'Supervisi lapangan: Log presensi, koreksi presensi, approval izin/lembur, tindakan HR, dan ping mesin IoT.',
                 'is_system' => true,
                 'is_active' => true,
                 'show_in_matrix' => true,
@@ -183,11 +202,12 @@ class AccessSeeder extends Seeder
         $allPermissionIds = AppPermission::pluck('id')->toArray();
         $superAdminRole->permissions()->sync($allPermissionIds);
 
-        $direksiPermNames = [
+        $dirutPermNames = [
             'dashboard.view',
             'dashboard.drilldown',
             'attendance.view',
             'attendance.late_detail',
+            'attendance.export',
             'permissions.view',
             'permissions.preview',
             'permissions.approve',
@@ -198,68 +218,37 @@ class AccessSeeder extends Seeder
             'payroll.deduction_detail',
             'payroll.attendance_detail',
             'payroll.slip_detail',
-            'payroll.export',
             'payroll.export_pdf',
-            'reports.view',
-            'reports.employee_detail',
-            'reports.export_excel',
-            'reports.export',
-            'employee_hr_actions.view',
-        ];
-        $direksiRole->permissions()->sync(
-            AppPermission::whereIn('name', $direksiPermNames)->pluck('id')->toArray()
-        );
-
-        $hrdPermNames = [
-            'dashboard.view',
-            'dashboard.drilldown',
-            'attendance.view',
-            'attendance.late_detail',
-            'attendance.fetch',
-            'attendance.manual',
-            'attendance.koreksi',
-            'permissions.view',
-            'permissions.preview',
-            'permissions.create',
-            'permissions.update',
-            'permissions.approve',
-            'permissions.reject',
-            'employees.view',
-            'employees.create',
-            'employees.update',
-            'employees.sync_cloud',
-            'employees.export',
+            'master_payroll.view',
             'master_tindakan.view',
             'master_tindakan.create',
             'master_tindakan.update',
+            'master_tindakan.delete',
             'employee_hr_actions.view',
             'employee_hr_actions.create',
             'late_rules.view',
-            'late_rules.create',
-            'late_rules.update',
-            'late_rules.exemption',
             'overtime_rules.view',
-            'overtime_rules.create',
-            'overtime_rules.update',
             'reports.view',
             'reports.employee_detail',
             'reports.export_excel',
             'reports.export',
             'settings.view',
-            'settings.update',
-            'settings.holidays',
             'devices.view',
-            'devices.ping',
-            'devices.sync',
-            'devices.sync_users',
             'master_akun.view',
+            'master_role.view',
+            'hak_akses.view',
         ];
-        $hrdRole->permissions()->sync(
-            AppPermission::whereIn('name', $hrdPermNames)->pluck('id')->toArray()
+        $dirutRole->permissions()->sync(
+            AppPermission::whereIn('name', $dirutPermNames)->pluck('id')->toArray()
         );
 
-        $financePermNames = [
+        $dirFinancePermNames = [
             'dashboard.view',
+            'attendance.view',
+            'permissions.view',
+            'permissions.preview',
+            'employees.view',
+            'employees.export',
             'payroll.view',
             'payroll.allowance_detail',
             'payroll.deduction_detail',
@@ -275,41 +264,190 @@ class AccessSeeder extends Seeder
             'master_payroll.update',
             'master_payroll.employee_salary',
             'master_payroll.reset_salary',
-            'employees.view',
-            'employees.export',
+            'master_payroll.delete',
+            'late_rules.view',
+            'late_rules.create',
+            'late_rules.update',
+            'late_rules.delete',
+            'late_rules.exemption',
+            'overtime_rules.view',
+            'overtime_rules.create',
+            'overtime_rules.update',
+            'overtime_rules.delete',
             'reports.view',
             'reports.employee_detail',
             'reports.export_excel',
             'reports.export',
+            'settings.view',
         ];
-        $financeRole->permissions()->sync(
-            AppPermission::whereIn('name', $financePermNames)->pluck('id')->toArray()
+        $dirFinanceRole->permissions()->sync(
+            AppPermission::whereIn('name', $dirFinancePermNames)->pluck('id')->toArray()
         );
 
-        $supervisorPermNames = [
+        $dirOpsMktPermNames = [
+            'dashboard.view',
+            'dashboard.drilldown',
+            'attendance.view',
+            'attendance.late_detail',
+            'attendance.export',
+            'permissions.view',
+            'permissions.preview',
+            'permissions.approve',
+            'permissions.reject',
+            'employees.view',
+            'master_tindakan.view',
+            'master_tindakan.create',
+            'master_tindakan.update',
+            'master_tindakan.delete',
+            'employee_hr_actions.view',
+            'employee_hr_actions.create',
+            'late_rules.view',
+            'overtime_rules.view',
+            'reports.view',
+            'reports.employee_detail',
+            'reports.export_excel',
+            'reports.export',
+            'settings.view',
+            'devices.view',
+        ];
+        $dirOpsMktRole->permissions()->sync(
+            AppPermission::whereIn('name', $dirOpsMktPermNames)->pluck('id')->toArray()
+        );
+
+        $gmPermNames = [
+            'dashboard.view',
+            'dashboard.drilldown',
+            'attendance.view',
+            'attendance.late_detail',
+            'attendance.export',
+            'permissions.view',
+            'permissions.preview',
+            'permissions.approve',
+            'permissions.reject',
+            'employees.view',
+            'payroll.view',
+            'master_payroll.view',
+            'master_tindakan.view',
+            'master_tindakan.create',
+            'master_tindakan.update',
+            'master_tindakan.delete',
+            'employee_hr_actions.view',
+            'employee_hr_actions.create',
+            'late_rules.view',
+            'overtime_rules.view',
+            'reports.view',
+            'reports.employee_detail',
+            'reports.export_excel',
+            'reports.export',
+            'settings.view',
+            'devices.view',
+        ];
+        $gmRole->permissions()->sync(
+            AppPermission::whereIn('name', $gmPermNames)->pluck('id')->toArray()
+        );
+
+        $spvFinancePermNames = [
+            'dashboard.view',
+            'attendance.view',
+            'permissions.view',
+            'permissions.preview',
+            'employees.view',
+            'payroll.view',
+            'payroll.allowance_detail',
+            'payroll.deduction_detail',
+            'payroll.attendance_detail',
+            'payroll.dispense',
+            'payroll.slip_detail',
+            'payroll.pay',
+            'payroll.recalculate',
+            'payroll.export',
+            'payroll.export_pdf',
+            'master_payroll.view',
+            'master_payroll.create',
+            'master_payroll.update',
+            'master_payroll.employee_salary',
+            'master_payroll.reset_salary',
+            'master_payroll.delete',
+            'late_rules.view',
+            'late_rules.create',
+            'late_rules.update',
+            'late_rules.delete',
+            'late_rules.exemption',
+            'overtime_rules.view',
+            'overtime_rules.create',
+            'overtime_rules.update',
+            'overtime_rules.delete',
+            'reports.view',
+            'reports.employee_detail',
+            'reports.export_excel',
+            'reports.export',
+            'settings.view',
+        ];
+        $spvFinanceRole->permissions()->sync(
+            AppPermission::whereIn('name', $spvFinancePermNames)->pluck('id')->toArray()
+        );
+
+        $spvOpsPermNames = [
             'dashboard.view',
             'attendance.view',
             'attendance.late_detail',
+            'attendance.manual',
+            'attendance.koreksi',
             'permissions.view',
             'permissions.preview',
-            'permissions.create',
             'permissions.approve',
+            'permissions.reject',
+            'employees.view',
+            'master_tindakan.view',
+            'employee_hr_actions.view',
+            'employee_hr_actions.create',
+            'late_rules.view',
+            'overtime_rules.view',
             'reports.view',
             'reports.employee_detail',
+            'settings.view',
+            'devices.view',
+            'devices.ping',
         ];
-        $supervisorRole->permissions()->sync(
-            AppPermission::whereIn('name', $supervisorPermNames)->pluck('id')->toArray()
+        $spvOpsRole->permissions()->sync(
+            AppPermission::whereIn('name', $spvOpsPermNames)->pluck('id')->toArray()
         );
 
         $karyawanRole->permissions()->sync([]);
 
-        $adminUsers = User::where('role', 'admin')->get();
-        foreach ($adminUsers as $adminUser) {
-            $adminUser->roles()->syncWithoutDetaching([$superAdminRole->id]);
+        $userRoleMap = [
+            'bizdev@fastlogem.co.id' => $superAdminRole->id,
+            'admin@fastlogem.co.id' => $superAdminRole->id,
+            'dirut@fastlogem.co.id' => $dirutRole->id,
+            'dir.finance@fastlogem.co.id' => $dirFinanceRole->id,
+            'dir.ops@fastlogem.co.id' => $dirOpsMktRole->id,
+            'gm@fastlogem.co.id' => $gmRole->id,
+            'spv.finance@fastlogem.co.id' => $spvFinanceRole->id,
+            'spv.ops@fastlogem.co.id' => $spvOpsRole->id,
+            'user@fastlogem.co.id' => $karyawanRole->id,
+            'staf.finance@fastlogem.co.id' => $karyawanRole->id,
+        ];
+
+        foreach ($userRoleMap as $email => $roleId) {
+            $user = User::where('email', $email)->first();
+            if ($user) {
+                $user->roles()->sync([$roleId]);
+            }
         }
 
-        $regularUsers = User::where('role', 'user')->get();
-        foreach ($regularUsers as $regularUser) {
+        $otherAdminUsers = User::where('role', 'admin')
+            ->whereNotIn('email', array_keys($userRoleMap))
+            ->get();
+        foreach ($otherAdminUsers as $adminUser) {
+            if ($adminUser->roles()->count() === 0) {
+                $adminUser->roles()->sync([$superAdminRole->id]);
+            }
+        }
+
+        $otherRegularUsers = User::where('role', 'user')
+            ->whereNotIn('email', array_keys($userRoleMap))
+            ->get();
+        foreach ($otherRegularUsers as $regularUser) {
             if ($regularUser->roles()->count() === 0) {
                 $regularUser->roles()->sync([$karyawanRole->id]);
             }
