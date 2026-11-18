@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             EmployeeUserSeeder::class,
             EmployeeSalarySeeder::class,
             MasterTindakanSeeder::class,
+            AccessSeeder::class,
         ]);
     }
 }
